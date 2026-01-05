@@ -1,0 +1,109 @@
+from typing import Dict, Any, Optional, BinaryIO
+from django.core.files.storage import default_storage
+from django.core.files.base import ContentFile
+from ...adapter import (
+    StorageProviderAdapter,
+    StorageUploadError,
+    StorageDownloadError,
+    StorageDeleteError,
+)
+import mimetypes
+
+class DjangoStorageAdapter(StorageProviderAdapter):
+    """
+    Storage provider that wraps Django's default storage system.
+    This allows using any backend supported by django-storages (S3, Azure, GCloud, etc.)
+    or the local filesystem, configured via standard Django settings.
+    """
+
+    def upload_file(
+        self,
+        file_path: str,
+        file_data: BinaryIO,
+        content_type: Optional[str] = None,
+        metadata: Optional[Dict[str, str]] = None,
+        public: bool = False
+    ) -> Dict[str, Any]:
+        try:
+            # Django storage saves the file and returns the name
+            saved_path = default_storage.save(file_path, file_data)
+            
+            # Try to get the URL, might fail for some backends
+            try:
+                url = default_storage.url(saved_path)
+            except NotImplementedError:
+                url = None
+
+            # Get size if possible
+            try:
+                size = default_storage.size(saved_path)
+            except NotImplementedError:
+                size = None
+
+            return {
+                "url": url,
+                "file_path": saved_path,
+                "size": size,
+                "content_type": content_type,
+                # Note: metadata support varies widely by backend in Django
+            }
+        except Exception as e:
+            raise StorageUploadError(f"Failed to upload file: {str(e)}") from e
+
+    def download_file(
+        self,
+        file_path: str,
+        destination: Optional[str] = None
+    ) -> bytes:
+        try:
+            with default_storage.open(file_path, 'rb') as f:
+                content = f.read()
+            
+            if destination:
+                with open(destination, 'wb') as f:
+                    f.write(content)
+            
+            return content
+        except Exception as e:
+            raise StorageDownloadError(f"Failed to download file: {str(e)}") from e
+
+    def delete_file(self, file_path: str) -> bool:
+        try:
+            if default_storage.exists(file_path):
+                default_storage.delete(file_path)
+                return True
+            return False
+        except Exception as e:
+            raise StorageDeleteError(f"Failed to delete file: {str(e)}") from e
+
+    def get_file_url(self, file_path: str, expiry_seconds: int = 3600) -> str:
+        try:
+            # Note: expiry_seconds might be ignored by some backends or require specific config
+            return default_storage.url(file_path)
+        except Exception as e:
+            # Fallback or re-raise depending on strictness needed
+            return ""
+
+    def list_files(self, prefix: str = "") -> Dict[str, Any]:
+        try:
+            directories, files = default_storage.listdir(prefix)
+            return {
+                "files": files,
+                "directories": directories
+            }
+        except Exception as e:
+             # Some backends don't support listing
+             return {"files": [], "directories": []}
+
+    def file_exists(self, file_path: str) -> bool:
+        return default_storage.exists(file_path)
+
+    def get_file_metadata(self, file_path: str) -> Dict[str, Any]:
+        try:
+            return {
+                "size": default_storage.size(file_path),
+                "modified_time": default_storage.get_modified_time(file_path),
+                "created_time": default_storage.get_created_time(file_path),
+            }
+        except Exception:
+            return {}
