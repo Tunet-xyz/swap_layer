@@ -1,9 +1,9 @@
 import unittest
 from unittest.mock import patch, MagicMock
 from django.conf import settings
-from infrastructure.email.factory import get_email_provider
-from infrastructure.email.adapter import EmailProviderAdapter
-from infrastructure.email.providers.django_email import DjangoEmailAdapter
+from email.factory import get_email_provider
+from email.adapter import EmailProviderAdapter
+from email.providers.django_email import DjangoEmailAdapter
 
 # Ensure settings are configured (idempotent)
 if not settings.configured:
@@ -22,7 +22,7 @@ class TestDjangoEmailProvider(unittest.TestCase):
     def setUp(self):
         self.provider = DjangoEmailAdapter()
 
-    @patch('infrastructure.email.providers.django_email.EmailMultiAlternatives')
+    @patch('email.providers.django_email.EmailMultiAlternatives')
     def test_send_email_success(self, mock_email_class):
         """Test successful email sending."""
         mock_msg = MagicMock()

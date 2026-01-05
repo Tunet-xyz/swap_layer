@@ -108,7 +108,7 @@ class S3StorageProvider(StorageProviderAdapter):
         destination: Optional[str] = None
     ) -> bytes:
         """Download a file from S3."""
-        from infrastructure.storage.adapter import StorageFileNotFoundError, StorageDownloadError
+        from storage.adapter import StorageFileNotFoundError, StorageDownloadError
         
         try:
             response = self.s3_client.get_object(
@@ -132,7 +132,7 @@ class S3StorageProvider(StorageProviderAdapter):
 
     def delete_file(self, file_path: str) -> Dict[str, Any]:
         """Delete a file from S3."""
-        from infrastructure.storage.adapter import StorageFileNotFoundError, StorageDeleteError
+        from storage.adapter import StorageFileNotFoundError, StorageDeleteError
         
         try:
             # Check if file exists first
@@ -168,7 +168,7 @@ class S3StorageProvider(StorageProviderAdapter):
 
     def get_file_metadata(self, file_path: str) -> Dict[str, Any]:
         """Get metadata for a file in S3."""
-        from infrastructure.storage.adapter import StorageFileNotFoundError
+        from storage.adapter import StorageFileNotFoundError
         from datetime import datetime
         
         try:
@@ -282,7 +282,7 @@ class S3StorageProvider(StorageProviderAdapter):
         destination_path: str
     ) -> Dict[str, Any]:
         """Copy a file within S3."""
-        from infrastructure.storage.adapter import StorageFileNotFoundError, StorageCopyError
+        from storage.adapter import StorageFileNotFoundError, StorageCopyError
         
         try:
             # Check if source file exists
@@ -317,7 +317,7 @@ class S3StorageProvider(StorageProviderAdapter):
         destination_path: str
     ) -> Dict[str, Any]:
         """Move/rename a file within S3."""
-        from infrastructure.storage.adapter import StorageFileNotFoundError, StorageMoveError
+        from storage.adapter import StorageFileNotFoundError, StorageMoveError
         
         try:
             # Copy the file first

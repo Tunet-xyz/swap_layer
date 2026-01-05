@@ -1,14 +1,14 @@
 import unittest
 from unittest.mock import MagicMock, patch, Mock
 from django.conf import settings
-from infrastructure.identity.verification.factory import get_identity_verification_provider
-from infrastructure.identity.verification.adapter import (
+from identity.verification.factory import get_identity_verification_provider
+from identity.verification.adapter import (
     IdentityVerificationProviderAdapter,
     IdentityVerificationError,
     IdentityVerificationValidationError,
     IdentityVerificationSessionNotFoundError,
 )
-from infrastructure.identity.verification.providers.stripe import StripeIdentityVerificationProvider
+from identity.verification.providers.stripe import StripeIdentityVerificationProvider
 
 # Configure minimal Django settings for testing
 if not settings.configured:
@@ -41,7 +41,7 @@ class TestStripeProvider(unittest.TestCase):
         self.mock_user.username = "testuser"
         self.mock_user.email = "test@example.com"
 
-    @patch('infrastructure.identity.verification.providers.stripe.stripe.identity.VerificationSession.create')
+    @patch('identity.verification.providers.stripe.stripe.identity.VerificationSession.create')
     def test_create_verification_session_success(self, mock_create):
         """Test successful verification session creation."""
         # Mock the Stripe API response
@@ -65,7 +65,7 @@ class TestStripeProvider(unittest.TestCase):
         self.assertEqual(result['status'], "requires_input")
         mock_create.assert_called_once()
 
-    @patch('infrastructure.identity.verification.providers.stripe.stripe.identity.VerificationSession.create')
+    @patch('identity.verification.providers.stripe.stripe.identity.VerificationSession.create')
     def test_create_session_with_error_handling(self, mock_create):
         """Test that Stripe errors are converted to custom exceptions."""
         import stripe
@@ -82,7 +82,7 @@ class TestStripeProvider(unittest.TestCase):
                 verification_type="invalid"
             )
 
-    @patch('infrastructure.identity.verification.providers.stripe.stripe.identity.VerificationSession.retrieve')
+    @patch('identity.verification.providers.stripe.stripe.identity.VerificationSession.retrieve')
     def test_get_verification_session_success(self, mock_retrieve):
         """Test successful retrieval of verification session."""
         mock_session = MagicMock()
@@ -103,7 +103,7 @@ class TestStripeProvider(unittest.TestCase):
         self.assertIn('verified_outputs', result)
         mock_retrieve.assert_called_once()
 
-    @patch('infrastructure.identity.verification.providers.stripe.stripe.identity.VerificationSession.retrieve')
+    @patch('identity.verification.providers.stripe.stripe.identity.VerificationSession.retrieve')
     def test_get_session_not_found(self, mock_retrieve):
         """Test that session not found raises appropriate exception."""
         import stripe
@@ -117,7 +117,7 @@ class TestStripeProvider(unittest.TestCase):
         with self.assertRaises(IdentityVerificationSessionNotFoundError):
             self.provider.get_verification_session("vs_123")
 
-    @patch('infrastructure.identity.verification.providers.stripe.stripe.identity.VerificationSession.cancel')
+    @patch('identity.verification.providers.stripe.stripe.identity.VerificationSession.cancel')
     def test_cancel_verification_session(self, mock_cancel):
         """Test canceling a verification session."""
         mock_session = MagicMock()

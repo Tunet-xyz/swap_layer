@@ -1,5 +1,7 @@
 from django.apps import AppConfig
 
-class IdentityConfig(AppConfig):
+
+class EmailConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'infrastructure.identity.verification'
+    name = 'email'
+    verbose_name = 'Email Infrastructure'

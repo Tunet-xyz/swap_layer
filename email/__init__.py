@@ -6,7 +6,7 @@ application to switch between different email services (SMTP, SendGrid, Mailgun,
 AWS SES, etc.) without modifying business logic.
 
 Usage:
-    from infrastructure.email.factory import get_email_provider
+    from email.factory import get_email_provider
     
     provider = get_email_provider()
     result = provider.send_email(
@@ -17,4 +17,4 @@ Usage:
     )
 """
 
-default_app_config = 'infrastructure.email.apps.EmailConfig'
+default_app_config = 'email.apps.EmailConfig'

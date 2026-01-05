@@ -50,7 +50,7 @@ class SNSSMSProvider(SMSProviderAdapter):
         metadata: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """Send an SMS message via AWS SNS."""
-        from infrastructure.sms.adapter import SMSSendError
+        from sms.adapter import SMSSendError
         
         try:
             # Set message attributes
@@ -129,7 +129,7 @@ class SNSSMSProvider(SMSProviderAdapter):
         This implementation returns a placeholder response.
         For production use, implement CloudWatch Logs integration.
         """
-        from infrastructure.sms.adapter import SMSMessageNotFoundError
+        from sms.adapter import SMSMessageNotFoundError
         
         # This is a placeholder implementation
         # In production, you would query CloudWatch Logs or use SNS delivery status topics
@@ -148,7 +148,7 @@ class SNSSMSProvider(SMSProviderAdapter):
         Note: This uses AWS Pinpoint phone number validation API.
         Requires AWS Pinpoint to be enabled in your AWS account.
         """
-        from infrastructure.sms.adapter import SMSInvalidPhoneNumberError
+        from sms.adapter import SMSInvalidPhoneNumberError
         
         try:
             import boto3
@@ -236,7 +236,7 @@ class SNSSMSProvider(SMSProviderAdapter):
         AWS SNS automatically manages opt-outs when users reply with STOP.
         This method checks if a number is currently opted out.
         """
-        from infrastructure.sms.adapter import SMSError
+        from sms.adapter import SMSError
         
         try:
             response = self.sns_client.check_if_phone_number_is_opted_out(
@@ -258,7 +258,7 @@ class SNSSMSProvider(SMSProviderAdapter):
         
         This allows sending SMS to a number that was previously opted out.
         """
-        from infrastructure.sms.adapter import SMSError
+        from sms.adapter import SMSError
         
         try:
             self.sns_client.opt_in_phone_number(

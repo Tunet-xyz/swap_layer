@@ -235,7 +235,7 @@ class IdentityOperations:
 
     def _send_email(self, user, subject, message):
         try:
-            from infrastructure.email.factory import get_email_provider
+            from email.factory import get_email_provider
             
             provider = get_email_provider()
             provider.send_email(

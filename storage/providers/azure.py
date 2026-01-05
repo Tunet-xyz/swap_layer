@@ -89,7 +89,7 @@ class AzureBlobStorageProvider(StorageProviderAdapter):
         destination: Optional[str] = None
     ) -> bytes:
         """Download a file from Azure Blob Storage."""
-        from infrastructure.storage.adapter import StorageFileNotFoundError, StorageDownloadError
+        from storage.adapter import StorageFileNotFoundError, StorageDownloadError
         
         try:
             blob_client = self.container_client.get_blob_client(file_path)
@@ -111,7 +111,7 @@ class AzureBlobStorageProvider(StorageProviderAdapter):
 
     def delete_file(self, file_path: str) -> Dict[str, Any]:
         """Delete a file from Azure Blob Storage."""
-        from infrastructure.storage.adapter import StorageFileNotFoundError, StorageDeleteError
+        from storage.adapter import StorageFileNotFoundError, StorageDeleteError
         
         try:
             blob_client = self.container_client.get_blob_client(file_path)
@@ -141,7 +141,7 @@ class AzureBlobStorageProvider(StorageProviderAdapter):
 
     def get_file_metadata(self, file_path: str) -> Dict[str, Any]:
         """Get metadata for a file in Azure Blob Storage."""
-        from infrastructure.storage.adapter import StorageFileNotFoundError
+        from storage.adapter import StorageFileNotFoundError
         
         try:
             blob_client = self.container_client.get_blob_client(file_path)
@@ -288,7 +288,7 @@ class AzureBlobStorageProvider(StorageProviderAdapter):
         destination_path: str
     ) -> Dict[str, Any]:
         """Copy a file within Azure Blob Storage."""
-        from infrastructure.storage.adapter import StorageFileNotFoundError, StorageCopyError
+        from storage.adapter import StorageFileNotFoundError, StorageCopyError
         
         try:
             # Check if source file exists
@@ -320,7 +320,7 @@ class AzureBlobStorageProvider(StorageProviderAdapter):
         destination_path: str
     ) -> Dict[str, Any]:
         """Move/rename a file within Azure Blob Storage."""
-        from infrastructure.storage.adapter import StorageFileNotFoundError, StorageMoveError, StorageCopyError
+        from storage.adapter import StorageFileNotFoundError, StorageMoveError, StorageCopyError
         
         try:
             # Copy the file first

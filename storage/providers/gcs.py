@@ -1,6 +1,6 @@
 from typing import Dict, Any, Optional, List, BinaryIO
 from datetime import timedelta
-from infrastructure.storage.adapter import (
+from storage.adapter import (
     StorageProviderAdapter,
     StorageUploadError,
     StorageDownloadError,
