@@ -1,5 +1,5 @@
 from typing import Dict, Any, Optional, List
-from django.conf import settings
+from swap_layer.config import settings
 import logging
 import re
 import base64

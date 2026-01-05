@@ -1,7 +1,5 @@
 from abc import ABC, abstractmethod
 from typing import Dict, Any, Optional
-from django.contrib.auth.models import AbstractBaseUser
-
 
 class IdentityVerificationError(Exception):
     """Base exception for all identity verification related errors."""
@@ -41,7 +39,7 @@ class IdentityVerificationProviderAdapter(ABC):
     @abstractmethod
     def create_verification_session(
         self, 
-        user: AbstractBaseUser, 
+        user: Any, 
         verification_type: str, 
         options: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:

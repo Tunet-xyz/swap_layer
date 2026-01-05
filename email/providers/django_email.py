@@ -1,7 +1,7 @@
 from typing import Dict, Any, Optional, List
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
-from ...adapter import EmailProviderAdapter, EmailSendError
+from ..adapter import EmailProviderAdapter, EmailSendError
 
 class DjangoEmailAdapter(EmailProviderAdapter):
     """

@@ -1,7 +1,7 @@
 from typing import Dict, Any, Optional, BinaryIO
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
-from ...adapter import (
+from ..adapter import (
     StorageProviderAdapter,
     StorageUploadError,
     StorageDownloadError,

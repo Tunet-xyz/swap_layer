@@ -1,7 +1,7 @@
 """
 Factory function for creating SMS provider instances.
 """
-from django.conf import settings
+from swap_layer.config import settings
 from .adapter import SMSProviderAdapter
 from .providers.twilio_sms import TwilioSMSProvider
 

@@ -1,7 +1,7 @@
 from typing import Dict, Any, Optional, List
 from datetime import datetime
-from django.conf import settings
-from ...adapter import (
+from swap_layer.config import settings
+from ..adapter import (
     SMSProviderAdapter,
     SMSSendError,
     SMSMessageNotFoundError,

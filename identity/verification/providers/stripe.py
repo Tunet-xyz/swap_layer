@@ -1,7 +1,6 @@
 import stripe
-from django.conf import settings
+from swap_layer.config import settings
 from typing import Dict, Any, Optional
-from django.contrib.auth.models import AbstractBaseUser
 from ..adapter import (
     IdentityVerificationProviderAdapter,
     IdentityVerificationError,
@@ -31,7 +30,7 @@ class StripeIdentityVerificationProvider(IdentityVerificationProviderAdapter):
 
     def create_verification_session(
         self, 
-        user: AbstractBaseUser, 
+        user: Any, 
         verification_type: str, 
         options: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:

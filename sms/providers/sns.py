@@ -1,5 +1,5 @@
 from typing import Dict, Any, Optional, List
-from ...adapter import SMSProviderAdapter
+from ..adapter import SMSProviderAdapter
 
 
 class SNSSMSProvider(SMSProviderAdapter):
@@ -21,7 +21,7 @@ class SNSSMSProvider(SMSProviderAdapter):
     def __init__(self):
         """Initialize AWS SNS SMS provider."""
         try:
-            from django.conf import settings
+            from swap_layer.config import settings
             import boto3
             
             aws_access_key_id = getattr(settings, 'AWS_ACCESS_KEY_ID', None)
@@ -152,7 +152,7 @@ class SNSSMSProvider(SMSProviderAdapter):
         
         try:
             import boto3
-            from django.conf import settings
+            from swap_layer.config import settings
             
             # Initialize Pinpoint client for phone validation
             aws_access_key_id = getattr(settings, 'AWS_ACCESS_KEY_ID', None)

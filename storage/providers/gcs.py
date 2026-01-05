@@ -29,7 +29,7 @@ class GCSStorageProvider(StorageProviderAdapter):
     def __init__(self):
         """Initialize GCS storage provider."""
         try:
-            from django.conf import settings
+            from swap_layer.config import settings
             from google.cloud import storage
             
             project_id = getattr(settings, 'GCS_PROJECT_ID', None)

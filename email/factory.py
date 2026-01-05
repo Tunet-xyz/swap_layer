@@ -1,4 +1,4 @@
-from django.conf import settings
+from swap_layer.config import settings
 from .adapter import EmailProviderAdapter
 
 

@@ -1,6 +1,6 @@
 from typing import Dict, Any, Optional, List, BinaryIO
 from datetime import timedelta
-from ...adapter import (
+from ..adapter import (
     StorageProviderAdapter,
     StorageUploadError,
     StorageCopyError,
@@ -25,7 +25,7 @@ class AzureBlobStorageProvider(StorageProviderAdapter):
     def __init__(self):
         """Initialize Azure Blob storage provider."""
         try:
-            from django.conf import settings
+            from swap_layer.config import settings
             from azure.storage.blob import BlobServiceClient
             
             connection_string = getattr(settings, 'AZURE_STORAGE_CONNECTION_STRING', None)
@@ -201,7 +201,7 @@ class AzureBlobStorageProvider(StorageProviderAdapter):
                 # Generate SAS URL for temporary access
                 from azure.storage.blob import generate_blob_sas, BlobSasPermissions
                 from datetime import datetime, timezone
-                from django.conf import settings
+                from swap_layer.config import settings
                 
                 # Get account key from connection string
                 connection_string = getattr(settings, 'AZURE_STORAGE_CONNECTION_STRING', '')
@@ -244,7 +244,7 @@ class AzureBlobStorageProvider(StorageProviderAdapter):
         try:
             from azure.storage.blob import generate_blob_sas, BlobSasPermissions
             from datetime import datetime, timezone
-            from django.conf import settings
+            from swap_layer.config import settings
             
             blob_client = self.container_client.get_blob_client(file_path)
             

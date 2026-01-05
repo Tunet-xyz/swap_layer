@@ -1,6 +1,6 @@
 from typing import Dict, Any, Optional, List, BinaryIO
 from datetime import timedelta
-from ...adapter import (
+from ..adapter import (
     StorageProviderAdapter,
     StorageUploadError,
     StorageCopyError,
@@ -26,7 +26,7 @@ class S3StorageProvider(StorageProviderAdapter):
     def __init__(self):
         """Initialize S3 storage provider."""
         try:
-            from django.conf import settings
+            from swap_layer.config import settings
             import boto3
             
             aws_access_key_id = getattr(settings, 'AWS_ACCESS_KEY_ID', None)
