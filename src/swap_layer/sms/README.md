@@ -43,7 +43,7 @@ The abstraction provides these operations:
 ```python
 INSTALLED_APPS = [
     # ...
-    'swap_layer.sms',
+    'swap_layer.sms.apps.SmsConfig',
     # ...
 ]
 ```
@@ -62,18 +62,25 @@ pip install boto3
 
 ```python
 # SMS Provider Selection
-SMS_PROVIDER = os.environ.get('SMS_PROVIDER', 'twilio')  # 'twilio', 'sns'
+SMS_PROVIDER = 'twilio'  # 'twilio', 'sns'
 
 # Twilio Configuration
-TWILIO_ACCOUNT_SID = os.environ.get('TWILIO_ACCOUNT_SID')
-TWILIO_AUTH_TOKEN = os.environ.get('TWILIO_AUTH_TOKEN')
-TWILIO_FROM_NUMBER = os.environ.get('TWILIO_FROM_NUMBER')  # E.164 format: +1234567890
+TWILIO_ACCOUNT_SID = 'AC...'
+TWILIO_AUTH_TOKEN = '...'
+TWILIO_FROM_NUMBER = '+1234567890'  # E.164 format
 
 # AWS SNS Configuration (if using SNS)
-AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
-AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
-AWS_REGION_NAME = os.environ.get('AWS_REGION_NAME', 'us-east-1')
-AWS_SNS_DEFAULT_SENDER_ID = os.environ.get('AWS_SNS_DEFAULT_SENDER_ID')
+AWS_ACCESS_KEY_ID = 'AKIA...'
+AWS_SECRET_ACCESS_KEY = '...'
+AWS_REGION_NAME = 'us-east-1'
+AWS_SNS_DEFAULT_SENDER_ID = 'MyApp'
+```
+
+**Security:** Use environment variables for credentials:
+
+```python
+import os
+TWILIO_AUTH_TOKEN = os.environ.get('TWILIO_AUTH_TOKEN')
 ```
 
 ## Usage

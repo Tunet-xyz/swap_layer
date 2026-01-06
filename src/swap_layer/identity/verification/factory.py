@@ -1,11 +1,11 @@
-from swap_layer.config import settings
+from django.conf import settings
 from .adapter import IdentityVerificationProviderAdapter
 
 
 def get_identity_verification_provider() -> IdentityVerificationProviderAdapter:
     """
     Factory function to return the configured Identity Verification Provider.
-    This allows switching vendors by changing the IDENTITY_VERIFICATION_PROVIDER setting.
+    This allows switching vendors by changing the IDENTITY_VERIFICATION_PROVIDER Django setting.
     
     Returns:
         IdentityVerificationProviderAdapter: The configured provider instance

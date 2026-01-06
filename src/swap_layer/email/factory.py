@@ -1,11 +1,11 @@
-from swap_layer.config import settings
+from django.conf import settings
 from .adapter import EmailProviderAdapter
 
 
 def get_email_provider() -> EmailProviderAdapter:
     """
     Factory function to return the configured Email Provider.
-    This allows switching vendors by changing the EMAIL_PROVIDER setting.
+    This allows switching vendors by changing the EMAIL_PROVIDER Django setting.
     
     Returns:
         EmailProviderAdapter: The configured email provider instance

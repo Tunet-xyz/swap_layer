@@ -71,9 +71,16 @@ Add to your Django `settings.py`:
 
 ```python
 # Email Provider Selection
-EMAIL_PROVIDER = 'smtp'  # Options: 'smtp', 'sendgrid', 'mailgun', 'ses'
+EMAIL_PROVIDER = 'django'  # Recommended: uses django-anymail
+# Or: 'smtp', 'sendgrid', 'mailgun', 'ses' (legacy)
 
-# SMTP Configuration (default Django backend)
+# Django-Anymail Configuration (RECOMMENDED)
+EMAIL_BACKEND = 'anymail.backends.sendgrid.EmailBackend'
+ANYMAIL = {
+    'SENDGRID_API_KEY': 'SG...',
+}
+
+# OR: SMTP Configuration (Django default)
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
@@ -81,19 +88,13 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'your-email@gmail.com'
 EMAIL_HOST_PASSWORD = 'your-password'
 DEFAULT_FROM_EMAIL = 'noreply@example.com'
+```
 
-# SendGrid Configuration (if using SendGrid)
-SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY')
-SENDGRID_WEBHOOK_VERIFICATION_KEY = os.environ.get('SENDGRID_WEBHOOK_VERIFICATION_KEY')
+**Security:** Use environment variables:
 
-# Mailgun Configuration (if using Mailgun)
-MAILGUN_API_KEY = os.environ.get('MAILGUN_API_KEY')
-MAILGUN_DOMAIN = os.environ.get('MAILGUN_DOMAIN')
-
-# AWS SES Configuration (if using SES)
-AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
-AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
-AWS_REGION_NAME = os.environ.get('AWS_REGION_NAME', 'us-east-1')
+```python
+import os
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
 ```
 
 Add to `INSTALLED_APPS`:
@@ -101,7 +102,7 @@ Add to `INSTALLED_APPS`:
 ```python
 INSTALLED_APPS = [
     # ...
-    'swap_layer.email',
+    'swap_layer.email.apps.EmailConfig',
     # ...
 ]
 ```

@@ -48,11 +48,18 @@ Add to your Django `settings.py`:
 IDENTITY_VERIFICATION_PROVIDER = 'stripe'  # Options: 'stripe', 'onfido' (coming soon)
 
 # Stripe Identity Configuration (if using Stripe)
-STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY')
-STRIPE_IDENTITY_WEBHOOK_SECRET = os.environ.get('STRIPE_IDENTITY_WEBHOOK_SECRET')
+STRIPE_SECRET_KEY = 'sk_live_...'
+STRIPE_IDENTITY_WEBHOOK_SECRET = 'whsec_...'
 
-# Optional: Django model for persistence
+# Optional: Custom Django model for persistence
 SWAP_LAYER_VERIFICATION_MODEL = 'myapp.IdentityVerification'
+```
+
+**Security:** Use environment variables:
+
+```python
+import os
+STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY')
 ```
 
 Add to `INSTALLED_APPS`:
@@ -60,7 +67,7 @@ Add to `INSTALLED_APPS`:
 ```python
 INSTALLED_APPS = [
     # ...
-    'swap_layer.identity.verification',
+    'swap_layer.identity.verification.apps.IdentityVerificationConfig',
     # ...
 ]
 ```

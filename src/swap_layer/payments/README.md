@@ -69,9 +69,16 @@ Add to your Django `settings.py`:
 PAYMENT_PROVIDER = 'stripe'  # Options: 'stripe', 'paypal', 'square', etc.
 
 # Stripe Configuration (if using Stripe)
+STRIPE_SECRET_KEY = 'sk_test_...'  # From Stripe Dashboard
+STRIPE_PUBLIC_KEY = 'pk_test_...'
+STRIPE_WEBHOOK_SECRET = 'whsec_...'  # For webhook validation
+```
+
+**Security Best Practice:** Use Django's environment variable integration or a secrets manager:
+
+```python
+import os
 STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY')
-STRIPE_PUBLIC_KEY = os.environ.get('STRIPE_PUBLIC_KEY')
-STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET')
 ```
 
 Add to `INSTALLED_APPS`:
@@ -79,7 +86,7 @@ Add to `INSTALLED_APPS`:
 ```python
 INSTALLED_APPS = [
     # ...
-    'swap_layer.payments',
+    'swap_layer.payments.apps.PaymentsConfig',
     # ...
 ]
 ```

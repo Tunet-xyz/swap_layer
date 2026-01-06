@@ -1,7 +1,7 @@
 """
 Factory function for creating storage provider instances.
 """
-from swap_layer.config import settings
+from django.conf import settings
 from .adapter import StorageProviderAdapter
 from .providers.local import LocalFileStorageProvider
 
@@ -10,7 +10,7 @@ def get_storage_provider() -> StorageProviderAdapter:
     """
     Get the configured storage provider instance.
     
-    The provider is determined by the STORAGE_PROVIDER setting.
+    The provider is determined by the STORAGE_PROVIDER Django setting.
     Defaults to 'local' if not specified.
     
     Returns:

@@ -49,7 +49,7 @@ The abstraction provides these operations:
 ```python
 INSTALLED_APPS = [
     # ...
-    'swap_layer.storage',
+    'swap_layer.storage.apps.StorageConfig',
     # ...
 ]
 ```
@@ -58,21 +58,28 @@ INSTALLED_APPS = [
 
 ```python
 # Storage Provider Selection
-STORAGE_PROVIDER = os.environ.get('STORAGE_PROVIDER', 'local')  # 'local', 's3', 'azure'
+STORAGE_PROVIDER = 'local'  # 'local', 's3', 'azure', 'django'
 
 # Local Storage Configuration (default)
 MEDIA_ROOT = BASE_DIR / 'media'
 MEDIA_URL = '/media/'
 
 # AWS S3 Configuration (if using S3)
-AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
-AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
-AWS_STORAGE_BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME')
-AWS_S3_REGION_NAME = os.environ.get('AWS_S3_REGION_NAME', 'us-east-1')
+AWS_ACCESS_KEY_ID = 'AKIA...'
+AWS_SECRET_ACCESS_KEY = '...'
+AWS_STORAGE_BUCKET_NAME = 'my-bucket'
+AWS_S3_REGION_NAME = 'us-east-1'
 
 # Azure Blob Storage Configuration (if using Azure)
-AZURE_STORAGE_CONNECTION_STRING = os.environ.get('AZURE_STORAGE_CONNECTION_STRING')
-AZURE_STORAGE_CONTAINER_NAME = os.environ.get('AZURE_STORAGE_CONTAINER_NAME')
+AZURE_STORAGE_CONNECTION_STRING = 'DefaultEndpointsProtocol=https;...'
+AZURE_STORAGE_CONTAINER_NAME = 'my-container'
+```
+
+**Security:** Use environment variables in production:
+
+```python
+import os
+AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
 ```
 
 ## Usage

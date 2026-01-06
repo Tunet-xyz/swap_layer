@@ -47,13 +47,20 @@ Add to your Django `settings.py`:
 IDENTITY_PROVIDER = 'workos'  # Options: 'workos', 'auth0'
 
 # WorkOS Configuration (if using WorkOS)
-WORKOS_API_KEY = os.environ.get('WORKOS_API_KEY')
-WORKOS_CLIENT_ID = os.environ.get('WORKOS_CLIENT_ID')
+WORKOS_API_KEY = 'sk_live_...'
+WORKOS_CLIENT_ID = 'client_...'
 
 # Auth0 Configuration (if using Auth0)
-AUTH0_DOMAIN = os.environ.get('AUTH0_DOMAIN')
-AUTH0_CLIENT_ID = os.environ.get('AUTH0_CLIENT_ID')
-AUTH0_CLIENT_SECRET = os.environ.get('AUTH0_CLIENT_SECRET')
+AUTH0_DOMAIN = 'myapp.us.auth0.com'
+AUTH0_CLIENT_ID = '...'
+AUTH0_CLIENT_SECRET = '...'
+```
+
+**Security:** Use environment variables for secrets:
+
+```python
+import os
+WORKOS_API_KEY = os.environ.get('WORKOS_API_KEY')
 ```
 
 Add to `INSTALLED_APPS`:
@@ -61,7 +68,7 @@ Add to `INSTALLED_APPS`:
 ```python
 INSTALLED_APPS = [
     # ...
-    'swap_layer.identity.platform',
+    'swap_layer.identity.platform.apps.IdentityPlatformConfig',
     # ...
 ]
 ```

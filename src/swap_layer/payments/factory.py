@@ -1,4 +1,4 @@
-from swap_layer.config import settings
+from django.conf import settings
 from .providers.stripe import StripePaymentProvider
 from .adapter import PaymentProviderAdapter
 
@@ -6,7 +6,7 @@ from .adapter import PaymentProviderAdapter
 def get_payment_provider() -> PaymentProviderAdapter:
     """
     Factory function to return the configured Payment Provider.
-    This allows switching vendors by changing the PAYMENT_PROVIDER setting.
+    This allows switching vendors by changing the PAYMENT_PROVIDER Django setting.
     
     Returns:
         PaymentProviderAdapter: The configured payment provider instance
