@@ -1,6 +1,6 @@
 from typing import Dict, Any, Optional, List
 from datetime import datetime
-from swap_layer.config import settings
+from django.conf import settings
 from ..adapter import (
     SMSProviderAdapter,
     SMSSendError,

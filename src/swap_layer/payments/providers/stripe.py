@@ -1,5 +1,5 @@
 import stripe
-from swap_layer.config import settings
+from django.conf import settings
 from typing import Dict, Any, Optional, List
 from decimal import Decimal
 from ..adapter import (

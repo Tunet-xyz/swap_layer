@@ -1,7 +1,7 @@
 import os
 import workos
 from workos.user_management import UserManagementProviderType
-from swap_layer.config import settings
+from django.conf import settings
 from ...adapter import AuthProviderAdapter
 from typing import Dict, Any, Optional
 

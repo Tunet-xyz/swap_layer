@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional
 from .operations import AuthenticationOperations
-from swap_layer.config import settings
+from django.conf import settings
 
 class AuthenticationService(ABC):
     

@@ -12,27 +12,27 @@ def get_email_provider() -> EmailProviderAdapter:
     
     Raises:
         ValueError: If the provider is not recognized
+        
+    Supported Providers:
+        - 'django': Uses django-anymail (RECOMMENDED for production)
+          Supports: SendGrid, Mailgun, SES, Postmark, SparkPost, etc.
+          Configure via ANYMAIL setting in settings.py
+          
+        - 'smtp': Direct Django SMTP backend
+          Good for development/simple use cases
     """
-    provider = getattr(settings, 'EMAIL_PROVIDER', 'smtp')
+    provider = getattr(settings, 'EMAIL_PROVIDER', 'django')
     
     if provider == 'django':
         from .providers.django_email import DjangoEmailAdapter
         return DjangoEmailAdapter()
     elif provider == 'smtp':
-        # Deprecated: Use 'django' provider
         from .providers.smtp import SMTPEmailProvider
         return SMTPEmailProvider()
-    elif provider == 'sendgrid':
-        # Deprecated: Use 'django' provider with django-anymail
-        from .providers.sendgrid import SendGridEmailProvider
-        return SendGridEmailProvider()
-    elif provider == 'mailgun':
-        # Deprecated: Use 'django' provider with django-anymail
-        from .providers.mailgun import MailgunEmailProvider
-        return MailgunEmailProvider()
-    elif provider == 'ses':
-        # Deprecated: Use 'django' provider with django-anymail
-        from .providers.ses import SESEmailProvider
-        return SESEmailProvider()
     else:
-        raise ValueError(f"Unknown Email Provider: {provider}")
+        raise ValueError(
+            f"Unknown Email Provider: '{provider}'. "
+            f"Supported: 'django' (recommended), 'smtp'. "
+            f"For SendGrid/Mailgun/SES, use EMAIL_PROVIDER='django' with django-anymail."
+        )
+

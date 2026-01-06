@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional
 from ..schemas import VerificationSessionCreate
 from .operations.core import IdentityOperations
-from swap_layer.config import settings
+from django.conf import settings
 
 class VerificationService(ABC):
     """

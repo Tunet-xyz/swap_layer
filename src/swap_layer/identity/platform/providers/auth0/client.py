@@ -1,5 +1,5 @@
 import os
-from swap_layer.config import settings
+from django.conf import settings
 from django.urls import reverse
 from urllib.parse import quote_plus, urlencode
 from authlib.integrations.django_client import OAuth

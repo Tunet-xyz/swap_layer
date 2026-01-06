@@ -1,22 +1,21 @@
 import unittest
 from unittest.mock import patch, MagicMock
-from swap_layer.config import settings
+from django.conf import settings
 from swap_layer.email.factory import get_email_provider
 from swap_layer.email.adapter import EmailProviderAdapter
 from swap_layer.email.providers.django_email import DjangoEmailAdapter
 
 class TestEmailFactory(unittest.TestCase):
+    @patch.object(settings, 'EMAIL_PROVIDER', 'django')
     def test_get_email_provider_returns_django_adapter(self):
         """Test that the factory returns the DjangoEmailAdapter."""
-        with patch.object(settings, 'get', return_value='django'):
-            provider = get_email_provider()
-            self.assertIsInstance(provider, DjangoEmailAdapter)
-            self.assertIsInstance(provider, EmailProviderAdapter)
+        provider = get_email_provider()
+        self.assertIsInstance(provider, DjangoEmailAdapter)
+        self.assertIsInstance(provider, EmailProviderAdapter)
 
 class TestDjangoEmailProvider(unittest.TestCase):
     def setUp(self):
-        with patch.object(settings, 'get', return_value='django'):
-            self.provider = DjangoEmailAdapter()
+        self.provider = DjangoEmailAdapter()
 
     @patch('swap_layer.email.providers.django_email.EmailMultiAlternatives')
     def test_send_email_success(self, mock_email_class):

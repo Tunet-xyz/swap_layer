@@ -2,7 +2,7 @@ from typing import Dict, Any, Optional
 from ..models import IdentityVerificationSession
 from ..schemas import VerificationSessionCreate
 from ..factory import get_identity_verification_provider
-from swap_layer.config import settings
+from django.conf import settings
 import logging
 
 logger = logging.getLogger(__name__)

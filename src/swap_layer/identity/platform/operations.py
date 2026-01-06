@@ -1,7 +1,7 @@
 from typing import Any, Dict, Optional
 from .factory import get_identity_client
 from .models import UserIdentity
-from swap_layer.config import settings
+from django.conf import settings
 
 class AuthenticationOperations:
     """

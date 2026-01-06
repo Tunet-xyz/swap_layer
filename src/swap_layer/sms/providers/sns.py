@@ -21,7 +21,7 @@ class SNSSMSProvider(SMSProviderAdapter):
     def __init__(self):
         """Initialize AWS SNS SMS provider."""
         try:
-            from swap_layer.config import settings
+            from django.conf import settings
             import boto3
             
             aws_access_key_id = getattr(settings, 'AWS_ACCESS_KEY_ID', None)
@@ -148,11 +148,11 @@ class SNSSMSProvider(SMSProviderAdapter):
         Note: This uses AWS Pinpoint phone number validation API.
         Requires AWS Pinpoint to be enabled in your AWS account.
         """
-        from sms.adapter import SMSInvalidPhoneNumberError
+        from ..adapter import SMSInvalidPhoneNumberError
         
         try:
             import boto3
-            from swap_layer.config import settings
+            from django.conf import settings
             
             # Initialize Pinpoint client for phone validation
             aws_access_key_id = getattr(settings, 'AWS_ACCESS_KEY_ID', None)

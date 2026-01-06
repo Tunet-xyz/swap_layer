@@ -5,7 +5,7 @@ import mimetypes
 from pathlib import Path
 from typing import Dict, Any, Optional, List, BinaryIO
 from datetime import datetime, timedelta
-from swap_layer.config import settings
+from django.conf import settings
 from ..adapter import (
     StorageProviderAdapter,
     StorageUploadError,

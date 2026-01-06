@@ -18,6 +18,12 @@ def get_storage_provider() -> StorageProviderAdapter:
     
     Raises:
         ValueError: If an unsupported provider is specified
+        
+    Supported Providers:
+        - 'local': Local file system storage (development)
+        - 'django': Uses django-storages (RECOMMENDED for production)
+          Supports: S3, Azure, GCS, Dropbox, FTP, SFTP, etc.
+          Configure via DEFAULT_FILE_STORAGE in settings.py
     """
     provider = getattr(settings, 'STORAGE_PROVIDER', 'local').lower()
     
@@ -26,13 +32,10 @@ def get_storage_provider() -> StorageProviderAdapter:
         return DjangoStorageAdapter()
     elif provider == 'local':
         return LocalFileStorageProvider()
-    elif provider == 's3':
-        # Deprecated: Use 'django' provider with django-storages configured for S3
-        from .providers.s3 import S3StorageProvider
-        return S3StorageProvider()
-    elif provider == 'azure':
-        # Deprecated: Use 'django' provider with django-storages configured for Azure
-        from .providers.azure import AzureBlobStorageProvider
-        return AzureBlobStorageProvider()
     else:
-        raise ValueError(f"Unsupported storage provider: {provider}")
+        raise ValueError(
+            f"Unsupported storage provider: '{provider}'. "
+            f"Supported: 'local', 'django' (recommended). "
+            f"For S3/Azure/GCS, use STORAGE_PROVIDER='django' with django-storages."
+        )
+
