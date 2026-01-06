@@ -21,6 +21,7 @@ class DjangoEmailAdapter(EmailProviderAdapter):
         bcc: Optional[List[str]] = None,
         reply_to: Optional[str] = None,
         attachments: Optional[List[Dict[str, Any]]] = None,
+        headers: Optional[Dict[str, str]] = None,
         metadata: Optional[Dict[str, Any]] = None,
         template_id: Optional[str] = None,
         template_data: Optional[Dict[str, Any]] = None,
@@ -45,6 +46,7 @@ class DjangoEmailAdapter(EmailProviderAdapter):
                 cc=cc,
                 bcc=bcc,
                 reply_to=[reply_to] if reply_to else None,
+                headers=headers,
             )
 
             if html_body:
@@ -79,3 +81,85 @@ class DjangoEmailAdapter(EmailProviderAdapter):
 
         except Exception as e:
             raise EmailSendError(f"Failed to send email: {str(e)}") from e
+
+    def send_template_email(
+        self,
+        to: List[str],
+        template_id: str,
+        template_data: Dict[str, Any],
+        from_email: Optional[str] = None,
+        cc: Optional[List[str]] = None,
+        bcc: Optional[List[str]] = None,
+        reply_to: Optional[List[str]] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """
+        Send a template email.
+        Calls send_email with template_id and template_data.
+        """
+        # Convert list reply_to to string if needed by send_email (which seems to take string?)
+        # Actually send_email in this file takes reply_to: Optional[str] based on my read
+        # But abstraction layer might enforce list? 
+        # The abstraction layer defines reply_to as Optional[List[str]].
+        # This implementation's send_email takes reply_to: Optional[str].
+        # We need to bridge this gap.
+        
+        reply_to_str = reply_to[0] if reply_to else None
+        
+        return self.send_email(
+            to=to,
+            subject=template_data.get('subject', ''),
+            template_id=template_id,
+            template_data=template_data,
+            from_email=from_email,
+            cc=cc,
+            bcc=bcc,
+            reply_to=reply_to_str, # type: ignore
+            metadata=metadata
+        )
+
+    def send_bulk_email(
+        self,
+        recipients: List[Dict[str, Any]],
+        subject: str,
+        text_body: Optional[str] = None,
+        html_body: Optional[str] = None,
+        from_email: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """Simple loop implementation since Django generic backend doesn't support bulk."""
+        sent = 0
+        failed = 0
+        failed_list = []
+        
+        for r in recipients:
+            try:
+                self.send_email(
+                    to=[r['to']],
+                    subject=subject,
+                    text_body=text_body,
+                    html_body=html_body,
+                    from_email=from_email,
+                    metadata=metadata
+                )
+                sent += 1
+            except Exception:
+                failed += 1
+                failed_list.append(r['to'])
+                
+        return {'total_sent': sent, 'total_failed': failed, 'failed_recipients': failed_list}
+
+    def verify_email(self, email: str) -> Dict[str, Any]:
+        raise NotImplementedError("Not supported by generic Django backend")
+
+    def get_send_statistics(self, start_date: Optional[str] = None, end_date: Optional[str] = None) -> Dict[str, Any]:
+        raise NotImplementedError("Not supported by generic Django backend")
+
+    def add_to_suppression_list(self, email: str, reason: str = 'manual') -> Dict[str, Any]:
+        raise NotImplementedError("Not supported by generic Django backend")
+
+    def remove_from_suppression_list(self, email: str) -> Dict[str, Any]:
+        raise NotImplementedError("Not supported by generic Django backend")
+
+    def validate_webhook_signature(self, payload: bytes, signature: str, timestamp: Optional[str] = None) -> bool:
+        return False

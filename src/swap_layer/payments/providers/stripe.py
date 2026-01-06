@@ -143,14 +143,16 @@ class StripePaymentProvider(PaymentProviderAdapter):
                 'customer': customer_id,
                 'items': [{'price': price_id}],
             }
-        if metadata:
-            params['metadata'] = metadata
-        if trial_period_days:
-            params['trial_period_days'] = trial_period_days
+            if metadata:
+                params['metadata'] = metadata
+            if trial_period_days:
+                params['trial_period_days'] = trial_period_days
 
-        subscription = stripe.Subscription.create(**params)
-        
-        return self._normalize_subscription(subscription)
+            subscription = stripe.Subscription.create(**params)
+            
+            return self._normalize_subscription(subscription)
+        except Exception as e:
+            self._handle_stripe_error(e)
 
     def get_subscription(self, subscription_id: str) -> Dict[str, Any]:
         """Retrieve a Stripe subscription."""

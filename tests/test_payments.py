@@ -1,28 +1,35 @@
 import unittest
 from unittest.mock import MagicMock, patch
-from django.conf import settings
+from swap_layer.config import settings
 from swap_layer.payments.factory import get_payment_provider
 from swap_layer.payments.adapter import PaymentProviderAdapter, PaymentError
 from swap_layer.payments.providers.stripe import StripePaymentProvider
 
-# Configure minimal Django settings for testing
-if not settings.configured:
-    settings.configure(
-        STRIPE_SECRET_KEY="sk_test_mock",
-        PAYMENT_PROVIDER="stripe",
-        INSTALLED_APPS=[],
-    )
-
 class TestPaymentFactory(unittest.TestCase):
     def test_get_payment_provider_returns_stripe(self):
         """Test that the factory returns the correct provider based on settings."""
-        provider = get_payment_provider()
-        self.assertIsInstance(provider, StripePaymentProvider)
-        self.assertIsInstance(provider, PaymentProviderAdapter)
+        # Config behavior: return configured defaults for known keys
+        def mock_get(key, default=None):
+            if key == 'PAYMENT_PROVIDER': return 'stripe'
+            if key == 'STRIPE_SECRET_KEY': return 'sk_test_mock'
+            return default
+            
+        with patch.object(settings, 'get', side_effect=mock_get):
+            provider = get_payment_provider()
+            self.assertIsInstance(provider, StripePaymentProvider)
+            self.assertIsInstance(provider, PaymentProviderAdapter)
 
 class TestStripeProvider(unittest.TestCase):
     def setUp(self):
+        # Mock settings for initialization
+        self.settings_patcher = patch.object(settings, 'get')
+        self.mock_get = self.settings_patcher.start()
+        self.mock_get.side_effect = lambda k, d=None: 'sk_test_mock' if k == 'STRIPE_SECRET_KEY' else d
+        
         self.provider = StripePaymentProvider()
+
+    def tearDown(self):
+        self.settings_patcher.stop()
 
     @patch('swap_layer.payments.providers.stripe.stripe.Customer.create')
     def test_create_customer_success(self, mock_create):

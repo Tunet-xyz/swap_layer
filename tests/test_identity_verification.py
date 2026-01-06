@@ -1,6 +1,6 @@
 import unittest
 from unittest.mock import MagicMock, patch, Mock
-from django.conf import settings
+from swap_layer.config import settings
 from swap_layer.identity.verification.factory import get_identity_verification_provider
 from swap_layer.identity.verification.adapter import (
     IdentityVerificationProviderAdapter,
@@ -10,36 +10,40 @@ from swap_layer.identity.verification.adapter import (
 )
 from swap_layer.identity.verification.providers.stripe import StripeIdentityVerificationProvider
 
-# Configure minimal Django settings for testing
-if not settings.configured:
-    settings.configure(
-        STRIPE_SECRET_KEY="sk_test_mock",
-        IDENTITY_VERIFICATION_PROVIDER="stripe",
-        INSTALLED_APPS=[],
-    )
-
-
 class TestIdentityVerificationFactory(unittest.TestCase):
     def test_get_provider_returns_stripe(self):
         """Test that the factory returns the correct provider based on settings."""
-        provider = get_identity_verification_provider()
-        self.assertIsInstance(provider, StripeIdentityVerificationProvider)
-        self.assertIsInstance(provider, IdentityVerificationProviderAdapter)
+        def mock_get(key, default=None):
+            if key == 'IDENTITY_VERIFICATION_PROVIDER': return 'stripe'
+            if key == 'STRIPE_SECRET_KEY': return 'sk_test_mock'
+            return default
+            
+        with patch.object(settings, 'get', side_effect=mock_get):
+            provider = get_identity_verification_provider()
+            self.assertIsInstance(provider, StripeIdentityVerificationProvider)
+            self.assertIsInstance(provider, IdentityVerificationProviderAdapter)
 
     def test_factory_raises_for_unknown_provider(self):
         """Test that the factory raises ValueError for unknown providers."""
-        with patch.object(settings, 'IDENTITY_VERIFICATION_PROVIDER', 'unknown'):
+        with patch.object(settings, 'get', return_value='unknown'):
             with self.assertRaises(ValueError):
                 get_identity_verification_provider()
 
 
 class TestStripeProvider(unittest.TestCase):
     def setUp(self):
+        self.settings_patcher = patch.object(settings, 'get')
+        self.mock_get = self.settings_patcher.start()
+        self.mock_get.side_effect = lambda k, d=None: 'sk_test_mock' if k == 'STRIPE_SECRET_KEY' else d
+        
         self.provider = StripeIdentityVerificationProvider()
         self.mock_user = MagicMock()
         self.mock_user.id = 123
         self.mock_user.username = "testuser"
         self.mock_user.email = "test@example.com"
+
+    def tearDown(self):
+        self.settings_patcher.stop()
 
     @patch('swap_layer.identity.verification.providers.stripe.stripe.identity.VerificationSession.create')
     def test_create_verification_session_success(self, mock_create):
