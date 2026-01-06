@@ -1,9 +1,9 @@
 import unittest
 from unittest.mock import MagicMock, patch, Mock
 from django.conf import settings
-from swap_layer.sms.factory import get_sms_provider
-from swap_layer.sms.adapter import SMSProviderAdapter
-from swap_layer.sms.providers.twilio_sms import TwilioSMSProvider
+from swap_layer.communications.sms.factory import get_sms_provider
+from swap_layer.communications.sms.adapter import SMSProviderAdapter
+from swap_layer.communications.sms.providers.twilio_sms import TwilioSMSProvider
 
 
 class TestSMSFactory(unittest.TestCase):
@@ -170,7 +170,7 @@ class TestTwilioProvider(unittest.TestCase):
     def test_sms_send_error_handling(self):
         """Test that Twilio errors are converted to SMSSendError."""
         from twilio.base.exceptions import TwilioRestException
-        from swap_layer.sms.adapter import SMSSendError
+        from swap_layer.communications.sms.adapter import SMSSendError
         
         error = TwilioRestException(
             status=400,

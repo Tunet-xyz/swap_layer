@@ -11,7 +11,7 @@ class TestUnifiedProvider(unittest.TestCase):
         """Test getting email provider through unified interface."""
         with patch.object(settings, 'EMAIL_PROVIDER', 'django'):
             provider = get_provider('email')
-            from swap_layer.email.adapter import EmailProviderAdapter
+            from swap_layer.communications.email.adapter import EmailProviderAdapter
             self.assertIsInstance(provider, EmailProviderAdapter)
 
     def test_get_payment_provider(self):
@@ -33,7 +33,7 @@ class TestUnifiedProvider(unittest.TestCase):
         with patch.object(settings, 'SMS_PROVIDER', 'twilio'):
             with patch('twilio.rest.Client'):
                 provider = get_provider('sms')
-                from swap_layer.sms.adapter import SMSProviderAdapter
+                from swap_layer.communications.sms.adapter import SMSProviderAdapter
                 self.assertIsInstance(provider, SMSProviderAdapter)
 
     def test_get_storage_provider(self):
@@ -87,7 +87,7 @@ class TestUnifiedProvider(unittest.TestCase):
             provider2 = get_provider('Email')
             provider3 = get_provider('email')
             
-            from swap_layer.email.adapter import EmailProviderAdapter
+            from swap_layer.communications.email.adapter import EmailProviderAdapter
             self.assertIsInstance(provider1, EmailProviderAdapter)
             self.assertIsInstance(provider2, EmailProviderAdapter)
             self.assertIsInstance(provider3, EmailProviderAdapter)

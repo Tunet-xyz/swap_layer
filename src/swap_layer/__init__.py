@@ -3,10 +3,10 @@ SwapLayer - Swap Providers with Zero Vendor Lock-in. For Django SaaS.
 """
 from typing import Any
 
-from .email.factory import get_email_provider
+from .communications.email.factory import get_email_provider
+from .communications.sms.factory import get_sms_provider
 from .billing.factory import get_payment_provider
 from .storage.factory import get_storage_provider
-from .sms.factory import get_sms_provider
 from .identity.platform.factory import get_identity_client
 from .identity.verification.factory import get_identity_verification_provider
 

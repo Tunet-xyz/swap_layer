@@ -19,7 +19,7 @@ class Command(BaseCommand):
         parser.add_argument(
             '--module',
             type=str,
-            help='Check specific module (billing, email, sms, storage, identity, verification)',
+            help='Check specific module (billing, communications, storage, identity, verification)',
         )
         parser.add_argument(
             '--verbose',

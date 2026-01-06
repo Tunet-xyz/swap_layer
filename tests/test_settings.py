@@ -10,7 +10,8 @@ from swap_layer.settings import (
     SwapLayerSettings,
     BillingConfig,
     StripeConfig,
-    SMSConfig,
+    CommunicationsConfig,
+    SMSProviderConfig,
     TwilioConfig,
     get_swaplayer_settings,
     validate_swaplayer_config,
@@ -85,15 +86,15 @@ class TestBillingConfig:
         assert config.stripe.secret_key == 'sk_test_123'
 
 
-class TestSMSConfig:
+class TestCommunicationsConfig:
     def test_twilio_config_required_when_provider_is_twilio(self):
         """Test that Twilio config is required."""
         with pytest.raises(ProviderConfigMismatchError):
-            SMSConfig(provider='twilio')
+            SMSProviderConfig(provider='twilio')
     
     def test_valid_sms_config(self):
         """Test valid SMS configuration."""
-        config = SMSConfig(
+        config = SMSProviderConfig(
             provider='twilio',
             twilio=TwilioConfig(
                 account_sid='AC123',
@@ -102,6 +103,15 @@ class TestSMSConfig:
             )
         )
         assert config.provider == 'twilio'
+    
+    def test_valid_communications_config(self):
+        """Test valid communications configuration with email and SMS."""
+        config = CommunicationsConfig(
+            email={'provider': 'django'},
+            sms={'provider': 'twilio', 'twilio': {'account_sid': 'AC123', 'auth_token': 'token', 'from_number': '+15555551234'}}
+        )
+        assert config.email.provider == 'django'
+        assert config.sms.provider == 'twilio'
 
 
 class TestSwapLayerSettings:
@@ -109,6 +119,7 @@ class TestSwapLayerSettings:
         """Test minimal configuration."""
         settings = SwapLayerSettings()
         assert settings.billing is None
+        assert settings.communications is None
         assert settings.debug is False
     
     def test_full_config(self):
@@ -118,18 +129,15 @@ class TestSwapLayerSettings:
                 provider='stripe',
                 stripe=StripeConfig(secret_key='sk_test_123')
             ),
-            sms=SMSConfig(
-                provider='twilio',
-                twilio=TwilioConfig(
-                    account_sid='AC123',
-                    auth_token='token',
-                    from_number='+15555551234',
-                )
+            communications=CommunicationsConfig(
+                email={'provider': 'django'},
+                sms={'provider': 'twilio', 'twilio': {'account_sid': 'AC123', 'auth_token': 'token', 'from_number': '+15555551234'}}
             ),
             debug=True,
         )
         assert settings.billing.provider == 'stripe'
-        assert settings.sms.provider == 'twilio'
+        assert settings.communications.email.provider == 'django'
+        assert settings.communications.sms.provider == 'twilio'
         assert settings.debug is True
     
     def test_from_dict(self):
@@ -149,12 +157,16 @@ class TestSwapLayerSettings:
             billing={
                 'provider': 'stripe',
                 'stripe': {'secret_key': 'sk_test_123'}
+            },
+            communications={
+                'email': {'provider': 'django'}
             }
         )
         status = settings.get_status()
         assert 'billing' in status
         assert status['billing'].startswith('configured')
-        assert status['email'] == 'not configured'
+        assert 'communications' in status
+        assert status['communications'].startswith('configured')
     
     def test_validate_module(self):
         """Test module validation."""
@@ -170,7 +182,7 @@ class TestSwapLayerSettings:
         
         # Should raise for unconfigured module
         with pytest.raises(ModuleNotConfiguredError):
-            settings.validate_module('email')
+            settings.validate_module('communications')
     
     def test_repr(self):
         """Test string representation."""
@@ -202,16 +214,16 @@ class TestEnvironmentVariables:
         assert settings.billing.provider == 'stripe'
         assert settings.billing.stripe.secret_key == 'sk_test_123'
     
-    def test_from_env_sms(self, monkeypatch):
+    def test_from_env_communications_sms(self, monkeypatch):
         """Test loading SMS config from environment."""
-        monkeypatch.setenv('SWAPLAYER_SMS_PROVIDER', 'twilio')
-        monkeypatch.setenv('SWAPLAYER_SMS_TWILIO_ACCOUNT_SID', 'AC123')
-        monkeypatch.setenv('SWAPLAYER_SMS_TWILIO_AUTH_TOKEN', 'token')
-        monkeypatch.setenv('SWAPLAYER_SMS_TWILIO_FROM_NUMBER', '+15555551234')
+        monkeypatch.setenv('SWAPLAYER_COMMUNICATIONS_SMS_PROVIDER', 'twilio')
+        monkeypatch.setenv('SWAPLAYER_COMMUNICATIONS_SMS_TWILIO_ACCOUNT_SID', 'AC123')
+        monkeypatch.setenv('SWAPLAYER_COMMUNICATIONS_SMS_TWILIO_AUTH_TOKEN', 'token')
+        monkeypatch.setenv('SWAPLAYER_COMMUNICATIONS_SMS_TWILIO_FROM_NUMBER', '+15555551234')
         
         settings = SwapLayerSettings.from_env()
-        assert settings.sms.provider == 'twilio'
-        assert settings.sms.twilio.account_sid == 'AC123'
+        assert settings.communications.sms.provider == 'twilio'
+        assert settings.communications.sms.twilio.account_sid == 'AC123'
     
     def test_from_env_custom_prefix(self, monkeypatch):
         """Test loading with custom prefix."""
@@ -234,7 +246,8 @@ class TestLegacyCompatibility:
         # Verify we got valid settings (exact values depend on conftest.py)
         assert swaplayer_settings.billing is not None
         assert swaplayer_settings.billing.provider == 'stripe'
-        assert swaplayer_settings.email is not None
+        assert swaplayer_settings.communications is not None
+        assert swaplayer_settings.communications.email is not None
 
 
 class TestValidation:

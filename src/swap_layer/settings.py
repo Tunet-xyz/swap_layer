@@ -58,25 +58,6 @@ class StripeConfig(BaseModel):
         return v
 
 
-class BillingConfig(BaseModel):
-    """Billing module configuration."""
-    provider: Literal['stripe'] = Field('stripe', description="Payment provider to use")
-    stripe: Optional[StripeConfig] = Field(None, description="Stripe configuration")
-    
-    @model_validator(mode='after')
-    def validate_provider_config(self):
-        if self.provider == 'stripe' and not self.stripe:
-            raise ProviderConfigMismatchError('billing', 'stripe', 'stripe')
-        return self
-
-
-class EmailConfig(BaseModel):
-    """Email module configuration."""
-    provider: Literal['django', 'smtp'] = Field('django', description="Email provider to use")
-    # Django/Anymail uses Django's EMAIL_BACKEND and ANYMAIL settings
-    # SMTP uses Django's EMAIL_HOST, EMAIL_PORT, etc.
-
-
 class TwilioConfig(BaseModel):
     """Twilio SMS provider configuration."""
     account_sid: str = Field(..., description="Twilio Account SID")
@@ -106,8 +87,27 @@ class SNSConfig(BaseModel):
     sender_id: Optional[str] = Field(None, description="SMS Sender ID")
 
 
-class SMSConfig(BaseModel):
-    """SMS module configuration."""
+class BillingConfig(BaseModel):
+    """Billing module configuration."""
+    provider: Literal['stripe'] = Field('stripe', description="Payment provider to use")
+    stripe: Optional[StripeConfig] = Field(None, description="Stripe configuration")
+    
+    @model_validator(mode='after')
+    def validate_provider_config(self):
+        if self.provider == 'stripe' and not self.stripe:
+            raise ProviderConfigMismatchError('billing', 'stripe', 'stripe')
+        return self
+
+
+class EmailProviderConfig(BaseModel):
+    """Email provider configuration."""
+    provider: Literal['django', 'smtp'] = Field('django', description="Email provider to use")
+    # Django/Anymail uses Django's EMAIL_BACKEND and ANYMAIL settings
+    # SMTP uses Django's EMAIL_HOST, EMAIL_PORT, etc.
+
+
+class SMSProviderConfig(BaseModel):
+    """SMS provider configuration."""
     provider: Literal['twilio', 'sns'] = Field('twilio', description="SMS provider to use")
     twilio: Optional[TwilioConfig] = Field(None, description="Twilio configuration")
     sns: Optional[SNSConfig] = Field(None, description="AWS SNS configuration")
@@ -119,6 +119,12 @@ class SMSConfig(BaseModel):
         if self.provider == 'sns' and not self.sns:
             raise ProviderConfigMismatchError('sms', 'sns', 'sns')
         return self
+
+
+class CommunicationsConfig(BaseModel):
+    """Communications module configuration (email and SMS)."""
+    email: Optional[EmailProviderConfig] = Field(None, description="Email configuration")
+    sms: Optional[SMSProviderConfig] = Field(None, description="SMS configuration")
 
 
 class StorageConfig(BaseModel):
@@ -195,15 +201,13 @@ class SwapLayerSettings(BaseModel):
         # settings.py
         SWAPLAYER = SwapLayerSettings(
             billing={'provider': 'stripe', 'stripe': {'secret_key': 'sk_test_...'}},
-            email={'provider': 'django'},
-            sms={'provider': 'twilio', 'twilio': {...}},
+            communications={'email': {'provider': 'django'}, 'sms': {'provider': 'twilio', 'twilio': {...}}},
         )
     """
     
     # Module configurations
     billing: Optional[BillingConfig] = Field(None, description="Billing module configuration")
-    email: Optional[EmailConfig] = Field(None, description="Email module configuration")
-    sms: Optional[SMSConfig] = Field(None, description="SMS module configuration")
+    communications: Optional[CommunicationsConfig] = Field(None, description="Communications module configuration (email and SMS)")
     storage: Optional[StorageConfig] = Field(None, description="Storage module configuration")
     identity: Optional[IdentityPlatformConfig] = Field(None, description="Identity/OAuth configuration")
     verification: Optional[IdentityVerificationConfig] = Field(None, description="Identity verification configuration")
@@ -332,23 +336,27 @@ class SwapLayerSettings(BaseModel):
                     'publishable_key': getattr(settings, 'STRIPE_PUBLISHABLE_KEY', None),
                 }
         
-        # Email
+        # Communications (Email + SMS)
+        communications_config: Dict[str, Any] = {}
+        
         if hasattr(settings, 'EMAIL_PROVIDER'):
-            config['email'] = {
+            communications_config['email'] = {
                 'provider': getattr(settings, 'EMAIL_PROVIDER', 'django'),
             }
         
-        # SMS
         if hasattr(settings, 'SMS_PROVIDER'):
             sms_provider = settings.SMS_PROVIDER
-            config['sms'] = {'provider': sms_provider}
+            communications_config['sms'] = {'provider': sms_provider}
             
             if sms_provider == 'twilio' and hasattr(settings, 'TWILIO_ACCOUNT_SID'):
-                config['sms']['twilio'] = {
+                communications_config['sms']['twilio'] = {
                     'account_sid': settings.TWILIO_ACCOUNT_SID,
                     'auth_token': settings.TWILIO_AUTH_TOKEN,
                     'from_number': settings.TWILIO_FROM_NUMBER,
                 }
+        
+        if communications_config:
+            config['communications'] = communications_config
         
         # Storage
         if hasattr(settings, 'STORAGE_PROVIDER'):
@@ -389,7 +397,7 @@ class SwapLayerSettings(BaseModel):
         Validate that a specific module is properly configured.
         
         Args:
-            module: Module name ('billing', 'email', 'sms', etc.)
+            module: Module name ('billing', 'communications', 'storage', 'identity', 'verification')
             
         Raises:
             ImproperlyConfigured: If module is not configured or invalid
@@ -408,10 +416,18 @@ class SwapLayerSettings(BaseModel):
             Dictionary mapping module names to status ('configured', 'not configured', 'invalid')
         """
         status = {}
-        for module in ['billing', 'email', 'sms', 'storage', 'identity', 'verification']:
+        for module in ['billing', 'communications', 'storage', 'identity', 'verification']:
             config = getattr(self, module, None)
             if config is None:
                 status[module] = 'not configured'
+            elif module == 'communications':
+                # Special handling for communications
+                parts = []
+                if config.email:
+                    parts.append(f"email: {config.email.provider}")
+                if config.sms:
+                    parts.append(f"sms: {config.sms.provider}")
+                status[module] = f"configured ({', '.join(parts) if parts else 'empty'})" if parts else 'not configured'
             else:
                 try:
                     # Re-validate to catch any issues

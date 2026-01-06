@@ -195,8 +195,7 @@ class ModuleNotConfiguredError(ConfigurationError):
     def __init__(self, module: str):
         module_examples = {
             'billing': "billing={'provider': 'stripe', 'stripe': {'secret_key': 'sk_test_...'}}",
-            'email': "email={'provider': 'django'}",
-            'sms': "sms={'provider': 'twilio', 'twilio': {...}}",
+            'communications': "communications={'email': {'provider': 'django'}, 'sms': {'provider': 'twilio', 'twilio': {...}}}",
             'storage': "storage={'provider': 'local', 'media_root': '/path/to/media'}",
             'identity': "identity={'provider': 'workos', 'workos_apps': {...}}",
             'verification': "verification={'provider': 'stripe', 'stripe_secret_key': 'sk_test_...'}",

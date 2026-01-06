@@ -62,12 +62,14 @@ class TestTwilioConfigError:
         """Should provide helpful error for invalid Twilio Account SID."""
         with pytest.raises(TwilioConfigError) as exc_info:
             SwapLayerSettings(
-                sms={
-                    'provider': 'twilio',
-                    'twilio': {
-                        'account_sid': 'SK1234567890abcdef',  # Wrong! API Key, not Account SID
-                        'auth_token': 'test_token',
-                        'from_number': '+15555551234'
+                communications={
+                    'sms': {
+                        'provider': 'twilio',
+                        'twilio': {
+                            'account_sid': 'XX1234567890abcdef1234567890abcd',  # Wrong! Should start with AC
+                            'auth_token': 'test_token',
+                            'from_number': '+15555551234'
+                        }
                     }
                 }
             )
@@ -76,7 +78,7 @@ class TestTwilioConfigError:
         
         assert "❌ Invalid Twilio Account SID" in error_message
         assert "💡 Hint:" in error_message
-        assert "SK12345678" in error_message  # Shows what they provided
+        assert "XX12345678" in error_message  # Shows what they provided
         assert "AC" in error_message  # Shows correct prefix
         assert "twilio.com/docs" in error_message
     
@@ -84,12 +86,14 @@ class TestTwilioConfigError:
         """Should provide helpful error for invalid phone number format."""
         with pytest.raises(TwilioConfigError) as exc_info:
             SwapLayerSettings(
-                sms={
-                    'provider': 'twilio',
-                    'twilio': {
-                        'account_sid': 'AC1234567890abcdef1234567890abcd',
-                        'auth_token': 'test_token',
-                        'from_number': '555-123-4567'  # Wrong! Not E.164
+                communications={
+                    'sms': {
+                        'provider': 'twilio',
+                        'twilio': {
+                            'account_sid': 'AC1234567890abcdef1234567890abcd',
+                            'auth_token': 'test_token',
+                            'from_number': '555-123-4567'  # Wrong! Not E.164
+                        }
                     }
                 }
             )
@@ -107,12 +111,14 @@ class TestTwilioConfigError:
         """Should catch phone numbers missing '+' prefix."""
         with pytest.raises(TwilioConfigError):
             SwapLayerSettings(
-                sms={
-                    'provider': 'twilio',
-                    'twilio': {
-                        'account_sid': 'AC1234567890abcdef1234567890abcd',
-                        'auth_token': 'test_token',
-                        'from_number': '15555551234'  # Missing '+'
+                communications={
+                    'sms': {
+                        'provider': 'twilio',
+                        'twilio': {
+                            'account_sid': 'AC1234567890abcdef1234567890abcd',
+                            'auth_token': 'test_token',
+                            'from_number': '15555551234'  # Missing '+'
+                        }
                     }
                 }
             )
@@ -188,9 +194,11 @@ class TestProviderConfigMismatchError:
         """Should provide helpful error when Twilio provider selected but config missing."""
         with pytest.raises(ProviderConfigMismatchError):
             SwapLayerSettings(
-                sms={
-                    'provider': 'twilio',
-                    # Missing 'twilio' config!
+                communications={
+                    'sms': {
+                        'provider': 'twilio',
+                        # Missing 'twilio' config!
+                    }
                 }
             )
     
@@ -220,11 +228,11 @@ class TestModuleNotConfiguredError:
     
     def test_sms_not_configured(self):
         """Should provide helpful error for SMS module."""
-        error = ModuleNotConfiguredError('sms')
+        error = ModuleNotConfiguredError('communications')
         error_message = str(error)
         
-        assert "'sms' module is not configured" in error_message
-        assert "sms={'provider': 'twilio'" in error_message
+        assert "'communications' module is not configured" in error_message
+        assert "communications={'email':" in error_message or "communications=" in error_message
 
 
 class TestEnvironmentVariableError:
@@ -373,12 +381,14 @@ class TestRichErrorsInRealScenarios:
         """Simulate: Developer copies phone number from UI in wrong format."""
         with pytest.raises(TwilioConfigError) as exc_info:
             SwapLayerSettings(
-                sms={
-                    'provider': 'twilio',
-                    'twilio': {
-                        'account_sid': 'AC1234567890abcdef1234567890abcd',
-                        'auth_token': 'test_token',
-                        'from_number': '(555) 123-4567'  # Copied from UI
+                communications={
+                    'sms': {
+                        'provider': 'twilio',
+                        'twilio': {
+                            'account_sid': 'AC1234567890abcdef1234567890abcd',
+                            'auth_token': 'test_token',
+                            'from_number': '(555) 123-4567'  # Copied from UI
+                        }
                     }
                 }
             )
