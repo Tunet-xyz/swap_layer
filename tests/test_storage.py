@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import MagicMock, patch, mock_open
 from io import BytesIO
-from swap_layer.config import settings
+from django.conf import settings
 from swap_layer.storage.factory import get_storage_provider
 from swap_layer.storage.adapter import StorageProviderAdapter
 from swap_layer.storage.providers.local import LocalFileStorageProvider
@@ -10,40 +10,21 @@ from swap_layer.storage.providers.local import LocalFileStorageProvider
 class TestStorageFactory(unittest.TestCase):
     def test_get_storage_provider_returns_local(self):
         """Test that the factory returns the correct provider based on settings."""
-        def mock_get(key, default=None):
-            if key == 'STORAGE_PROVIDER': return 'local'
-            if key == 'MEDIA_ROOT': return '/tmp/media'
-            if key == 'MEDIA_URL': return '/media/'
-            return default
-            
-        with patch.object(settings, 'get', side_effect=mock_get):
+        with patch.object(settings, 'STORAGE_PROVIDER', 'local'):
             provider = get_storage_provider()
             self.assertIsInstance(provider, LocalFileStorageProvider)
             self.assertIsInstance(provider, StorageProviderAdapter)
 
     def test_factory_raises_for_unknown_provider(self):
         """Test that the factory raises ValueError for unknown providers."""
-        with patch.object(settings, 'get', return_value='unknown'):
+        with patch.object(settings, 'STORAGE_PROVIDER', 'unknown'):
             with self.assertRaises(ValueError):
                 get_storage_provider()
 
 
 class TestLocalStorageProvider(unittest.TestCase):
     def setUp(self):
-        self.settings_patcher = patch.object(settings, 'get')
-        self.mock_get = self.settings_patcher.start()
-        def mock_settings_get(key, default=None):
-            config = {
-                'MEDIA_ROOT': '/tmp/media',
-                'MEDIA_URL': '/media/'
-            }
-            return config.get(key, default)
-        self.mock_get.side_effect = mock_settings_get
-        
         self.provider = LocalFileStorageProvider()
-
-    def tearDown(self):
-        self.settings_patcher.stop()
 
     @patch('swap_layer.storage.providers.local.os.makedirs')
     @patch('builtins.open', new_callable=mock_open)

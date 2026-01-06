@@ -47,10 +47,26 @@ def pytest_configure():
             IDENTITY_PROVIDER='workos',
             WORKOS_API_KEY='sk_test',
             WORKOS_CLIENT_ID='client_test',
+            WORKOS_APPS={
+                'default': {
+                    'api_key': 'sk_test',
+                    'client_id': 'client_test',
+                    'cookie_password': 'test_cookie_password_32_chars_min'
+                },
+                'custom_app': {
+                    'api_key': 'sk_test_custom',
+                    'client_id': 'client_test_custom',
+                    'cookie_password': 'test_cookie_password_32_chars_min'
+                }
+            },
             
-            AUTH0_DOMAIN='test.auth0.com',
-            AUTH0_CLIENT_ID='auth0_test',
-            AUTH0_CLIENT_SECRET='auth0_secret_test',
+            AUTH0_DEVELOPER_DOMAIN='test.auth0.com',
+            AUTH0_APPS={
+                'developer': {
+                    'client_id': 'auth0_test',
+                    'client_secret': 'auth0_secret_test'
+                }
+            },
             
             # Identity Verification settings
             IDENTITY_VERIFICATION_PROVIDER='stripe',

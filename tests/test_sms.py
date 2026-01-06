@@ -1,6 +1,6 @@
 import unittest
 from unittest.mock import MagicMock, patch, Mock
-from swap_layer.config import settings
+from django.conf import settings
 from swap_layer.sms.factory import get_sms_provider
 from swap_layer.sms.adapter import SMSProviderAdapter
 from swap_layer.sms.providers.twilio_sms import TwilioSMSProvider
@@ -9,45 +9,24 @@ from swap_layer.sms.providers.twilio_sms import TwilioSMSProvider
 class TestSMSFactory(unittest.TestCase):
     def test_get_sms_provider_returns_twilio(self):
         """Test that the factory returns the correct provider based on settings."""
-        def mock_get(key, default=None):
-            if key == 'SMS_PROVIDER': return 'twilio'
-            if key == 'TWILIO_ACCOUNT_SID': return 'AC_test'
-            if key == 'TWILIO_AUTH_TOKEN': return 'test_token'
-            if key == 'TWILIO_FROM_NUMBER': return '+15555551234'
-            return default
-            
-        with patch.object(settings, 'get', side_effect=mock_get):
+        with patch.object(settings, 'SMS_PROVIDER', 'twilio'):
             provider = get_sms_provider()
             self.assertIsInstance(provider, TwilioSMSProvider)
             self.assertIsInstance(provider, SMSProviderAdapter)
 
     def test_factory_raises_for_unknown_provider(self):
         """Test that the factory raises ValueError for unknown providers."""
-        with patch.object(settings, 'get', return_value='unknown'):
+        with patch.object(settings, 'SMS_PROVIDER', 'unknown'):
             with self.assertRaises(ValueError):
                 get_sms_provider()
 
 
 class TestTwilioProvider(unittest.TestCase):
     def setUp(self):
-        self.settings_patcher = patch.object(settings, 'get')
-        self.mock_get = self.settings_patcher.start()
-        def mock_settings_get(key, default=None):
-            config = {
-                'TWILIO_ACCOUNT_SID': 'AC_test',
-                'TWILIO_AUTH_TOKEN': 'test_token',
-                'TWILIO_FROM_NUMBER': '+15555551234'
-            }
-            return config.get(key, default)
-        self.mock_get.side_effect = mock_settings_get
-        
-        with patch('swap_layer.sms.providers.twilio_sms.Client') as mock_client_class:
+        with patch('twilio.rest.Client') as mock_client_class:
             self.mock_client = MagicMock()
             mock_client_class.return_value = self.mock_client
             self.provider = TwilioSMSProvider()
-
-    def tearDown(self):
-        self.settings_patcher.stop()
 
     def test_send_sms_success(self):
         """Test successful SMS sending."""

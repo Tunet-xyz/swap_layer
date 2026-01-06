@@ -1,6 +1,6 @@
 import unittest
 from unittest.mock import MagicMock, patch, Mock
-from swap_layer.config import settings
+from django.conf import settings
 from swap_layer.identity.platform.factory import get_identity_client
 from swap_layer.identity.platform.adapter import AuthProviderAdapter
 from swap_layer.identity.platform.providers.workos.client import WorkOSClient
@@ -9,48 +9,26 @@ from swap_layer.identity.platform.providers.workos.client import WorkOSClient
 class TestIdentityPlatformFactory(unittest.TestCase):
     def test_get_identity_client_returns_workos(self):
         """Test that the factory returns the correct provider based on settings."""
-        def mock_get(key, default=None):
-            if key == 'IDENTITY_PROVIDER': return 'workos'
-            if key == 'WORKOS_API_KEY': return 'sk_test_mock'
-            if key == 'WORKOS_CLIENT_ID': return 'client_test'
-            return default
-            
-        with patch.object(settings, 'get', side_effect=mock_get):
+        with patch.object(settings, 'IDENTITY_PROVIDER', 'workos'):
             provider = get_identity_client()
             self.assertIsInstance(provider, WorkOSClient)
             self.assertIsInstance(provider, AuthProviderAdapter)
 
     def test_factory_raises_for_unknown_provider(self):
         """Test that the factory raises ValueError for unknown providers."""
-        with patch.object(settings, 'get', return_value='unknown'):
+        with patch.object(settings, 'IDENTITY_PROVIDER', 'unknown'):
             with self.assertRaises(ValueError):
                 get_identity_client()
 
     def test_factory_supports_app_name_parameter(self):
         """Test that factory accepts app_name parameter."""
-        def mock_get(key, default=None):
-            if key == 'IDENTITY_PROVIDER': return 'workos'
-            if key == 'WORKOS_API_KEY': return 'sk_test_mock'
-            if key == 'WORKOS_CLIENT_ID': return 'client_test'
-            return default
-            
-        with patch.object(settings, 'get', side_effect=mock_get):
+        with patch.object(settings, 'IDENTITY_PROVIDER', 'workos'):
             provider = get_identity_client(app_name='custom_app')
             self.assertIsInstance(provider, WorkOSClient)
 
 
 class TestWorkOSClient(unittest.TestCase):
     def setUp(self):
-        self.settings_patcher = patch.object(settings, 'get')
-        self.mock_get = self.settings_patcher.start()
-        def mock_settings_get(key, default=None):
-            config = {
-                'WORKOS_API_KEY': 'sk_test_mock',
-                'WORKOS_CLIENT_ID': 'client_test'
-            }
-            return config.get(key, default)
-        self.mock_get.side_effect = mock_settings_get
-        
         with patch('swap_layer.identity.platform.providers.workos.client.workos') as mock_workos:
             self.mock_workos_module = mock_workos
             self.mock_workos_module.api_key = None
@@ -58,9 +36,6 @@ class TestWorkOSClient(unittest.TestCase):
             self.provider = WorkOSClient(app_name='default')
         
         self.mock_request = MagicMock()
-
-    def tearDown(self):
-        self.settings_patcher.stop()
 
     @patch('swap_layer.identity.platform.providers.workos.client.workos.client.sso.get_authorization_url')
     def test_get_authorization_url(self, mock_get_url):
@@ -116,25 +91,11 @@ class TestWorkOSClient(unittest.TestCase):
 
 class TestAuth0Client(unittest.TestCase):
     def setUp(self):
-        self.settings_patcher = patch.object(settings, 'get')
-        self.mock_get = self.settings_patcher.start()
-        def mock_settings_get(key, default=None):
-            config = {
-                'AUTH0_DOMAIN': 'example.auth0.com',
-                'AUTH0_CLIENT_ID': 'client_test',
-                'AUTH0_CLIENT_SECRET': 'secret_test'
-            }
-            return config.get(key, default)
-        self.mock_get.side_effect = mock_settings_get
-        
         from swap_layer.identity.platform.providers.auth0.client import Auth0Client
         with patch('swap_layer.identity.platform.providers.auth0.client.OAuth2Session'):
             self.provider = Auth0Client(app_name='developer')
         
         self.mock_request = MagicMock()
-
-    def tearDown(self):
-        self.settings_patcher.stop()
 
     def test_get_authorization_url(self):
         """Test generating Auth0 authorization URL."""
