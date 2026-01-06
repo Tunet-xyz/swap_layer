@@ -5,215 +5,111 @@
 
 ---
 
-## The Origin Story: "Never Again"
-
-2025 was the hardest year of my professional life. I was two weeks away from onboarding a major client when my database provider, FaunaDB, effectively imploded for my use case. 
-
-My entire codebase was tightly coupled to their specific SDKs. I didn't just have a "database problem"; I had a "rewrite the whole application" problem. I lost the client. I lost months of work. I lost sleep.
-
-I swore: **Never Again.**
-
-I realized that "Vendor Lock-in" isn't just a buzzword—it's a business risk. If you import `stripe` or `boto3` or `twilio` directly into your business logic, you are handing the keys of your architecture to a third party.
-
-I built **SwapLayer** to ensure that no external vendor failure could ever sink my platform again.
-
----
-
 ## What is SwapLayer?
 
-SwapLayer is a **unified infrastructure layer** for Django applications. 
+SwapLayer is a **unified infrastructure layer** for Django that protects you from vendor lock-in.
 
-Instead of stitching together 5 different libraries with 5 different patterns, you install **one package** that provides a consistent, "Adapter-based" interface for all your external integrations.
+Instead of coupling your code directly to Stripe, AWS, or Twilio, you write against **one consistent interface** and swap providers by changing a single configuration line.
 
-It is designed to be the **"Firewall"** between your clean business logic and the messy world of third-party APIs.
-
-### The "Single Package" Philosophy
-We believe you shouldn't have to hunt down a dozen micro-libraries to build a standard SaaS. SwapLayer is a cohesive suite:
-
-*   **One Import:** `from swap_layer import get_provider`
-*   **One Pattern:** Consistent `Adapter` interfaces for Auth, Payments, Storage, Email, and SMS.
-*   **One Config:** Centralized settings.
-*   **Zero Lock-in:** Swap underlying vendors by changing ONE line of config.
-
----
-
-## Architecture: The "Meta-Framework"
-
-We don't reinvent the wheel. We make the wheel interchangeable.
-
-SwapLayer uses a **Wrapper Pattern** to leverage the best existing tools while enforcing a unified API.
-
-| Domain | Strategy | Underlying Tech | The Value |
-| :--- | :--- | :--- | :--- |
-| **Storage** | **Wrapper** | `django-storages` | Unified interface for S3, Azure, GCloud, Local. |
-| **Email** | **Wrapper** | `django-anymail` | Unified interface for SendGrid, Mailgun, SES. |
-| **Payments** | **Custom** | Stripe / PayPal | **The Missing Link.** A unified Payment Adapter organized into subdomains: customers, subscriptions, payment_intents, and products. |
-| **Identity** | **Custom** | Auth0 / WorkOS | Lightweight OIDC/OAuth abstraction. |
-| **SMS** | **Custom** | Twilio / SNS | Simple, consistent messaging interface. |
-
----
-
-## Usage Example
-
-### 1. The Old Way (The "Risk" Way)
-Tightly coupled code that breaks if you switch vendors.
+### The Problem
 
 ```python
-# views.py
+# ❌ Tightly coupled - if Stripe fails, you rewrite everything
 import stripe
-import boto3
-
-def signup(request):
-    # Direct dependency on Stripe!
-    customer = stripe.Customer.create(email=request.user.email)
-    
-    # Direct dependency on AWS!
-    s3 = boto3.client('s3')
-    s3.upload_file(...)
+customer = stripe.Customer.create(email='user@example.com')
 ```
 
-### 2. The SwapLayer Way (The "Safe" Way)
-Vendor-agnostic code. The "Provider" is injected based on settings.
+### The Solution
 
 ```python
-# views.py
-from swap_layer.payments.factory import get_payment_provider
-from swap_layer.storage.factory import get_storage_provider
-
-def signup(request):
-    # Code doesn't know if it's Stripe or PayPal
-    payments = get_payment_provider()
-    
-    # Subdomain-organized operations
-    customer = payments.create_customer(email=request.user.email)  # customers subdomain
-    subscription = payments.create_subscription(  # subscriptions subdomain
-        customer_id=customer['id'],
-        price_id='price_monthly'
-    )
-    
-    # Code doesn't know if it's S3 or Azure
-    storage = get_storage_provider()
-    storage.upload_file(...)
+# ✅ Provider-agnostic - swap providers in settings
+from swap_layer import get_provider
+payments = get_provider('payments')
+customer = payments.create_customer(email='user@example.com')
 ```
-
-**Subdomain Architecture**: The payments module is organized into logical subdomains:
-- **customers**: Customer management (create, update, delete)
-- **subscriptions**: Subscription lifecycle (create, cancel, list)
-- **payment_intents**: Payment processing (intents, methods, checkout, invoices, webhooks)
-- **products**: Product catalog and pricing (placeholder for future)
-
-See [Payments Documentation](src/swap_layer/payments/README.md) for details.
 
 ---
 
-## Installation
+## Quick Start
+
+### 1. Install
 
 ```bash
-# Install the core framework
-pip install swap-layer
-
-# Install with specific provider support (Optional Dependencies)
-pip install swap-layer[stripe,aws,sendgrid]
+pip install swap-layer[stripe,sendgrid,twilio]
 ```
 
-## Configuration
-
-SwapLayer offers **world-class configuration management** with type safety, validation, and helpful error messages.
-
-### Quick Start (Structured Config - Recommended)
+### 2. Configure
 
 ```python
 # settings.py
 from swap_layer.settings import SwapLayerSettings
 
 SWAPLAYER = SwapLayerSettings(
-    payments={
-        'provider': 'stripe',
-        'stripe': {
-            'secret_key': os.environ['STRIPE_SECRET_KEY'],
-            'publishable_key': os.environ['STRIPE_PUBLISHABLE_KEY'],
-        }
-    },
     email={'provider': 'django'},
-    sms={
-        'provider': 'twilio',
-        'twilio': {
-            'account_sid': os.environ['TWILIO_ACCOUNT_SID'],
-            'auth_token': os.environ['TWILIO_AUTH_TOKEN'],
-            'from_number': '+15555551234',
-        }
-    },
+    payments={'provider': 'stripe', 'stripe': {'secret_key': '...'}},
+    sms={'provider': 'twilio', 'twilio': {'account_sid': '...'}},
     storage={'provider': 'django'},
 )
 ```
 
-**Benefits:**
-- ✅ **Type Safety**: Pydantic validation catches errors at startup
-- ✅ **IDE Autocomplete**: Full IntelliSense for all options
-- ✅ **Helpful Errors**: "Stripe secret key must start with 'sk_'" instead of cryptic failures
-- ✅ **Validation Command**: `python manage.py swaplayer_check` shows status
-- ✅ **Environment Variables**: `SwapLayerSettings.from_env()` for 12-factor apps
-- ✅ **Backward Compatible**: Legacy settings still work via `from_django()`
-
-### Legacy Configuration (Still Supported)
+### 3. Use Anywhere
 
 ```python
-# settings.py
+from swap_layer import get_provider
 
-# Switch providers instantly. No code changes required.
-PAYMENT_PROVIDER = 'stripe'  # or 'paypal'
-STORAGE_PROVIDER = 'django'  # uses django-storages backend
-EMAIL_PROVIDER   = 'django'  # uses django-anymail backend
+# Email
+get_provider('email').send(to='user@example.com', subject='Hello')
+
+# Payments  
+get_provider('payments').create_customer(email='user@example.com')
+
+# SMS
+get_provider('sms').send(to='+1555555', message='Welcome!')
 ```
-
-**📚 See [SETTINGS_MANAGEMENT.md](SETTINGS_MANAGEMENT.md) for complete configuration guide**
 
 ---
 
-## World-Class Error System
+## Features
 
-SwapLayer provides **rich, actionable error messages** that guide you to solutions:
-
-```python
-# ❌ Wrong configuration
-SWAPLAYER = SwapLayerSettings(
-    payments={
-        'provider': 'stripe',
-        'stripe': {'secret_key': 'pk_test_123'}  # Oops! Used publishable key
-    }
-)
-
-# 🚨 Error you'll see:
-# ❌ Invalid Stripe secret key
-# 
-# 💡 Hint: Stripe secret keys have a specific format. You provided: 'pk_test_123...'
-# 
-# ✅ Valid examples:
-#    sk_test_51A... (test mode secret key)
-#    sk_live_51A... (live mode secret key)
-# 
-# 🔍 Check these settings:
-#    - SWAPLAYER.payments.stripe.secret_key
-# 
-# 📚 Documentation: https://stripe.com/docs/keys
-```
-
-**Every error includes:**
-- Clear description of what went wrong
-- Actionable hint on how to fix it
-- Valid examples showing correct values
-- Related settings to check
-- Documentation links
-
-**📚 See [ERROR_SYSTEM.md](ERROR_SYSTEM.md) for complete error guide**
+| Module | Status | Description |
+|--------|--------|-------------|
+| **Email** | ✅ Production | SMTP, SendGrid, Mailgun, SES |
+| **Payments** | ✅ Production | Stripe (PayPal planned) |
+| **SMS** | ✅ Production | Twilio, AWS SNS |
+| **Storage** | ✅ Production | S3, Azure, GCS, Local |
+| **Identity** | 🚧 Beta | OAuth/SSO, KYC Verification |
 
 ---
 
-## Status
-*   **Storage:** ✅ Production Ready (Wraps `django-storages`)
-*   **Email:** ✅ Production Ready (Wraps `django-anymail`)
-*   **Payments:** 🚧 Beta (Stripe implemented, PayPal planned)
-*   **Identity:** 🚧 Beta (Auth0 implemented)
+## 📚 Full Documentation
+
+**[→ docs/](docs/) - One doc per module:**
+
+- **[Email](docs/email.md)** - Email providers
+- **[Payments](docs/payments.md)** - Payment processing
+- **[SMS](docs/sms.md)** - SMS messaging
+- **[Storage](docs/storage.md)** - File storage
+- **[Identity Platform](docs/identity-platform.md)** - OAuth/SSO
+- **[Identity Verification](docs/identity-verification.md)** - KYC
+- **[Architecture](docs/architecture.md)** - Design patterns
+- **[Contributing](docs/development/contributing.md)** - Help improve SwapLayer
+
+---
+
+## Why SwapLayer?
+
+✅ **Avoid Vendor Lock-in** - Never get trapped by a single provider  
+✅ **Consistent Interface** - Same API across all vendors  
+✅ **Type Safe** - Pydantic validation catches errors early  
+✅ **Battle Tested** - Wraps proven tools (django-storages, django-anymail)  
+✅ **Zero Rewrites** - Swap providers with configuration changes only  
+
+---
 
 ## License
-MIT. Because safety should be free.
+
+MIT - Because avoiding vendor lock-in should be free.
+
+---
+
+**[→ Read Full Documentation](docs/index.md)**
