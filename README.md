@@ -118,6 +118,45 @@ pip install swap-layer[stripe,aws,sendgrid]
 
 ## Configuration
 
+SwapLayer offers **world-class configuration management** with type safety, validation, and helpful error messages.
+
+### Quick Start (Structured Config - Recommended)
+
+```python
+# settings.py
+from swap_layer.settings import SwapLayerSettings
+
+SWAPLAYER = SwapLayerSettings(
+    payments={
+        'provider': 'stripe',
+        'stripe': {
+            'secret_key': os.environ['STRIPE_SECRET_KEY'],
+            'publishable_key': os.environ['STRIPE_PUBLISHABLE_KEY'],
+        }
+    },
+    email={'provider': 'django'},
+    sms={
+        'provider': 'twilio',
+        'twilio': {
+            'account_sid': os.environ['TWILIO_ACCOUNT_SID'],
+            'auth_token': os.environ['TWILIO_AUTH_TOKEN'],
+            'from_number': '+15555551234',
+        }
+    },
+    storage={'provider': 'django'},
+)
+```
+
+**Benefits:**
+- ✅ **Type Safety**: Pydantic validation catches errors at startup
+- ✅ **IDE Autocomplete**: Full IntelliSense for all options
+- ✅ **Helpful Errors**: "Stripe secret key must start with 'sk_'" instead of cryptic failures
+- ✅ **Validation Command**: `python manage.py swaplayer_check` shows status
+- ✅ **Environment Variables**: `SwapLayerSettings.from_env()` for 12-factor apps
+- ✅ **Backward Compatible**: Legacy settings still work via `from_django()`
+
+### Legacy Configuration (Still Supported)
+
 ```python
 # settings.py
 
@@ -126,6 +165,47 @@ PAYMENT_PROVIDER = 'stripe'  # or 'paypal'
 STORAGE_PROVIDER = 'django'  # uses django-storages backend
 EMAIL_PROVIDER   = 'django'  # uses django-anymail backend
 ```
+
+**📚 See [SETTINGS_MANAGEMENT.md](SETTINGS_MANAGEMENT.md) for complete configuration guide**
+
+---
+
+## World-Class Error System
+
+SwapLayer provides **rich, actionable error messages** that guide you to solutions:
+
+```python
+# ❌ Wrong configuration
+SWAPLAYER = SwapLayerSettings(
+    payments={
+        'provider': 'stripe',
+        'stripe': {'secret_key': 'pk_test_123'}  # Oops! Used publishable key
+    }
+)
+
+# 🚨 Error you'll see:
+# ❌ Invalid Stripe secret key
+# 
+# 💡 Hint: Stripe secret keys have a specific format. You provided: 'pk_test_123...'
+# 
+# ✅ Valid examples:
+#    sk_test_51A... (test mode secret key)
+#    sk_live_51A... (live mode secret key)
+# 
+# 🔍 Check these settings:
+#    - SWAPLAYER.payments.stripe.secret_key
+# 
+# 📚 Documentation: https://stripe.com/docs/keys
+```
+
+**Every error includes:**
+- Clear description of what went wrong
+- Actionable hint on how to fix it
+- Valid examples showing correct values
+- Related settings to check
+- Documentation links
+
+**📚 See [ERROR_SYSTEM.md](ERROR_SYSTEM.md) for complete error guide**
 
 ---
 

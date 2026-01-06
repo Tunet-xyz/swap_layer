@@ -10,6 +10,28 @@ from .sms.factory import get_sms_provider
 from .identity.platform.factory import get_identity_client
 from .identity.verification.factory import get_identity_verification_provider
 
+# Export settings management
+from .settings import (
+    SwapLayerSettings,
+    get_swaplayer_settings,
+    validate_swaplayer_config,
+)
+
+# Export exceptions for error handling
+from .exceptions import (
+    SwapLayerError,
+    ConfigurationError,
+    ValidationError,
+    ProviderError,
+    StripeKeyError,
+    TwilioConfigError,
+    WorkOSConfigError,
+    ProviderConfigMismatchError,
+    ModuleNotConfiguredError,
+    EnvironmentVariableError,
+    MultiTenantConfigError,
+)
+
 __version__ = "0.1.0"
 
 def get_provider(service_type: str, **kwargs) -> Any:
@@ -66,4 +88,20 @@ __all__ = [
     'get_sms_provider',
     'get_identity_client',
     'get_identity_verification_provider',
+    # Settings management
+    'SwapLayerSettings',
+    'get_swaplayer_settings',
+    'validate_swaplayer_config',
+    # Exceptions
+    'SwapLayerError',
+    'ConfigurationError',
+    'ValidationError',
+    'ProviderError',
+    'StripeKeyError',
+    'TwilioConfigError',
+    'WorkOSConfigError',
+    'ProviderConfigMismatchError',
+    'ModuleNotConfiguredError',
+    'EnvironmentVariableError',
+    'MultiTenantConfigError',
 ]
