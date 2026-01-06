@@ -49,7 +49,7 @@ The abstraction provides these operations:
 ```python
 INSTALLED_APPS = [
     # ...
-    'infrastructure.storage',
+    'swap_layer.storage',
     # ...
 ]
 ```
@@ -80,7 +80,7 @@ AZURE_STORAGE_CONTAINER_NAME = os.environ.get('AZURE_STORAGE_CONTAINER_NAME')
 ### Basic Usage
 
 ```python
-from infrastructure.storage.factory import get_storage_provider
+from swap_layer.storage.factory import get_storage_provider
 
 # Get the configured provider
 storage = get_storage_provider()
@@ -117,7 +117,7 @@ storage.delete_file('uploads/photos/photo.jpg')
 ```python
 from django.views import View
 from django.http import JsonResponse
-from infrastructure.storage.factory import get_storage_provider
+from swap_layer.storage.factory import get_storage_provider
 
 class FileUploadView(View):
     def post(self, request):
@@ -147,7 +147,7 @@ class FileUploadView(View):
 ### Presigned Upload URLs (for S3/Azure)
 
 ```python
-from infrastructure.storage.factory import get_storage_provider
+from swap_layer.storage.factory import get_storage_provider
 from datetime import timedelta
 
 storage = get_storage_provider()
@@ -170,7 +170,7 @@ return JsonResponse({
 ### List and Filter Files
 
 ```python
-from infrastructure.storage.factory import get_storage_provider
+from swap_layer.storage.factory import get_storage_provider
 
 storage = get_storage_provider()
 
@@ -187,7 +187,7 @@ for file in files:
 ### Copy and Move Files
 
 ```python
-from infrastructure.storage.factory import get_storage_provider
+from swap_layer.storage.factory import get_storage_provider
 
 storage = get_storage_provider()
 
@@ -207,7 +207,7 @@ storage.move_file(
 ### Bulk Operations
 
 ```python
-from infrastructure.storage.factory import get_storage_provider
+from swap_layer.storage.factory import get_storage_provider
 
 storage = get_storage_provider()
 
@@ -290,7 +290,7 @@ Azure Blob Storage is Microsoft's object storage solution.
 
 ```python
 from unittest.mock import Mock, patch
-from infrastructure.storage.adapter import StorageProviderAdapter
+from swap_layer.storage.adapter import StorageProviderAdapter
 
 # Mock the storage provider
 mock_storage = Mock(spec=StorageProviderAdapter)
@@ -303,7 +303,7 @@ mock_storage.upload_file.return_value = {
 }
 
 # Use in your tests
-with patch('infrastructure.storage.factory.get_storage_provider', return_value=mock_storage):
+with patch('swap_layer.storage.factory.get_storage_provider', return_value=mock_storage):
     # Your test code here
     pass
 ```
@@ -317,7 +317,7 @@ To add support for a new storage provider (e.g., Google Cloud Storage):
 2. Implement the `StorageProviderAdapter` interface:
 
 ```python
-from infrastructure.storage.adapter import StorageProviderAdapter
+from swap_layer.storage.adapter import StorageProviderAdapter
 
 class GCSStorageProvider(StorageProviderAdapter):
     def __init__(self):
@@ -344,7 +344,7 @@ def get_storage_provider():
     elif provider == 'azure':
         return AzureBlobStorageProvider()
     elif provider == 'gcs':
-        from infrastructure.storage.providers.gcs import GCSStorageProvider
+        from swap_layer.storage.providers.gcs import GCSStorageProvider
         return GCSStorageProvider()
     # ...
 ```
@@ -381,7 +381,7 @@ GCS_CREDENTIALS_FILE = os.environ.get('GCS_CREDENTIALS_FILE')
 The abstraction defines custom exceptions:
 
 ```python
-from infrastructure.storage.adapter import (
+from swap_layer.storage.adapter import (
     StorageError,                # Base exception
     StorageUploadError,          # Upload failures
     StorageDownloadError,        # Download failures
@@ -404,7 +404,7 @@ except StorageError as e:
 
 | Aspect | Authentication | Payments | Email | **Storage** |
 |--------|---------------|----------|-------|-------------|
-| **Location** | `infrastructure/identity/platform/` | `infrastructure/payments/` | `infrastructure/email/` | `infrastructure/storage/` |
+| **Location** | `swap_layer/identity/platform/` | `swap_layer/payments/` | `swap_layer/email/` | `swap_layer/storage/` |
 | **Base Class** | `AuthProviderAdapter` | `PaymentProviderAdapter` | `EmailProviderAdapter` | `StorageProviderAdapter` |
 | **Factory** | `get_identity_client()` | `get_payment_provider()` | `get_email_provider()` | `get_storage_provider()` |
 | **Methods** | 3 | 21 | 8 | 12 |

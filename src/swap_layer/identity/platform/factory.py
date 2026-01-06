@@ -1,6 +1,4 @@
-from django.conf import settings
-from .vendors.workos.client import WorkOSClient
-from .vendors.auth0.client import Auth0Client
+from swap_layer.config import settings
 from .adapter import AuthProviderAdapter
 
 def get_identity_client(app_name='default') -> AuthProviderAdapter:
@@ -11,8 +9,10 @@ def get_identity_client(app_name='default') -> AuthProviderAdapter:
     provider = getattr(settings, 'IDENTITY_PROVIDER', 'workos')
     
     if provider == 'workos':
+        from .vendors.workos.client import WorkOSClient
         return WorkOSClient(app_name=app_name)
     elif provider == 'auth0':
+        from .vendors.auth0.client import Auth0Client
         # Map 'default' to 'developer' for Auth0 legacy support if needed
         if app_name == 'default':
             app_name = 'developer'

@@ -43,7 +43,7 @@ The abstraction provides these operations:
 ```python
 INSTALLED_APPS = [
     # ...
-    'infrastructure.sms',
+    'swap_layer.sms',
     # ...
 ]
 ```
@@ -81,7 +81,7 @@ AWS_SNS_DEFAULT_SENDER_ID = os.environ.get('AWS_SNS_DEFAULT_SENDER_ID')
 ### Basic Usage
 
 ```python
-from infrastructure.sms.factory import get_sms_provider
+from swap_layer.sms.factory import get_sms_provider
 
 # Get the configured provider
 sms = get_sms_provider()
@@ -99,7 +99,7 @@ print(f"Status: {result['status']}")
 ### Send Verification Code
 
 ```python
-from infrastructure.sms.factory import get_sms_provider
+from swap_layer.sms.factory import get_sms_provider
 import random
 
 def send_verification_code(phone_number):
@@ -124,7 +124,7 @@ def send_verification_code(phone_number):
 ### Send Bulk SMS
 
 ```python
-from infrastructure.sms.factory import get_sms_provider
+from swap_layer.sms.factory import get_sms_provider
 
 sms = get_sms_provider()
 
@@ -150,7 +150,7 @@ for failure in result['failed_recipients']:
 ### Check Message Status
 
 ```python
-from infrastructure.sms.factory import get_sms_provider
+from swap_layer.sms.factory import get_sms_provider
 
 sms = get_sms_provider()
 
@@ -164,7 +164,7 @@ if status['error']:
 ### Validate Phone Number
 
 ```python
-from infrastructure.sms.factory import get_sms_provider
+from swap_layer.sms.factory import get_sms_provider
 
 sms = get_sms_provider()
 
@@ -182,7 +182,7 @@ else:
 ### Check Account Balance
 
 ```python
-from infrastructure.sms.factory import get_sms_provider
+from swap_layer.sms.factory import get_sms_provider
 
 sms = get_sms_provider()
 
@@ -195,7 +195,7 @@ print(f"Status: {balance['account_status']}")
 ### List Sent Messages
 
 ```python
-from infrastructure.sms.factory import get_sms_provider
+from swap_layer.sms.factory import get_sms_provider
 
 sms = get_sms_provider()
 
@@ -216,7 +216,7 @@ for msg in messages:
 ### Handle Opt-Outs
 
 ```python
-from infrastructure.sms.factory import get_sms_provider
+from swap_layer.sms.factory import get_sms_provider
 
 sms = get_sms_provider()
 
@@ -238,8 +238,8 @@ sms.opt_in_number('+14155552671')
 ```python
 from django.views import View
 from django.http import JsonResponse
-from infrastructure.sms.factory import get_sms_provider
-from infrastructure.sms.adapter import SMSSendError
+from swap_layer.sms.factory import get_sms_provider
+from swap_layer.sms.adapter import SMSSendError
 
 class SendSMSView(View):
     def post(self, request):
@@ -271,7 +271,7 @@ class SendSMSView(View):
 ```python
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
-from infrastructure.sms.factory import get_sms_provider
+from swap_layer.sms.factory import get_sms_provider
 import random
 
 @login_required
@@ -353,7 +353,7 @@ AWS Simple Notification Service can send SMS messages.
 
 ```python
 from unittest.mock import Mock, patch
-from infrastructure.sms.adapter import SMSProviderAdapter
+from swap_layer.sms.adapter import SMSProviderAdapter
 
 # Mock the SMS provider
 mock_sms = Mock(spec=SMSProviderAdapter)
@@ -366,7 +366,7 @@ mock_sms.send_sms.return_value = {
 }
 
 # Use in tests
-with patch('infrastructure.sms.factory.get_sms_provider', return_value=mock_sms):
+with patch('swap_layer.sms.factory.get_sms_provider', return_value=mock_sms):
     # Your test code
     pass
 ```
@@ -375,7 +375,7 @@ with patch('infrastructure.sms.factory.get_sms_provider', return_value=mock_sms)
 
 ```python
 from django.test import TestCase
-from infrastructure.sms.factory import get_sms_provider
+from swap_layer.sms.factory import get_sms_provider
 
 class SMSIntegrationTest(TestCase):
     def test_send_sms(self):
@@ -413,7 +413,7 @@ class SMSIntegrationTest(TestCase):
 ## Error Handling
 
 ```python
-from infrastructure.sms.adapter import (
+from swap_layer.sms.adapter import (
     SMSError,                    # Base exception
     SMSSendError,               # Send failures
     SMSMessageNotFoundError,    # Message not found
@@ -437,7 +437,7 @@ To add Vonage (formerly Nexmo):
 1. Create `providers/vonage.py`:
 
 ```python
-from infrastructure.sms.adapter import SMSProviderAdapter
+from swap_layer.sms.adapter import SMSProviderAdapter
 
 class VonageSMSProvider(SMSProviderAdapter):
     def __init__(self):
@@ -455,7 +455,7 @@ class VonageSMSProvider(SMSProviderAdapter):
 
 ```python
 elif provider == 'vonage':
-    from infrastructure.sms.providers.vonage import VonageSMSProvider
+    from swap_layer.sms.providers.vonage import VonageSMSProvider
     return VonageSMSProvider()
 ```
 
@@ -471,7 +471,7 @@ VONAGE_FROM_NUMBER = os.environ.get('VONAGE_FROM_NUMBER')
 
 | Aspect | Authentication | Payments | Email | Storage | **SMS** |
 |--------|---------------|----------|-------|---------|---------|
-| **Location** | `infrastructure/identity/platform/` | `infrastructure/payments/` | `infrastructure/email/` | `infrastructure/storage/` | `infrastructure/sms/` |
+| **Location** | `swap_layer/identity/platform/` | `swap_layer/payments/` | `swap_layer/email/` | `swap_layer/storage/` | `swap_layer/sms/` |
 | **Base Class** | `AuthProviderAdapter` | `PaymentProviderAdapter` | `EmailProviderAdapter` | `StorageProviderAdapter` | `SMSProviderAdapter` |
 | **Factory** | `get_identity_client()` | `get_payment_provider()` | `get_email_provider()` | `get_storage_provider()` | `get_sms_provider()` |
 | **Methods** | 3 | 21 | 8 | 12 | 8 |

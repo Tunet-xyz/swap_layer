@@ -1,9 +1,9 @@
 import unittest
 from unittest.mock import MagicMock, patch
 from django.conf import settings
-from payments.factory import get_payment_provider
-from payments.adapter import PaymentProviderAdapter, PaymentError
-from payments.providers.stripe import StripePaymentProvider
+from swap_layer.payments.factory import get_payment_provider
+from swap_layer.payments.adapter import PaymentProviderAdapter, PaymentError
+from swap_layer.payments.providers.stripe import StripePaymentProvider
 
 # Configure minimal Django settings for testing
 if not settings.configured:
@@ -24,7 +24,7 @@ class TestStripeProvider(unittest.TestCase):
     def setUp(self):
         self.provider = StripePaymentProvider()
 
-    @patch('payments.providers.stripe.stripe.Customer.create')
+    @patch('swap_layer.payments.providers.stripe.stripe.Customer.create')
     def test_create_customer_success(self, mock_create):
         """Test successful customer creation."""
         # Mock the Stripe API response
@@ -42,7 +42,7 @@ class TestStripeProvider(unittest.TestCase):
         self.assertEqual(result['email'], "test@example.com")
         mock_create.assert_called_once()
 
-    @patch('payments.providers.stripe.stripe.Customer.create')
+    @patch('swap_layer.payments.providers.stripe.stripe.Customer.create')
     def test_create_customer_error_handling(self, mock_create):
         """Test that Stripe errors are converted to PaymentErrors."""
         # Simulate a Stripe CardError
@@ -55,7 +55,7 @@ class TestStripeProvider(unittest.TestCase):
         mock_create.side_effect = error
 
         # Verify that our custom exception is raised
-        from payments.adapter import PaymentDeclinedError
+        from swap_layer.payments.adapter import PaymentDeclinedError
         with self.assertRaises(PaymentDeclinedError):
             self.provider.create_customer(email="fail@example.com")
 

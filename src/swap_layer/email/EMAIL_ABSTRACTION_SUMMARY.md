@@ -2,11 +2,11 @@
 
 ## Overview
 
-Successfully implemented an email provider abstraction layer following the same architectural pattern as the authentication (`infrastructure/identity/platform/`) and payment (`infrastructure/payments/`) abstractions. This allows the application to switch between different email providers (SMTP, SendGrid, Mailgun, AWS SES, etc.) without modifying business logic.
+Successfully implemented an email provider abstraction layer following the same architectural pattern as the authentication (`swap_layer/identity/platform/`) and payment (`swap_layer/payments/`) abstractions. This allows the application to switch between different email providers (SMTP, SendGrid, Mailgun, AWS SES, etc.) without modifying business logic.
 
 ## What Was Implemented
 
-### 1. Infrastructure Layer (`infrastructure/email/`)
+### 1. Infrastructure Layer (`swap_layer/email/`)
 
 #### Abstract Base Class (`adapter.py`)
 - Defines 8 abstract methods covering all email operations:
@@ -83,7 +83,7 @@ AWS_REGION_NAME = os.environ.get('AWS_REGION_NAME', 'us-east-1')
 
 Added to `INSTALLED_APPS`:
 ```python
-'infrastructure.email',
+'swap_layer.email',
 ```
 
 ### 3. Documentation
@@ -107,7 +107,7 @@ Added to `INSTALLED_APPS`:
 
 ### 4. Updated Existing Code
 
-#### `infrastructure/identity/verification/operations/core.py`
+#### `swap_layer/identity/verification/operations/core.py`
 - Updated `_send_email()` method to use new abstraction
 - Removed direct import of `django.core.mail.send_mail`
 - Now uses `get_email_provider()` factory function
@@ -149,7 +149,7 @@ The implementation follows the **Provider Adapter Pattern**:
 
 | Aspect | Authentication | Payments | Email |
 |--------|---------------|----------|-------|
-| **Location** | `infrastructure/identity/platform/` | `infrastructure/payments/` | `infrastructure/email/` |
+| **Location** | `swap_layer/identity/platform/` | `swap_layer/payments/` | `swap_layer/email/` |
 | **Base Class** | `AuthProviderAdapter` | `PaymentProviderAdapter` | `EmailProviderAdapter` |
 | **Factory** | `get_identity_client()` | `get_payment_provider()` | `get_email_provider()` |
 | **Methods** | 3 (login, exchange, logout) | 21 (full payment lifecycle) | 8 (email operations) |
@@ -222,7 +222,7 @@ Testing statistics...
 
 ### Basic Usage:
 ```python
-from infrastructure.email.factory import get_email_provider
+from swap_layer.email.factory import get_email_provider
 
 # Get provider (defaults to SMTP)
 provider = get_email_provider()
@@ -260,23 +260,23 @@ result = provider.send_template_email(
 ## Files Created
 
 ### Infrastructure Layer (9 files)
-1. `infrastructure/email/__init__.py`
-2. `infrastructure/email/adapter.py` (226 lines)
-3. `infrastructure/email/providers/__init__.py`
-4. `infrastructure/email/providers/smtp.py` (417 lines)
-5. `infrastructure/email/providers/sendgrid.py` (543 lines)
-6. `infrastructure/email/providers/mailgun.py` (65 lines, stub)
-7. `infrastructure/email/providers/ses.py` (67 lines, stub)
-8. `infrastructure/email/factory.py` (30 lines)
-9. `infrastructure/email/apps.py` (6 lines)
-10. `infrastructure/email/README.md` (12,387 chars)
-11. `infrastructure/email/ARCHITECTURE_COMPARISON.md` (10,925 chars)
+1. `swap_layer/email/__init__.py`
+2. `swap_layer/email/adapter.py` (226 lines)
+3. `swap_layer/email/providers/__init__.py`
+4. `swap_layer/email/providers/smtp.py` (417 lines)
+5. `swap_layer/email/providers/sendgrid.py` (543 lines)
+6. `swap_layer/email/providers/mailgun.py` (65 lines, stub)
+7. `swap_layer/email/providers/ses.py` (67 lines, stub)
+8. `swap_layer/email/factory.py` (30 lines)
+9. `swap_layer/email/apps.py` (6 lines)
+10. `swap_layer/email/README.md` (12,387 chars)
+11. `swap_layer/email/ARCHITECTURE_COMPARISON.md` (10,925 chars)
 
 ### Configuration
 - `codedx/settings.py` (19 lines added)
 
 ### Updated Code
-- `infrastructure/identity/verification/operations/core.py` (1 import removed, _send_email method updated)
+- `swap_layer/identity/verification/operations/core.py` (1 import removed, _send_email method updated)
 
 **Total**: 11 new files, ~1,400 lines of code + comprehensive documentation
 
@@ -292,7 +292,7 @@ result = provider.send_template_email(
 
 To add Postmark support:
 
-1. Create `infrastructure/email/providers/postmark.py`
+1. Create `swap_layer/email/providers/postmark.py`
 2. Implement `EmailProviderAdapter` interface
 3. Update `factory.py`:
 ```python

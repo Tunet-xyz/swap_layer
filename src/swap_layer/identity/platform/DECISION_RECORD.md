@@ -65,7 +65,7 @@ We have implemented a `UserIdentity` model and `AuthProviderAdapter` interface.
 ### The Abstraction Layer
 *   **Model:** `services.authentication.models.UserIdentity`
 *   **Adapter:** `services.authentication.adapter.AuthProviderAdapter`
-*   **Implementation:** `infrastructure.identity.workos.adapter.WorkOSAdapter`
+*   **Implementation:** `swap_layer.identity.workos.adapter.WorkOSAdapter`
 
 ### Key Configuration
 *   **SDK:** `workos-python`

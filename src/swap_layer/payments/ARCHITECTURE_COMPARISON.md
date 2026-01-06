@@ -12,7 +12,7 @@ Both the authentication and payment systems follow the **Provider Adapter Patter
 
 ```
 Authentication:                          Payments:
-infrastructure/identity/platform/        infrastructure/payments/
+swap_layer/identity/platform/        swap_layer/payments/
 ├── __init__.py                         ├── __init__.py
 ├── adapter.py                          ├── adapter.py
 ├── factory.py                          ├── factory.py
@@ -28,7 +28,7 @@ infrastructure/identity/platform/        infrastructure/payments/
 
 #### Authentication Adapter
 ```python
-# infrastructure/identity/platform/adapter.py
+# swap_layer/identity/platform/adapter.py
 from abc import ABC, abstractmethod
 
 class AuthProviderAdapter(ABC):
@@ -50,7 +50,7 @@ class AuthProviderAdapter(ABC):
 
 #### Payment Adapter
 ```python
-# infrastructure/payments/adapter.py
+# swap_layer/payments/adapter.py
 from abc import ABC, abstractmethod
 
 class PaymentProviderAdapter(ABC):
@@ -78,7 +78,7 @@ class PaymentProviderAdapter(ABC):
 
 #### Authentication Factory
 ```python
-# infrastructure/identity/platform/factory.py
+# swap_layer/identity/platform/factory.py
 from django.conf import settings
 
 def get_identity_client(app_name='default'):
@@ -94,7 +94,7 @@ def get_identity_client(app_name='default'):
 
 #### Payment Factory
 ```python
-# infrastructure/payments/factory.py
+# swap_layer/payments/factory.py
 from django.conf import settings
 
 def get_payment_provider():
@@ -114,7 +114,7 @@ def get_payment_provider():
 
 #### WorkOS Auth Provider
 ```python
-# infrastructure/identity/platform/vendors/workos/client.py
+# swap_layer/identity/platform/vendors/workos/client.py
 class WorkOSClient(AuthProviderAdapter):
     def __init__(self, app_name='default'):
         self.config = settings.WORKOS_APPS.get(app_name)
@@ -139,7 +139,7 @@ class WorkOSClient(AuthProviderAdapter):
 
 #### Stripe Payment Provider
 ```python
-# infrastructure/payments/providers/stripe.py
+# swap_layer/payments/providers/stripe.py
 class StripePaymentProvider(PaymentProviderAdapter):
     def __init__(self):
         stripe.api_key = settings.STRIPE_SECRET_KEY
@@ -215,7 +215,7 @@ STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET')
 
 #### Using Authentication Abstraction
 ```python
-from infrastructure.identity.platform.factory import get_identity_client
+from swap_layer.identity.platform.factory import get_identity_client
 
 def login_view(request):
     client = get_identity_client(app_name='default')
@@ -244,7 +244,7 @@ def callback_view(request):
 
 #### Using Payment Abstraction
 ```python
-from infrastructure.payments.factory import get_payment_provider
+from swap_layer.payments.factory import get_payment_provider
 
 def create_subscription_view(request):
     provider = get_payment_provider()
@@ -319,13 +319,13 @@ Both use well-defined interfaces:
 ## Evolution Path
 
 ### Adding a New Auth Provider
-1. Create `infrastructure/identity/platform/vendors/supabase/client.py`
+1. Create `swap_layer/identity/platform/vendors/supabase/client.py`
 2. Implement `AuthProviderAdapter` interface
 3. Update factory.py
 4. Configure in settings.py
 
 ### Adding a New Payment Provider
-1. Create `infrastructure/payments/providers/paypal.py`
+1. Create `swap_layer/payments/providers/paypal.py`
 2. Implement `PaymentProviderAdapter` interface
 3. Update factory.py
 4. Configure in settings.py
@@ -336,7 +336,7 @@ Both use well-defined interfaces:
 
 When creating a new abstraction layer, follow this pattern:
 
-- [ ] Create `infrastructure/[domain]/` directory
+- [ ] Create `swap_layer/[domain]/` directory
 - [ ] Define abstract adapter class with clear interface
 - [ ] Implement at least one provider
 - [ ] Create factory function for provider selection

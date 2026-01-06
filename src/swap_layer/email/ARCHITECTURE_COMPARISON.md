@@ -14,7 +14,7 @@ All three abstraction layers follow the **Provider Adapter Pattern**, which prov
 
 | Aspect | Authentication | Payments | Email |
 |--------|---------------|----------|-------|
-| **Location** | `infrastructure/identity/platform/` | `infrastructure/payments/` | `infrastructure/email/` |
+| **Location** | `swap_layer/identity/platform/` | `swap_layer/payments/` | `swap_layer/email/` |
 | **Base Class** | `AuthProviderAdapter` | `PaymentProviderAdapter` | `EmailProviderAdapter` |
 | **Factory Function** | `get_identity_client()` | `get_payment_provider()` | `get_email_provider()` |
 | **Config Key** | `IDENTITY_PROVIDER` | `PAYMENT_PROVIDER` | `EMAIL_PROVIDER` |
@@ -30,7 +30,7 @@ All three abstraction layers follow the **Provider Adapter Pattern**, which prov
 All three follow the same structure:
 
 ```
-infrastructure/{domain}/
+swap_layer/{domain}/
 ├── __init__.py
 ├── apps.py                    # Django AppConfig
 ├── adapter.py                 # Abstract base class
@@ -44,7 +44,7 @@ infrastructure/{domain}/
 
 **Authentication:**
 ```
-infrastructure/identity/platform/
+swap_layer/identity/platform/
 ├── adapter.py (AuthProviderAdapter)
 ├── factory.py (get_identity_client)
 └── vendors/
@@ -54,7 +54,7 @@ infrastructure/identity/platform/
 
 **Payments:**
 ```
-infrastructure/payments/
+swap_layer/payments/
 ├── adapter.py (PaymentProviderAdapter)
 ├── factory.py (get_payment_provider)
 └── providers/
@@ -63,7 +63,7 @@ infrastructure/payments/
 
 **Email:**
 ```
-infrastructure/email/
+swap_layer/email/
 ├── adapter.py (EmailProviderAdapter)
 ├── factory.py (get_email_provider)
 └── providers/
@@ -197,7 +197,7 @@ All follow the same usage pattern:
 
 **Authentication:**
 ```python
-from infrastructure.identity.platform.factory import get_identity_client
+from swap_layer.identity.platform.factory import get_identity_client
 
 client = get_identity_client()
 auth_url = client.get_authorization_url(request, redirect_uri)
@@ -206,7 +206,7 @@ user_data = client.exchange_code_for_user(request, code)
 
 **Payments:**
 ```python
-from infrastructure.payments.factory import get_payment_provider
+from swap_layer.payments.factory import get_payment_provider
 
 provider = get_payment_provider()
 customer = provider.create_customer(email='user@example.com')
@@ -215,7 +215,7 @@ subscription = provider.create_subscription(customer['id'], price_id)
 
 **Email:**
 ```python
-from infrastructure.email.factory import get_email_provider
+from swap_layer.email.factory import get_email_provider
 
 provider = get_email_provider()
 result = provider.send_email(to=['user@example.com'], subject='Welcome', text_body='...')
@@ -339,7 +339,7 @@ To add a new infrastructure abstraction (e.g., SMS, Storage, Analytics), follow 
 
 1. **Create directory structure**:
    ```
-   infrastructure/{domain}/
+   swap_layer/{domain}/
    ├── __init__.py
    ├── apps.py
    ├── adapter.py

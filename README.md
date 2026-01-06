@@ -30,7 +30,7 @@ It is designed to be the **"Firewall"** between your clean business logic and th
 ### The "Single Package" Philosophy
 We believe you shouldn't have to hunt down a dozen micro-libraries to build a standard SaaS. SwapLayer is a cohesive suite:
 
-*   **One Import:** `from infrastructure import get_provider`
+*   **One Import:** `from swap_layer import get_provider`
 *   **One Pattern:** Consistent `Adapter` interfaces for Auth, Payments, Storage, Email, and SMS.
 *   **One Config:** Centralized settings.
 *   **Zero Lock-in:** Swap underlying vendors by changing ONE line of config.

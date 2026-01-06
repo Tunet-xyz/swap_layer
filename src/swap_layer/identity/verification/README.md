@@ -19,7 +19,7 @@ Following the standard SwapLayer pattern:
 ### Direct Provider Usage (for simple operations)
 
 ```python
-from infrastructure.identity.verification.factory import get_identity_verification_provider
+from swap_layer.identity.verification.factory import get_identity_verification_provider
 
 provider = get_identity_verification_provider()
 session_data = provider.create_verification_session(
@@ -34,8 +34,8 @@ session_data = provider.create_verification_session(
 The operations layer handles database persistence and webhook processing:
 
 ```python
-from infrastructure.identity.verification.operations.core import IdentityOperations
-from infrastructure.identity.verification.schemas import VerificationSessionCreate
+from swap_layer.identity.verification.operations.core import IdentityOperations
+from swap_layer.identity.verification.schemas import VerificationSessionCreate
 
 ops = IdentityOperations()
 session = ops.create_session(user, VerificationSessionCreate(...))

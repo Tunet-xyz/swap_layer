@@ -42,7 +42,7 @@ stripe.Customer.delete('cus_123')
 
 #### After: Payment Abstraction
 ```python
-from infrastructure.payments.factory import get_payment_provider
+from swap_layer.payments.factory import get_payment_provider
 
 provider = get_payment_provider()
 
@@ -311,7 +311,7 @@ def webhook_view(request):
 
 #### After: Payment Abstraction
 ```python
-from infrastructure.payments.factory import get_payment_provider
+from swap_layer.payments.factory import get_payment_provider
 
 def webhook_view(request):
     provider = get_payment_provider()
@@ -390,7 +390,7 @@ def create_subscription_view(request):
 ### 1. Update Imports
 Replace all `import stripe` with:
 ```python
-from infrastructure.payments.factory import get_payment_provider
+from swap_layer.payments.factory import get_payment_provider
 ```
 
 ### 2. Replace Direct Stripe Calls
@@ -446,9 +446,9 @@ def test_create_customer(mock_create):
 
 **After:**
 ```python
-from infrastructure.payments.adapter import PaymentProviderAdapter
+from swap_layer.payments.adapter import PaymentProviderAdapter
 
-@patch('infrastructure.payments.factory.get_payment_provider')
+@patch('swap_layer.payments.factory.get_payment_provider')
 def test_create_customer(mock_get_provider):
     mock_provider = Mock(spec=PaymentProviderAdapter)
     mock_provider.create_customer.return_value = {'id': 'cus_123'}
@@ -541,7 +541,7 @@ customer = provider.create_customer(...)
 
 ## Need Help?
 
-- Check `infrastructure/payments/README.md` for complete API reference
+- Check `swap_layer/payments/README.md` for complete API reference
 - See `services/subscriptions/USAGE_EXAMPLE.md` for service layer examples
 - Review `ARCHITECTURE_COMPARISON.md` for design patterns
 

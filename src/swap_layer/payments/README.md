@@ -4,10 +4,10 @@ This module provides an abstraction layer for payment and subscription providers
 
 ## Architecture
 
-The payment infrastructure follows the same pattern as the authentication abstraction (`infrastructure/identity/platform/`):
+The payment infrastructure follows the same pattern as the authentication abstraction (`swap_layer/identity/platform/`):
 
 ```
-infrastructure/payments/
+swap_layer/payments/
 ├── __init__.py
 ├── apps.py                    # Django AppConfig
 ├── adapter.py                 # Abstract base class (PaymentProviderAdapter)
@@ -48,7 +48,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
 The factory function returns the appropriate provider based on Django settings:
 
 ```python
-from infrastructure.payments.factory import get_payment_provider
+from swap_layer.payments.factory import get_payment_provider
 
 # Get the configured provider (defaults to Stripe)
 provider = get_payment_provider()
@@ -79,7 +79,7 @@ Add to `INSTALLED_APPS`:
 ```python
 INSTALLED_APPS = [
     # ...
-    'infrastructure.payments',
+    'swap_layer.payments',
     # ...
 ]
 ```
@@ -89,7 +89,7 @@ INSTALLED_APPS = [
 ### Customer Management
 
 ```python
-from infrastructure.payments.factory import get_payment_provider
+from swap_layer.payments.factory import get_payment_provider
 
 provider = get_payment_provider()
 
@@ -305,7 +305,7 @@ To add a new payment provider (e.g., PayPal):
 2. Implement the `PaymentProviderAdapter` interface:
 
 ```python
-from infrastructure.payments.adapter import PaymentProviderAdapter
+from swap_layer.payments.adapter import PaymentProviderAdapter
 
 class PayPalPaymentProvider(PaymentProviderAdapter):
     def __init__(self):
@@ -360,7 +360,7 @@ This payment abstraction follows the same architectural pattern as the authentic
 | Base Class | `AuthProviderAdapter` | `PaymentProviderAdapter` |
 | Factory | `get_identity_client()` | `get_payment_provider()` |
 | Providers | Auth0, WorkOS | Stripe (+ future providers) |
-| Location | `infrastructure/identity/platform/` | `infrastructure/payments/` |
+| Location | `swap_layer/identity/platform/` | `swap_layer/payments/` |
 | Config Key | `IDENTITY_PROVIDER` | `PAYMENT_PROVIDER` |
 
 ## Migration Guide
@@ -376,7 +376,7 @@ customer = stripe.Customer.create(email='user@example.com')
 
 **After:**
 ```python
-from infrastructure.payments.factory import get_payment_provider
+from swap_layer.payments.factory import get_payment_provider
 provider = get_payment_provider()
 customer = provider.create_customer(email='user@example.com')
 ```
@@ -385,7 +385,7 @@ customer = provider.create_customer(email='user@example.com')
 
 ```python
 from unittest.mock import Mock
-from infrastructure.payments.adapter import PaymentProviderAdapter
+from swap_layer.payments.adapter import PaymentProviderAdapter
 
 def test_subscription_creation():
     # Mock the provider

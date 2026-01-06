@@ -7,7 +7,7 @@ This module provides an abstraction layer for email service providers, allowing 
 The email infrastructure follows the same pattern as the authentication and payment abstractions:
 
 ```
-infrastructure/email/
+swap_layer/email/
 ├── __init__.py
 ├── apps.py                    # Django AppConfig
 ├── adapter.py                 # Abstract base class (EmailProviderAdapter)
@@ -51,7 +51,7 @@ class SMTPEmailProvider(EmailProviderAdapter):
 The factory function returns the appropriate provider based on Django settings:
 
 ```python
-from infrastructure.email.factory import get_email_provider
+from swap_layer.email.factory import get_email_provider
 
 # Get the configured provider (defaults to SMTP)
 provider = get_email_provider()
@@ -101,7 +101,7 @@ Add to `INSTALLED_APPS`:
 ```python
 INSTALLED_APPS = [
     # ...
-    'infrastructure.email',
+    'swap_layer.email',
     # ...
 ]
 ```
@@ -111,7 +111,7 @@ INSTALLED_APPS = [
 ### Basic Email Sending
 
 ```python
-from infrastructure.email.factory import get_email_provider
+from swap_layer.email.factory import get_email_provider
 
 provider = get_email_provider()
 
@@ -307,7 +307,7 @@ def sendgrid_webhook(request):
 
 To add a new email provider (e.g., Postmark):
 
-1. Create `infrastructure/email/providers/postmark.py`:
+1. Create `swap_layer/email/providers/postmark.py`:
 
 ```python
 from ..adapter import EmailProviderAdapter
@@ -349,7 +349,7 @@ POSTMARK_API_KEY = os.environ.get('POSTMARK_API_KEY')
 
 ```python
 from unittest.mock import Mock
-from infrastructure.email.adapter import EmailProviderAdapter
+from swap_layer.email.adapter import EmailProviderAdapter
 
 # Create a mock provider
 mock_provider = Mock(spec=EmailProviderAdapter)
@@ -362,7 +362,7 @@ mock_provider.send_email.return_value = {
 # Use in tests
 def test_user_registration():
     # Mock the factory
-    with patch('infrastructure.email.factory.get_email_provider', return_value=mock_provider):
+    with patch('swap_layer.email.factory.get_email_provider', return_value=mock_provider):
         # Test your code
         register_user('user@example.com')
         
@@ -373,7 +373,7 @@ def test_user_registration():
 ### Integration Testing
 
 ```python
-from infrastructure.email.factory import get_email_provider
+from swap_layer.email.factory import get_email_provider
 
 def test_smtp_integration():
     provider = get_email_provider()
@@ -389,7 +389,7 @@ def test_smtp_integration():
 ## Error Handling
 
 ```python
-from infrastructure.email.adapter import EmailSendError, TemplateNotFoundError
+from swap_layer.email.adapter import EmailSendError, TemplateNotFoundError
 
 try:
     provider.send_email(
@@ -429,7 +429,7 @@ send_mail(
 ### After (Using abstraction):
 
 ```python
-from infrastructure.email.factory import get_email_provider
+from swap_layer.email.factory import get_email_provider
 
 provider = get_email_provider()
 provider.send_email(
@@ -451,9 +451,9 @@ provider.send_email(
 
 ## Related Infrastructure
 
-- **Authentication**: `infrastructure/identity/platform/`
-- **Payments**: `infrastructure/payments/`
-- **Localization**: `infrastructure/localization/`
+- **Authentication**: `swap_layer/identity/platform/`
+- **Payments**: `swap_layer/payments/`
+- **Localization**: `swap_layer/localization/`
 
 All follow the same provider adapter pattern for consistency.
 
