@@ -2,36 +2,113 @@
 
 This module provides an abstraction layer for payment and subscription providers, allowing the application to switch between different payment services (Stripe, PayPal, Square, etc.) without modifying business logic.
 
+## Subdomain Architecture
+
+The payment infrastructure is organized into logical subdomains, each handling a specific area of payment functionality:
+
+### 1. **Customers** (`swap_layer.payments.customers`)
+Handles customer management operations:
+- Create, retrieve, update, and delete customers
+- [Documentation](./customers/README.md)
+
+### 2. **Subscriptions** (`swap_layer.payments.subscriptions`)
+Manages recurring subscription lifecycle:
+- Create, retrieve, update, cancel, and list subscriptions
+- [Documentation](./subscriptions/README.md)
+
+### 3. **Payment Intents** (`swap_layer.payments.payment_intents`)
+Handles payment processing and related operations:
+- Payment methods (attach, detach, list, set default)
+- One-time payments (payment intents)
+- Checkout sessions
+- Invoices
+- Webhook verification
+- [Documentation](./payment_intents/README.md)
+
+### 4. **Products** (`swap_layer.payments.products`)
+Product catalog and pricing management (placeholder for future implementation):
+- Product management
+- Pricing configuration
+- [Documentation](./products/README.md)
+
 ## Architecture
 
-The payment infrastructure follows the same pattern as the authentication abstraction (`swap_layer/identity/platform/`):
+The payment infrastructure follows a subdomain-based pattern with adapter composition:
 
 ```
 swap_layer/payments/
 ├── __init__.py
-├── apps.py                    # Django AppConfig
-├── adapter.py                 # Abstract base class (PaymentProviderAdapter)
-├── factory.py                 # Provider selection factory
-└── providers/                 # Provider implementations
+├── apps.py                      # Django AppConfig
+├── adapter.py                   # Main adapter (composes subdomain adapters)
+├── factory.py                   # Provider selection factory
+├── customers/                   # Customer management subdomain
+│   ├── __init__.py
+│   ├── adapter.py              # CustomerAdapter interface
+│   └── README.md
+├── subscriptions/              # Subscription management subdomain
+│   ├── __init__.py
+│   ├── adapter.py              # SubscriptionAdapter interface
+│   └── README.md
+├── payment_intents/            # Payment processing subdomain
+│   ├── __init__.py
+│   ├── adapter.py              # PaymentAdapter interface
+│   └── README.md
+├── products/                   # Product/pricing subdomain (placeholder)
+│   ├── __init__.py
+│   ├── adapter.py              # ProductAdapter interface
+│   └── README.md
+└── providers/                  # Provider implementations
     ├── __init__.py
-    └── stripe.py              # Stripe implementation
+    └── stripe.py               # Stripe implementation
 ```
 
 ## Design Pattern
 
-### 1. Abstract Base Class (`adapter.py`)
+### 1. Subdomain Adapters
 
-The `PaymentProviderAdapter` defines the interface that all payment providers must implement:
+Each subdomain defines its own adapter interface:
 
-- **Customer Management**: Create, retrieve, update, delete customers
-- **Subscription Management**: Create, retrieve, update, cancel, list subscriptions
-- **Payment Methods**: Attach, detach, list, set default payment methods
-- **One-time Payments**: Create, confirm, retrieve payment intents
-- **Checkout Sessions**: Create hosted checkout pages, retrieve session details
-- **Invoices**: Retrieve and list invoices
-- **Webhooks**: Verify webhook signatures and parse events
+- **CustomerAdapter** (`customers/adapter.py`): Customer management operations
+- **SubscriptionAdapter** (`subscriptions/adapter.py`): Subscription lifecycle operations
+- **PaymentAdapter** (`payment_intents/adapter.py`): Payment processing operations
+- **ProductAdapter** (`products/adapter.py`): Product and pricing management (placeholder)
 
-### 2. Provider Implementations (`providers/`)
+### 2. Composition via Multiple Inheritance
+
+The main `PaymentProviderAdapter` class composes all subdomain adapters:
+
+```python
+class PaymentProviderAdapter(ABC, CustomerAdapter, SubscriptionAdapter, 
+                            PaymentAdapter, ProductAdapter):
+    """
+    Unified payment provider interface that includes all subdomain operations.
+    Provider implementations inherit from this class and implement all methods.
+    """
+```
+
+### 3. Benefits of Subdomain Organization
+
+1. **Modularity**: Each subdomain can be understood and modified independently
+2. **Clear Responsibilities**: Logical grouping of related operations
+3. **Easier Navigation**: Developers can quickly find relevant functionality
+4. **Documentation**: Each subdomain has its own focused documentation
+5. **Future Extensibility**: New subdomains can be added without affecting existing ones
+6. **Backward Compatibility**: Existing code continues to work unchanged
+
+### 4. Abstract Base Class (`adapter.py`)
+
+The `PaymentProviderAdapter` defines the complete interface by composing subdomain adapters:
+
+- **Customer Management** (via CustomerAdapter): Create, retrieve, update, delete customers
+- **Subscription Management** (via SubscriptionAdapter): Create, retrieve, update, cancel, list subscriptions
+- **Payment Methods** (via PaymentAdapter): Attach, detach, list, set default payment methods
+- **One-time Payments** (via PaymentAdapter): Create, confirm, retrieve payment intents
+- **Checkout Sessions** (via PaymentAdapter): Create hosted checkout pages, retrieve session details
+- **Invoices** (via PaymentAdapter): Retrieve and list invoices
+- **Webhooks** (via PaymentAdapter): Verify webhook signatures and parse events
+- **Product Management** (via ProductAdapter): Manage products and pricing (placeholder)
+
+### 5. Provider Implementations (`providers/`)
 
 Each provider (e.g., Stripe, PayPal) implements the `PaymentProviderAdapter` interface:
 
@@ -43,7 +120,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
         return normalized_data
 ```
 
-### 3. Factory Function (`factory.py`)
+### 6. Factory Function (`factory.py`)
 
 The factory function returns the appropriate provider based on Django settings:
 
