@@ -1,29 +1,33 @@
-from django.db import models
-from django.conf import settings
+from pydantic import BaseModel, Field, EmailStr
+from typing import Optional, Dict, Any, Union
+from datetime import datetime
 import uuid
 
-class UserIdentity(models.Model):
+class UserIdentity(BaseModel):
     """
-    Maps an external Identity Provider user to an internal Django User.
+    Maps an external Identity Provider user to an internal User.
     This is the core of the 'Abstraction Layer'.
     """
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='identities')
-    provider = models.CharField(max_length=50) # e.g. 'workos', 'auth0', 'supabase'
-    provider_user_id = models.CharField(max_length=255)
+    id: uuid.UUID = Field(default_factory=uuid.uuid4)
+    # Removing direct ForeignKey dependency. The consuming app should handle the relation.
+    # We accept int or str for user_id to be agnostic
+    user_id: Union[str, int]
+    provider: str # e.g. 'workos', 'auth0', 'supabase'
+    provider_user_id: str
     
     # Optional: Store extra data from the provider
-    email = models.EmailField(null=True, blank=True)
-    data = models.JSONField(default=dict, blank=True)
+    email: Optional[EmailStr] = None
+    data: Dict[str, Any] = Field(default_factory=dict)
     
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=datetime.now)
     
-    class Meta:
-        unique_together = ('provider', 'provider_user_id')
-        indexes = [
-            models.Index(fields=['provider', 'provider_user_id']),
-        ]
+    model_config = {
+        "json_encoders": {
+            uuid.UUID: str,
+            datetime: lambda v: v.isoformat(),
+        }
+    }
 
     def __str__(self):
-        return f"{self.provider}:{self.provider_user_id} -> {self.user}"
+        return f"{self.provider}:{self.provider_user_id} -> {self.user_id}"

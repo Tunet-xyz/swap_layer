@@ -1,9 +1,8 @@
-from typing import Dict, Any
-from django.conf import settings
-from django.contrib.auth import get_user_model
+from typing import Dict, Any, Optional
 from ..models import IdentityVerificationSession
 from ..schemas import VerificationSessionCreate
 from ..factory import get_identity_verification_provider
+from swap_layer.config import settings
 import logging
 
 logger = logging.getLogger(__name__)
@@ -12,8 +11,10 @@ logger = logging.getLogger(__name__)
 class IdentityOperations:
     """
     Main operations class for Identity Service.
-    Handles business logic, database operations, and webhook processing.
-    Uses the factory pattern to get the configured provider.
+    Handles business logic and interactions with the provider.
+    
+    NOTE: This layer is now Framework Agnostic (Pydantic). 
+    Persistence is the responsibility of the consumer.
     """
     
     def __init__(self, provider=None):
@@ -27,19 +28,17 @@ class IdentityOperations:
         # Extract provider name from settings for backward compatibility
         self.provider_name = getattr(settings, 'IDENTITY_VERIFICATION_PROVIDER', 'stripe')
 
-    def create_session(self, user, data: VerificationSessionCreate) -> IdentityVerificationSession:
+    def create_session(self, user_id: str, data: VerificationSessionCreate, user_email: Optional[str] = None) -> IdentityVerificationSession:
         """
-        Creates a verification session with the provider and saves it to the DB.
+        Creates a verification session with the provider.
+        Returns a Pydantic model instance (not saved to DB).
         """
         
         # 1. Call Provider
-        # Auto-populate email if not provided but available on user
-        email = data.email
-        if not email and hasattr(user, 'email') and user.email:
-            email = user.email
+        email = data.email or user_email
 
         provider_data = self.provider.create_verification_session(
-            user=user,
+            user=user_id, # adapter should handle string ID
             verification_type=data.verification_type,
             options={
                 'return_url': data.return_url,
@@ -48,9 +47,9 @@ class IdentityOperations:
             }
         )
         
-        # 2. Save to DB
-        session = IdentityVerificationSession.objects.create(
-            user=user,
+        # 2. Construct Pydantic Model
+        session = IdentityVerificationSession(
+            user_id=str(user_id),
             provider=self.provider_name,
             provider_session_id=provider_data['provider_session_id'],
             status=provider_data['status'],
@@ -61,43 +60,22 @@ class IdentityOperations:
         
         return session
 
-    def get_session(self, session_id: int) -> IdentityVerificationSession:
-        return IdentityVerificationSession.objects.get(id=session_id)
+    def cancel_session(self, provider_session_id: str) -> Dict[str, Any]:
+        """
+        Cancels a session at the provider. 
+        Requires provider_session_id directly since we don't have a DB to look it up.
+        """
+        return self.provider.cancel_verification_session(provider_session_id)
 
-    def get_session_by_provider_id(self, provider_session_id: str) -> IdentityVerificationSession:
-        return IdentityVerificationSession.objects.get(provider_session_id=provider_session_id)
+    def redact_session(self, provider_session_id: str) -> Dict[str, Any]:
+        """
+        Redacts a session at the provider.
+        """
+        return self.provider.redact_verification_session(provider_session_id)
 
-    def cancel_session(self, session_id: int) -> IdentityVerificationSession:
-        session = self.get_session(session_id)
-        provider_data = self.provider.cancel_verification_session(session.provider_session_id)
-        session.status = provider_data['status']
-        session.save()
-        return session
+    def get_insights(self, provider_session_id: str) -> Dict[str, Any]:
+        return self.provider.get_verification_insights(provider_session_id)
 
-    def redact_session(self, session_id: int) -> IdentityVerificationSession:
-        session = self.get_session(session_id)
-        provider_data = self.provider.redact_verification_session(session.provider_session_id)
-        session.status = provider_data['status']
-        # Clear PII from our DB as well
-        session.verified_first_name = ''
-        session.verified_last_name = ''
-        session.verified_dob = None
-        session.verified_address_line1 = ''
-        session.verified_address_city = ''
-        session.verified_address_postal_code = ''
-        session.verified_address_country = ''
-        session.save()
-        return session
-
-    def get_insights(self, session_id: int) -> Dict[str, Any]:
-        session = self.get_session(session_id)
-        return self.provider.get_verification_insights(session.provider_session_id)
-
-    def list_sessions(self, user, limit: int = 10):
-        # We prefer listing from our DB as it's faster and allows filtering by user easily
-        return IdentityVerificationSession.objects.filter(user=user).order_by('-created_at')[:limit]
-
-    def sync_session_status(self, session: IdentityVerificationSession) -> IdentityVerificationSession:
         """
         Fetches latest status from provider and updates DB.
         """
