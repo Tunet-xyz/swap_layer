@@ -17,7 +17,7 @@ swap_layer/identity/platform/        swap_layer/payments/
 ├── adapter.py                          ├── adapter.py
 ├── factory.py                          ├── factory.py
 ├── apps.py                             ├── apps.py
-└── vendors/                            └── providers/
+└── providers/                            └── providers/
     ├── auth0/                              ├── __init__.py
     │   └── client.py                       └── stripe.py
     └── workos/
@@ -114,7 +114,7 @@ def get_payment_provider():
 
 #### WorkOS Auth Provider
 ```python
-# swap_layer/identity/platform/vendors/workos/client.py
+# swap_layer/identity/platform/providers/workos/client.py
 class WorkOSClient(AuthProviderAdapter):
     def __init__(self, app_name='default'):
         self.config = settings.WORKOS_APPS.get(app_name)
@@ -319,7 +319,7 @@ Both use well-defined interfaces:
 ## Evolution Path
 
 ### Adding a New Auth Provider
-1. Create `swap_layer/identity/platform/vendors/supabase/client.py`
+1. Create `swap_layer/identity/platform/providers/supabase/client.py`
 2. Implement `AuthProviderAdapter` interface
 3. Update factory.py
 4. Configure in settings.py

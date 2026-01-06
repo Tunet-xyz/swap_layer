@@ -9,10 +9,10 @@ def get_identity_client(app_name='default') -> AuthProviderAdapter:
     provider = getattr(settings, 'IDENTITY_PROVIDER', 'workos')
     
     if provider == 'workos':
-        from .vendors.workos.client import WorkOSClient
+        from .providers.workos.client import WorkOSClient
         return WorkOSClient(app_name=app_name)
     elif provider == 'auth0':
-        from .vendors.auth0.client import Auth0Client
+        from .providers.auth0.client import Auth0Client
         # Map 'default' to 'developer' for Auth0 legacy support if needed
         if app_name == 'default':
             app_name = 'developer'

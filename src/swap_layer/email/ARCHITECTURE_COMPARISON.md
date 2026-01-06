@@ -36,7 +36,7 @@ swap_layer/{domain}/
 ├── adapter.py                 # Abstract base class
 ├── factory.py                 # Provider selection factory
 ├── README.md                  # Documentation
-└── providers/ (or vendors/)   # Provider implementations
+└── providers/                 # Provider implementations
     ├── __init__.py
     ├── provider1.py
     └── provider2.py
@@ -47,7 +47,7 @@ swap_layer/{domain}/
 swap_layer/identity/platform/
 ├── adapter.py (AuthProviderAdapter)
 ├── factory.py (get_identity_client)
-└── vendors/
+└── providers/
     ├── workos/
     └── auth0/
 ```
