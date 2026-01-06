@@ -1,6 +1,8 @@
 """
 SMS abstraction layer for sending text messages.
 """
+
+from .factory import get_sms_provider
 from .adapter import (
     SMSProviderAdapter,
     SMSError,
@@ -9,7 +11,12 @@ from .adapter import (
     SMSInvalidPhoneNumberError,
 )
 
+# Convenience alias
+get_provider = get_sms_provider
+
 __all__ = [
+    'get_provider',
+    'get_sms_provider',
     'SMSProviderAdapter',
     'SMSError',
     'SMSSendError',

@@ -1,49 +1,175 @@
-from pydantic import BaseModel, Field
-from typing import Optional, Dict, Any, Union, Literal
-from datetime import datetime, date
-import uuid
+"""
+Django model mixins for storing identity verification provider metadata.
 
-class IdentityVerificationSession(BaseModel):
+These mixins help you track KYC/identity verification sessions and results
+while maintaining provider independence.
+"""
+
+from django.db import models
+from django.utils import timezone
+
+
+class IdentityVerificationMixin(models.Model):
     """
-    Stores identity verification session data.
+    Mixin for storing identity verification session data.
+    
+    Add this to your User model or create a separate IdentityVerification model:
+    
+        from swap_layer.identity.verification.models import IdentityVerificationMixin
+        
+        class IdentityVerification(IdentityVerificationMixin, models.Model):
+            user = models.ForeignKey(User, on_delete=models.CASCADE)
+            # ... your fields
     """
+    verification_provider = models.CharField(
+        max_length=50,
+        db_index=True,
+        choices=[
+            ('stripe', 'Stripe Identity'),
+            ('onfido', 'Onfido'),
+        ],
+        help_text="Identity verification provider"
+    )
+    verification_session_id = models.CharField(
+        max_length=255,
+        db_index=True,
+        help_text="Session ID from verification provider"
+    )
+    verification_status = models.CharField(
+        max_length=50,
+        default='requires_input',
+        choices=[
+            ('requires_input', 'Requires Input'),
+            ('processing', 'Processing'),
+            ('verified', 'Verified'),
+            ('canceled', 'Canceled'),
+        ],
+        help_text="Current verification status"
+    )
+    verification_type = models.CharField(
+        max_length=50,
+        default='document',
+        choices=[
+            ('document', 'Document'),
+            ('id_number', 'ID Number'),
+        ],
+        help_text="Type of verification"
+    )
+    client_secret = models.CharField(
+        max_length=500,
+        blank=True,
+        null=True,
+        help_text="Client secret for frontend integration"
+    )
+    verification_url = models.URLField(
+        max_length=500,
+        blank=True,
+        null=True,
+        help_text="URL for user to complete verification"
+    )
     
-    id: uuid.UUID = Field(default_factory=uuid.uuid4)
-    # Generic user reference
-    user_id: Union[str, int]
+    # Verified data fields
+    verified_first_name = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text="First name from verified document"
+    )
+    verified_last_name = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text="Last name from verified document"
+    )
+    verified_date_of_birth = models.DateField(
+        blank=True,
+        null=True,
+        help_text="Date of birth from verified document"
+    )
+    verified_address_line1 = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="Address line 1 from verified document"
+    )
+    verified_address_city = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text="City from verified document"
+    )
+    verified_address_postal_code = models.CharField(
+        max_length=20,
+        blank=True,
+        null=True,
+        help_text="Postal code from verified document"
+    )
+    verified_address_country = models.CharField(
+        max_length=2,
+        blank=True,
+        null=True,
+        help_text="Country code from verified document"
+    )
     
-    provider: str = 'stripe' 
-    provider_session_id: str = Field(description="Session ID from the identity provider")
-    
-    status: str = Field(default='requires_input')
-    verification_type: str = Field(default='document')
-    
-    client_secret: Optional[str] = Field(default=None, description="Client secret for frontend integration")
-    verification_report_id: Optional[str] = Field(default=None, description="ID of the verification report")
-    
-    verified_at: Optional[datetime] = Field(default=None, description="When the verification was completed")
-    created_at: datetime = Field(default_factory=datetime.now)
-    updated_at: datetime = Field(default_factory=datetime.now)
-    
-    # Verified outputs
-    verified_first_name: Optional[str] = None
-    verified_last_name: Optional[str] = None
-    verified_dob: Optional[date] = None
-    verified_address_line1: Optional[str] = None
-    verified_address_city: Optional[str] = None
-    verified_address_postal_code: Optional[str] = None
-    verified_address_country: Optional[str] = None
+    # Timestamps
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        help_text="When verification session was created"
+    )
+    verified_at = models.DateTimeField(
+        blank=True,
+        null=True,
+        help_text="When verification was completed"
+    )
     
     # Metadata
-    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
+    verification_metadata = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Additional verification data from provider"
+    )
     
-    model_config = {
-        "json_encoders": {
-            uuid.UUID: str,
-            datetime: lambda v: v.isoformat(),
-            date: lambda v: v.isoformat()
-        }
-    }
+    class Meta:
+        abstract = True
+        indexes = [
+            models.Index(fields=['verification_provider', 'verification_session_id']),
+            models.Index(fields=['verification_status']),
+            models.Index(fields=['-created_at']),
+        ]
 
-    def __str__(self):
-        return f"{self.user_id} - {self.provider} - {self.status}"
+
+class KYCStatusMixin(models.Model):
+    """
+    Simple KYC status mixin for User models.
+    
+    Add this directly to your User model:
+    
+        from swap_layer.identity.verification.models import KYCStatusMixin
+        
+        class User(KYCStatusMixin, AbstractUser):
+            # ... your fields
+    """
+    kyc_status = models.CharField(
+        max_length=50,
+        default='not_started',
+        choices=[
+            ('not_started', 'Not Started'),
+            ('pending', 'Pending'),
+            ('verified', 'Verified'),
+            ('failed', 'Failed'),
+        ],
+        help_text="Overall KYC verification status"
+    )
+    kyc_verified_at = models.DateTimeField(
+        blank=True,
+        null=True,
+        help_text="When KYC was verified"
+    )
+    kyc_required = models.BooleanField(
+        default=False,
+        help_text="Whether KYC is required for this user"
+    )
+    
+    class Meta:
+        abstract = True
+
