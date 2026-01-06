@@ -8,7 +8,7 @@ while maintaining provider independence.
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, Dict, Any
 from datetime import datetime
 import uuid
@@ -164,8 +164,7 @@ class UserIdentity(BaseModel):
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # Django model for database persistence

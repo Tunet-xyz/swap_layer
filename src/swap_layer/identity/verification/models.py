@@ -8,10 +8,33 @@ while maintaining provider independence.
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, Dict, Any
-from datetime import datetime
+from datetime import datetime, date
 
+
+# =============================================================================
+# Pydantic Schemas (for API/data transfer)
+# =============================================================================
+
+class VerificationSessionCreate(BaseModel):
+    """Input schema for creating a verification session."""
+    verification_type: str = Field(default='document', pattern='^(document|id_number)$')
+    return_url: Optional[str] = None
+    email: Optional[str] = None
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
+class WebhookPayload(BaseModel):
+    """Schema for webhook payloads from providers."""
+    raw_body: bytes
+    signature: str
+    headers: Dict[str, Any]
+
+
+# =============================================================================
+# Django Model Mixins
+# =============================================================================
 
 class IdentityVerificationMixin(models.Model):
     """
@@ -162,8 +185,7 @@ class IdentityVerificationSession(BaseModel):
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # Django model for database persistence
