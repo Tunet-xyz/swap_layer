@@ -1,20 +1,38 @@
-# Migration Guide: From Direct Stripe to Payment Abstraction
+# Payments Module - Quick Start Guide
 
-This guide helps you migrate existing code that directly uses Stripe to the new payment abstraction layer.
+This guide shows you how to migrate from direct payment provider usage to the SwapLayer payments abstraction.
 
-## Why Migrate?
+## Why Use the Abstraction?
 
-- **Provider Independence**: Easily switch to PayPal, Square, or other providers
-- **Consistent Interface**: Standardized methods across all providers
-- **Better Testing**: Mock the adapter interface instead of Stripe SDK
-- **Database Integration**: Automatic syncing with Django models via subscription service
-- **Type Safety**: Pydantic schemas ensure data validity
+**Before** (Direct Stripe usage - vendor lock-in):
+```python
+import stripe
+stripe.api_key = settings.STRIPE_SECRET_KEY
+customer = stripe.Customer.create(email='user@example.com')
+subscription = stripe.Subscription.create(customer=customer.id, items=[...])
+```
 
-## Quick Migration Reference
+**After** (Provider-agnostic - swap anytime):
+```python
+from swap_layer.payments.factory import get_payment_provider
+payments = get_payment_provider()
+customer = payments.create_customer(email='user@example.com')
+subscription = payments.create_subscription(customer_id=customer['id'], price_id='...')
+```
 
-### Customer Operations
+✅ Change provider by changing ONE setting  
+✅ Test with mocks instead of real API calls  
+✅ No vendor lock-in
 
-#### Before: Direct Stripe
+---
+
+---
+
+## Quick Migration Examples
+
+### 1. Customer Operations
+
+**Before:**
 ```python
 import stripe
 stripe.api_key = settings.STRIPE_SECRET_KEY

@@ -39,7 +39,7 @@ subscription = stripe.Subscription.create(customer=customer.id, items=[...])
 **After Abstraction:**
 ```python
 # Provider-agnostic - loosely coupled
-from infrastructure.payments.factory import get_payment_provider
+from swap_layer.payments.factory import get_payment_provider
 provider = get_payment_provider()
 customer = provider.create_customer(email='user@example.com')
 subscription = provider.create_subscription(customer_id=customer['id'], price_id='...')
@@ -56,7 +56,7 @@ subscription = provider.create_subscription(customer_id=customer['id'], price_id
 All abstractions follow this consistent structure:
 
 ```
-infrastructure/{service}/
+src/swap_layer/{service}/
 ├── __init__.py              # Package initialization
 ├── apps.py                  # Django app configuration
 ├── adapter.py               # Abstract base class (ABC)

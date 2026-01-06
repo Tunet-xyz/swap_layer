@@ -163,3 +163,24 @@ class DjangoVerificationService(VerificationService):
         # 3. Return the Django Model Instance (Best DX for Django users)
         return saved_instance
 
+    def cancel_session(self, provider_session_id: str) -> Dict[str, Any]:
+        # Cancel at provider
+        result = self.ops.cancel_session(provider_session_id)
+        # Update local model if exists
+        try:
+             # We fetch via repository to ensure we get the model
+             # But repository.get_by_provider_id returns DTO, we want to update the model.
+             # So we use the model directly here or add update method to repository.
+             # For simplicity and performance in Django context:
+             obj = self.repository.model.objects.get(provider_session_id=provider_session_id)
+             if 'status' in result:
+                 obj.status = result['status']
+                 obj.save()
+        except self.repository.model.DoesNotExist:
+            pass
+        return result
+
+    def get_insights(self, provider_session_id: str) -> Dict[str, Any]:
+        return self.ops.get_insights(provider_session_id)
+
+

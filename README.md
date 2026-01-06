@@ -77,8 +77,8 @@ Vendor-agnostic code. The "Provider" is injected based on settings.
 
 ```python
 # views.py
-from infrastructure.payments.factory import get_payment_provider
-from infrastructure.storage.factory import get_storage_provider
+from swap_layer.payments.factory import get_payment_provider
+from swap_layer.storage.factory import get_storage_provider
 
 def signup(request):
     # Code doesn't know if it's Stripe or PayPal

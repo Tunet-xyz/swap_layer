@@ -16,6 +16,14 @@ class VerificationService(ABC):
     @abstractmethod
     def create_session(self, user_id: str, data: VerificationSessionCreate, user_email: Optional[str] = None) -> Any:
         pass
+        
+    @abstractmethod
+    def cancel_session(self, provider_session_id: str) -> Dict[str, Any]:
+        pass
+
+    @abstractmethod
+    def get_insights(self, provider_session_id: str) -> Dict[str, Any]:
+        pass
 
 class StandardVerificationService(VerificationService):
     """
@@ -24,6 +32,12 @@ class StandardVerificationService(VerificationService):
     """
     def create_session(self, user_id: str, data: VerificationSessionCreate, user_email: Optional[str] = None):
         return self.ops.create_session(user_id, data, user_email)
+
+    def cancel_session(self, provider_session_id: str) -> Dict[str, Any]:
+        return self.ops.cancel_session(provider_session_id)
+
+    def get_insights(self, provider_session_id: str) -> Dict[str, Any]:
+        return self.ops.get_insights(provider_session_id)
 
 def get_verification_service():
     """
