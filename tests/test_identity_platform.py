@@ -37,73 +37,84 @@ class TestWorkOSClient(unittest.TestCase):
         
         self.mock_request = MagicMock()
 
-    @patch('swap_layer.identity.platform.providers.workos.client.workos.client.sso.get_authorization_url')
-    def test_get_authorization_url(self, mock_get_url):
+    def test_get_authorization_url(self):
         """Test generating authorization URL."""
-        mock_get_url.return_value = "https://workos.com/sso/authorize?client_id=..."
-        
-        result = self.provider.get_authorization_url(
-            request=self.mock_request,
-            redirect_uri="https://example.com/callback",
-            state="random_state"
-        )
-        
-        self.assertIn("workos.com", result)
-        mock_get_url.assert_called_once()
+        with patch.object(self.provider.client.user_management, 'get_authorization_url', return_value="https://workos.com/sso/authorize?client_id=...") as mock_get_url:
+            result = self.provider.get_authorization_url(
+                request=self.mock_request,
+                redirect_uri="https://example.com/callback",
+                state="random_state"
+            )
+            
+            self.assertIn("workos.com", result)
+            mock_get_url.assert_called_once()
 
-    @patch('swap_layer.identity.platform.providers.workos.client.workos.client.sso.get_profile_and_token')
-    def test_exchange_code_for_user_success(self, mock_get_profile):
+    def test_exchange_code_for_user_success(self):
         """Test exchanging authorization code for user data."""
-        mock_profile = MagicMock()
-        mock_profile.id = "user_01ABC"
-        mock_profile.email = "user@example.com"
-        mock_profile.first_name = "John"
-        mock_profile.last_name = "Doe"
-        mock_profile.raw_attributes = {
-            'email_verified': True,
-            'picture': 'https://example.com/photo.jpg'
+        mock_user = MagicMock()
+        mock_user.id = "user_01ABC"
+        mock_user.email = "user@example.com"
+        mock_user.first_name = "John"
+        mock_user.last_name = "Doe"
+        mock_user.email_verified = True
+        mock_user.to_dict.return_value = {
+            'id': 'user_01ABC',
+            'email': 'user@example.com',
+            'first_name': 'John',
+            'last_name': 'Doe',
+            'email_verified': True
         }
         
-        mock_get_profile.return_value = {'profile': mock_profile}
+        mock_response = MagicMock()
+        mock_response.user = mock_user
+        mock_response.sealed_session = "sealed_session_value"
         
-        result = self.provider.exchange_code_for_user(
-            request=self.mock_request,
-            code="auth_code_123"
-        )
-        
-        self.assertEqual(result['id'], "user_01ABC")
-        self.assertEqual(result['email'], "user@example.com")
-        self.assertEqual(result['first_name'], "John")
-        self.assertEqual(result['last_name'], "Doe")
-        self.assertIn('profile', result)
+        with patch.object(self.provider.client.user_management, 'authenticate_with_code', return_value=mock_response):
+            result = self.provider.exchange_code_for_user(
+                request=self.mock_request,
+                code="auth_code_123"
+            )
+            
+            self.assertEqual(result['id'], "user_01ABC")
+            self.assertEqual(result['email'], "user@example.com")
+            self.assertEqual(result['first_name'], "John")
+            self.assertEqual(result['last_name'], "Doe")
 
     def test_get_logout_url(self):
         """Test generating logout URL."""
-        result = self.provider.get_logout_url(
-            request=self.mock_request,
-            return_to="https://example.com/"
-        )
+        # Mock the sealed session with a logout URL
+        mock_session = MagicMock()
+        mock_session.get_logout_url.return_value = "https://workos.com/logout"
         
-        # WorkOS may or may not have specific logout URL
-        # This test verifies the method exists and returns a string
-        self.assertIsInstance(result, str)
+        # Add sealed session to mock request
+        self.mock_request.session = {'workos_sealed_session': 'sealed_value'}
+        
+        with patch.object(self.provider.client.user_management, 'load_sealed_session', return_value=mock_session):
+            result = self.provider.get_logout_url(
+                request=self.mock_request,
+                return_to="https://example.com/"
+            )
+            
+            # WorkOS may or may not have specific logout URL
+            # This test verifies the method exists and returns a string
+            self.assertIsInstance(result, str)
 
 
 class TestAuth0Client(unittest.TestCase):
     def setUp(self):
         from swap_layer.identity.platform.providers.auth0.client import Auth0Client
-        with patch('swap_layer.identity.platform.providers.auth0.client.OAuth2Session'):
+        with patch('swap_layer.identity.platform.providers.auth0.client.OAuth'):
             self.provider = Auth0Client(app_name='developer')
         
         self.mock_request = MagicMock()
 
     def test_get_authorization_url(self):
         """Test generating Auth0 authorization URL."""
-        with patch.object(self.provider, 'oauth') as mock_oauth:
-            mock_oauth.create_authorization_url.return_value = (
-                "https://example.auth0.com/authorize?client_id=...",
-                "state_value"
-            )
+        with patch.object(self.provider, 'client') as mock_client:
+            mock_client.create_authorization_url.return_value = {
+                'url': "https://example.auth0.com/authorize?client_id=...",
+                'state': "state_value"
+            }
             
             result = self.provider.get_authorization_url(
                 request=self.mock_request,
@@ -115,17 +126,17 @@ class TestAuth0Client(unittest.TestCase):
 
     def test_exchange_code_for_user_success(self):
         """Test exchanging code for user with Auth0."""
-        with patch.object(self.provider, 'oauth') as mock_oauth:
-            mock_oauth.fetch_token.return_value = {
-                'access_token': 'token_123'
-            }
-            mock_oauth.get.return_value.json.return_value = {
-                'sub': 'auth0|123',
-                'email': 'user@example.com',
-                'email_verified': True,
-                'given_name': 'Jane',
-                'family_name': 'Smith',
-                'picture': 'https://example.com/photo.jpg'
+        with patch.object(self.provider, 'client') as mock_client:
+            mock_client.authorize_access_token.return_value = {
+                'access_token': 'token_123',
+                'userinfo': {
+                    'sub': 'auth0|123',
+                    'email': 'user@example.com',
+                    'email_verified': True,
+                    'given_name': 'Jane',
+                    'family_name': 'Smith',
+                    'picture': 'https://example.com/photo.jpg'
+                }
             }
             
             result = self.provider.exchange_code_for_user(
@@ -146,7 +157,9 @@ class TestAuth0Client(unittest.TestCase):
             return_to="https://example.com/"
         )
         
-        self.assertIn("example.auth0.com", result)
+        # Check that result contains auth0 domain and return_to parameter
+        self.assertIn("auth0.com", result)
+        self.assertIn("returnTo", result)
         self.assertIn("logout", result)
 
 

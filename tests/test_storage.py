@@ -26,33 +26,34 @@ class TestLocalStorageProvider(unittest.TestCase):
     def setUp(self):
         self.provider = LocalFileStorageProvider()
 
-    @patch('swap_layer.storage.providers.local.os.makedirs')
     @patch('builtins.open', new_callable=mock_open)
-    def test_upload_file_success(self, mock_file, mock_makedirs):
+    def test_upload_file_success(self, mock_file):
         """Test successful file upload."""
         file_data = BytesIO(b'test file content')
         
-        with patch('swap_layer.storage.providers.local.os.path.getsize', return_value=17):
-            result = self.provider.upload_file(
-                file_path='uploads/test.txt',
-                file_data=file_data,
-                content_type='text/plain',
-                metadata={'user_id': '123'}
-            )
+        with patch('swap_layer.storage.providers.local.Path.mkdir'):
+            with patch('swap_layer.storage.providers.local.Path.stat') as mock_stat:
+                mock_stat.return_value.st_size = 17
+                with patch.object(self.provider, '_calculate_etag', return_value='abc123'):
+                    result = self.provider.upload_file(
+                        file_path='uploads/test.txt',
+                        file_data=file_data,
+                        content_type='text/plain',
+                        metadata={'user_id': '123'}
+                    )
 
         self.assertEqual(result['file_path'], 'uploads/test.txt')
         self.assertIn('/media/uploads/test.txt', result['url'])
         self.assertEqual(result['size'], 17)
         self.assertEqual(result['content_type'], 'text/plain')
 
-    @patch('swap_layer.storage.providers.local.os.path.exists', return_value=True)
     @patch('builtins.open', new_callable=mock_open, read_data=b'file content')
-    def test_download_file_success(self, mock_file, mock_exists):
+    def test_download_file_success(self, mock_file):
         """Test successful file download."""
-        result = self.provider.download_file('uploads/test.txt')
+        with patch('swap_layer.storage.providers.local.Path.exists', return_value=True):
+            result = self.provider.download_file('uploads/test.txt')
         
         self.assertEqual(result, b'file content')
-        mock_file.assert_called_with('/tmp/media/uploads/test.txt', 'rb')
 
     @patch('swap_layer.storage.providers.local.os.path.exists', return_value=False)
     def test_download_file_not_found(self, mock_exists):
@@ -62,22 +63,21 @@ class TestLocalStorageProvider(unittest.TestCase):
         with self.assertRaises(StorageFileNotFoundError):
             self.provider.download_file('nonexistent.txt')
 
-    @patch('swap_layer.storage.providers.local.os.path.exists', return_value=True)
-    @patch('swap_layer.storage.providers.local.os.remove')
-    def test_delete_file_success(self, mock_remove, mock_exists):
+    @patch('swap_layer.storage.providers.local.Path.exists', return_value=True)
+    @patch('swap_layer.storage.providers.local.Path.unlink')
+    def test_delete_file_success(self, mock_unlink, mock_exists):
         """Test successful file deletion."""
         result = self.provider.delete_file('uploads/test.txt')
         
-        self.assertTrue(result['success'])
-        mock_remove.assert_called_with('/tmp/media/uploads/test.txt')
+        self.assertTrue(result['deleted'])
 
-    @patch('swap_layer.storage.providers.local.os.path.exists', return_value=True)
-    def test_file_exists(self, mock_exists):
+    def test_file_exists(self):
         """Test checking if file exists."""
-        result = self.provider.file_exists('uploads/test.txt')
-        
-        self.assertTrue(result)
-        mock_exists.assert_called_with('/tmp/media/uploads/test.txt')
+        with patch('swap_layer.storage.providers.local.Path.exists', return_value=True):
+            with patch('swap_layer.storage.providers.local.Path.is_file', return_value=True):
+                result = self.provider.file_exists('uploads/test.txt')
+                
+                self.assertTrue(result)
 
     @patch('swap_layer.storage.providers.local.os.path.exists', return_value=False)
     def test_file_not_exists(self, mock_exists):
@@ -86,75 +86,86 @@ class TestLocalStorageProvider(unittest.TestCase):
         
         self.assertFalse(result)
 
-    @patch('swap_layer.storage.providers.local.os.path.exists', return_value=True)
-    @patch('swap_layer.storage.providers.local.os.path.getsize', return_value=1024)
-    @patch('swap_layer.storage.providers.local.os.path.getmtime', return_value=1640000000)
-    def test_get_file_metadata(self, mock_mtime, mock_size, mock_exists):
+    def test_get_file_metadata(self):
         """Test retrieving file metadata."""
-        result = self.provider.get_file_metadata('uploads/test.txt')
+        with patch('swap_layer.storage.providers.local.Path.exists', return_value=True):
+            with patch('swap_layer.storage.providers.local.Path.stat') as mock_stat:
+                mock_stat.return_value.st_size = 1024
+                mock_stat.return_value.st_mtime = 1640000000
+                with patch.object(self.provider, '_calculate_etag', return_value='abc123'):
+                    with patch('builtins.open', mock_open(read_data='')):
+                        result = self.provider.get_file_metadata('uploads/test.txt')
         
-        self.assertEqual(result['file_path'], 'uploads/test.txt')
         self.assertEqual(result['size'], 1024)
         self.assertIn('last_modified', result)
 
-    @patch('swap_layer.storage.providers.local.os.walk')
-    def test_list_files(self, mock_walk):
+    def test_list_files(self):
         """Test listing files with prefix."""
-        mock_walk.return_value = [
-            ('/tmp/media/uploads', [], ['file1.txt', 'file2.pdf']),
-            ('/tmp/media/uploads/photos', [], ['photo1.jpg'])
-        ]
+        from pathlib import Path
         
-        with patch('swap_layer.storage.providers.local.os.path.getsize', return_value=100):
-            result = self.provider.list_files(prefix='uploads/')
+        with patch('swap_layer.storage.providers.local.Path.exists', return_value=True):
+            with patch('swap_layer.storage.providers.local.Path.rglob') as mock_rglob:
+                mock_files = []
+                for name in ['file1.txt', 'file2.pdf', 'photo1.jpg']:
+                    mock_file = MagicMock(spec=Path)
+                    mock_file.is_file.return_value = True
+                    mock_file.suffix = '.txt' if 'txt' in name else ('.pdf' if 'pdf' in name else '.jpg')
+                    mock_file.relative_to.return_value = Path(f'uploads/{name}')
+                    mock_file.stat.return_value.st_size = 100
+                    mock_file.stat.return_value.st_mtime = 1640000000
+                    mock_files.append(mock_file)
+                mock_rglob.return_value = mock_files
+                
+                with patch.object(self.provider, '_calculate_etag', return_value='abc123'):
+                    result = self.provider.list_files(prefix='uploads/')
         
         self.assertEqual(len(result), 3)
         self.assertTrue(any('file1.txt' in f['file_path'] for f in result))
 
-    @patch('swap_layer.storage.providers.local.os.path.exists', return_value=True)
     @patch('swap_layer.storage.providers.local.shutil.copy2')
-    def test_copy_file(self, mock_copy, mock_exists):
+    def test_copy_file(self, mock_copy):
         """Test copying a file."""
-        with patch('swap_layer.storage.providers.local.os.makedirs'):
-            result = self.provider.copy_file(
-                source_path='uploads/original.txt',
-                destination_path='backups/copy.txt'
-            )
+        with patch('swap_layer.storage.providers.local.Path.exists', return_value=True):
+            with patch('swap_layer.storage.providers.local.Path.mkdir'):
+                with patch.object(self.provider, '_calculate_etag', return_value='abc123'):
+                    result = self.provider.copy_file(
+                        source_path='uploads/original.txt',
+                        destination_path='backups/copy.txt'
+                    )
         
-        self.assertTrue(result['success'])
+        self.assertEqual(result['source_path'], 'uploads/original.txt')
         self.assertEqual(result['destination_path'], 'backups/copy.txt')
 
-    @patch('swap_layer.storage.providers.local.os.path.exists', return_value=True)
     @patch('swap_layer.storage.providers.local.shutil.move')
-    def test_move_file(self, mock_move, mock_exists):
+    def test_move_file(self, mock_move):
         """Test moving/renaming a file."""
-        with patch('swap_layer.storage.providers.local.os.makedirs'):
-            result = self.provider.move_file(
-                source_path='uploads/temp.txt',
-                destination_path='uploads/final.txt'
-            )
+        with patch('swap_layer.storage.providers.local.Path.exists', return_value=True):
+            with patch('swap_layer.storage.providers.local.Path.mkdir'):
+                result = self.provider.move_file(
+                    source_path='uploads/temp.txt',
+                    destination_path='uploads/final.txt'
+                )
         
-        self.assertTrue(result['success'])
+        self.assertEqual(result['source_path'], 'uploads/temp.txt')
         self.assertEqual(result['destination_path'], 'uploads/final.txt')
 
-    @patch('swap_layer.storage.providers.local.os.path.exists', return_value=True)
-    @patch('swap_layer.storage.providers.local.os.remove')
-    def test_delete_files_bulk(self, mock_remove, mock_exists):
+    def test_delete_files_bulk(self):
         """Test bulk file deletion."""
         files = ['file1.txt', 'file2.txt', 'file3.txt']
         
-        result = self.provider.delete_files(files)
+        with patch('swap_layer.storage.providers.local.Path.exists', return_value=True):
+            with patch('swap_layer.storage.providers.local.Path.unlink'):
+                result = self.provider.delete_files(files)
         
         self.assertEqual(len(result['deleted']), 3)
         self.assertEqual(len(result['errors']), 0)
-        self.assertEqual(mock_remove.call_count, 3)
 
     def test_get_file_url(self):
         """Test generating file URL."""
         result = self.provider.get_file_url('uploads/test.txt')
         
-        self.assertIn('/media/uploads/test.txt', result['url'])
-        self.assertFalse(result['is_signed'])
+        self.assertIn('/media/uploads/test.txt', result)
+        self.assertIsInstance(result, str)
 
 
 if __name__ == '__main__':

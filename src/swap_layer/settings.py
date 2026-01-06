@@ -239,6 +239,14 @@ class SwapLayerSettings(BaseModel):
         Returns:
             Configured SwapLayerSettings instance
         """
+        # Known multi-word field names that should not be split
+        known_fields = {
+            'secret_key', 'publishable_key', 'webhook_secret',
+            'account_sid', 'auth_token', 'from_number',
+            'api_key', 'client_id', 'cookie_password',
+            'media_root', 'media_url', 'base_path', 'base_url'
+        }
+        
         config: Dict[str, Any] = {}
         
         # Parse environment variables into nested config structure
@@ -246,8 +254,19 @@ class SwapLayerSettings(BaseModel):
             if not key.startswith(prefix):
                 continue
             
-            # Remove prefix and split into parts
-            parts = key[len(prefix):].lower().split('_')
+            # Remove prefix and convert to lowercase
+            remaining = key[len(prefix):].lower()
+            parts = remaining.split('_')
+            
+            # Try to identify known compound field names at the end
+            # Check for 2-word and 3-word compounds
+            compound_field = None
+            if len(parts) >= 2:
+                # Check for 2-word compounds
+                last_two = '_'.join(parts[-2:])
+                if last_two in known_fields:
+                    compound_field = last_two
+                    parts = parts[:-2] + [compound_field]
             
             # Build nested dictionary
             current = config

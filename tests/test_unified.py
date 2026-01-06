@@ -54,8 +54,22 @@ class TestUnifiedProvider(unittest.TestCase):
     def test_get_identity_with_app_name(self):
         """Test getting identity provider with app_name parameter."""
         with patch.object(settings, 'IDENTITY_PROVIDER', 'workos'):
-            with patch('swap_layer.identity.platform.providers.workos.client.workos'):
-                provider = get_provider('identity', app_name='custom')
+            # Mock WORKOS_APPS to include the custom app
+            mock_workos_apps = {
+                'default': {
+                    'api_key': 'test_api_key',
+                    'client_id': 'test_client_id',
+                    'cookie_password': 'test_cookie_password_min_32_chars'
+                },
+                'custom': {
+                    'api_key': 'custom_api_key',
+                    'client_id': 'custom_client_id',
+                    'cookie_password': 'custom_cookie_password_min_32_chars'
+                }
+            }
+            with patch.object(settings, 'WORKOS_APPS', mock_workos_apps):
+                with patch('swap_layer.identity.platform.providers.workos.client.workos'):
+                    provider = get_provider('identity', app_name='custom')
                 from swap_layer.identity.platform.adapter import AuthProviderAdapter
                 self.assertIsInstance(provider, AuthProviderAdapter)
 
