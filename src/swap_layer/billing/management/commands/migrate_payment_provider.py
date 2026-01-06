@@ -107,7 +107,7 @@ class Command(BaseCommand):
         self.stdout.write(f'\nFound {count} customers to migrate\n')
 
         # Import payment provider
-        from swap_layer.payments import get_provider
+        from swap_layer.billing import get_provider
 
         if not dry_run:
             # Temporarily switch to new provider

@@ -2,10 +2,10 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 # Import subdomain adapters
-from swap_layer.payments.customers.adapter import CustomerAdapter
-from swap_layer.payments.subscriptions.adapter import SubscriptionAdapter
-from swap_layer.payments.payment_intents.adapter import PaymentAdapter
-from swap_layer.payments.products.adapter import ProductAdapter
+from swap_layer.billing.customers.adapter import CustomerAdapter
+from swap_layer.billing.subscriptions.adapter import SubscriptionAdapter
+from swap_layer.billing.payment_intents.adapter import PaymentAdapter
+from swap_layer.billing.products.adapter import ProductAdapter
 
 
 class PaymentError(Exception):

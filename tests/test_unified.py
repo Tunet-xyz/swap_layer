@@ -18,14 +18,14 @@ class TestUnifiedProvider(unittest.TestCase):
         """Test getting payment provider through unified interface."""
         with patch.object(settings, 'PAYMENT_PROVIDER', 'stripe'):
             provider = get_provider('payment')
-            from swap_layer.payments.adapter import PaymentProviderAdapter
+            from swap_layer.billing.adapter import PaymentProviderAdapter
             self.assertIsInstance(provider, PaymentProviderAdapter)
 
     def test_get_payments_provider_alias(self):
-        """Test that 'payments' also works as alias."""
+        """Test that 'billing' and 'payments' work as aliases."""
         with patch.object(settings, 'PAYMENT_PROVIDER', 'stripe'):
-            provider = get_provider('payments')
-            from swap_layer.payments.adapter import PaymentProviderAdapter
+            provider = get_provider('billing')
+            from swap_layer.billing.adapter import PaymentProviderAdapter
             self.assertIsInstance(provider, PaymentProviderAdapter)
 
     def test_get_sms_provider(self):

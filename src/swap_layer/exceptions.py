@@ -93,8 +93,8 @@ class StripeKeyError(ConfigurationError):
             ],
             docs_url="https://stripe.com/docs/keys",
             related_settings=[
-                "SWAPLAYER.payments.stripe.secret_key",
-                "SWAPLAYER.payments.stripe.publishable_key",
+                "SWAPLAYER.billing.stripe.secret_key",
+                "SWAPLAYER.billing.stripe.publishable_key",
             ]
         )
 
@@ -161,7 +161,7 @@ class ProviderConfigMismatchError(ConfigurationError):
     def __init__(self, module: str, provider: str, missing_config: str):
         examples_map = {
             'stripe': [
-                "payments={'provider': 'stripe', 'stripe': {'secret_key': 'sk_test_...', 'publishable_key': 'pk_test_...'}}",
+                "billing={'provider': 'stripe', 'stripe': {'secret_key': 'sk_test_...', 'publishable_key': 'pk_test_...'}}",
             ],
             'twilio': [
                 "sms={'provider': 'twilio', 'twilio': {'account_sid': 'AC...', 'auth_token': '...', 'from_number': '+1555...'}}",
@@ -194,7 +194,7 @@ class ModuleNotConfiguredError(ConfigurationError):
     
     def __init__(self, module: str):
         module_examples = {
-            'payments': "payments={'provider': 'stripe', 'stripe': {'secret_key': 'sk_test_...'}}",
+            'billing': "billing={'provider': 'stripe', 'stripe': {'secret_key': 'sk_test_...'}}",
             'email': "email={'provider': 'django'}",
             'sms': "sms={'provider': 'twilio', 'twilio': {...}}",
             'storage': "storage={'provider': 'local', 'media_root': '/path/to/media'}",

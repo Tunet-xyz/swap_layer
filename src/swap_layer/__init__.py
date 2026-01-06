@@ -4,7 +4,7 @@ SwapLayer - Swap Providers with Zero Vendor Lock-in. For Django SaaS.
 from typing import Any
 
 from .email.factory import get_email_provider
-from .payments.factory import get_payment_provider
+from .billing.factory import get_payment_provider
 from .storage.factory import get_storage_provider
 from .sms.factory import get_sms_provider
 from .identity.platform.factory import get_identity_client
@@ -44,13 +44,13 @@ def get_provider(service_type: str, **kwargs) -> Any:
         
         # Get any provider by service type
         email = get_provider('email')
-        payments = get_provider('payments')
+        billing = get_provider('billing')
         storage = get_provider('storage')
         sms = get_provider('sms')
         identity = get_provider('identity')
     
     Args:
-        service_type: Service type - 'email', 'payments', 'storage', 'sms', 
+        service_type: Service type - 'email', 'billing', 'storage', 'sms', 
                       'identity', or 'verification'
         **kwargs: Additional arguments (e.g., app_name for identity)
     
@@ -64,7 +64,7 @@ def get_provider(service_type: str, **kwargs) -> Any:
     
     if service == 'email':
         return get_email_provider()
-    elif service in ('payment', 'payments'):
+    elif service in ('billing', 'payment', 'payments'):
         return get_payment_provider()
     elif service == 'storage':
         return get_storage_provider()
@@ -77,7 +77,7 @@ def get_provider(service_type: str, **kwargs) -> Any:
     else:
         raise ValueError(
             f"Unknown service type: '{service_type}'. "
-            f"Valid options: email, payments, storage, sms, identity, verification"
+            f"Valid options: email, billing, storage, sms, identity, verification"
         )
 
 __all__ = [

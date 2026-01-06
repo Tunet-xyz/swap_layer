@@ -3,7 +3,7 @@ Django Admin integration for payment provider models.
 
 Add this to your admin.py:
 
-    from swap_layer.payments.admin import PaymentProviderAdminMixin
+    from swap_layer.billing.admin import PaymentProviderAdminMixin
     
     @admin.register(Customer)
     class CustomerAdmin(PaymentProviderAdminMixin, admin.ModelAdmin):

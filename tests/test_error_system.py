@@ -27,7 +27,7 @@ class TestStripeKeyError:
         """Should provide helpful error for invalid Stripe secret key."""
         with pytest.raises(StripeKeyError) as exc_info:
             SwapLayerSettings(
-                payments={
+                billing={
                     'provider': 'stripe',
                     'stripe': {'secret_key': 'pk_test_123abc'}  # Wrong! Publishable key
                 }
@@ -42,13 +42,13 @@ class TestStripeKeyError:
         assert "sk_test_" in error_message  # Shows correct format
         assert "sk_live_" in error_message  # Shows live example too
         assert "stripe.com/docs/keys" in error_message  # Documentation link
-        assert "SWAPLAYER.payments.stripe.secret_key" in error_message  # Related setting
+        assert "SWAPLAYER.billing.stripe.secret_key" in error_message  # Related setting
     
     def test_completely_wrong_key(self):
         """Should handle completely invalid key gracefully."""
         with pytest.raises(StripeKeyError):
             SwapLayerSettings(
-                payments={
+                billing={
                     'provider': 'stripe',
                     'stripe': {'secret_key': 'totally_wrong_key_format'}
                 }
@@ -170,7 +170,7 @@ class TestProviderConfigMismatchError:
         """Should provide helpful error when Stripe provider selected but config missing."""
         with pytest.raises(ProviderConfigMismatchError) as exc_info:
             SwapLayerSettings(
-                payments={
+                billing={
                     'provider': 'stripe',
                     # Missing 'stripe' config!
                 }
@@ -181,7 +181,7 @@ class TestProviderConfigMismatchError:
         assert "❌" in error_message
         assert "provider 'stripe' selected" in error_message
         assert "stripe not configured" in error_message
-        assert "payments={'provider': 'stripe'" in error_message  # Shows example
+        assert "billing={'provider': 'stripe'" in error_message  # Shows example
         assert "'stripe': {" in error_message  # Shows what's missing
     
     def test_twilio_provider_without_config(self):
@@ -208,15 +208,15 @@ class TestProviderConfigMismatchError:
 class TestModuleNotConfiguredError:
     """Test module not configured errors."""
     
-    def test_payments_not_configured(self):
+    def test_billing_not_configured(self):
         """Should provide helpful error when trying to use unconfigured module."""
-        error = ModuleNotConfiguredError('payments')
+        error = ModuleNotConfiguredError('billing')
         error_message = str(error)
         
-        assert "❌ SwapLayer 'payments' module is not configured" in error_message
+        assert "❌ SwapLayer 'billing' module is not configured" in error_message
         assert "💡 Hint:" in error_message
-        assert "payments={'provider': 'stripe'" in error_message  # Shows example
-        assert "SWAPLAYER.payments" in error_message  # Shows setting to add
+        assert "billing={'provider': 'stripe'" in error_message  # Shows example
+        assert "SWAPLAYER.billing" in error_message  # Shows setting to add
     
     def test_sms_not_configured(self):
         """Should provide helpful error for SMS module."""
@@ -276,7 +276,7 @@ class TestErrorContext:
         """Should build comprehensive error context."""
         error = ValueError("Test error message")
         config = {
-            'payments': {
+            'billing': {
                 'provider': 'stripe',
                 'stripe': {
                     'secret_key': 'sk_test_123',
@@ -290,7 +290,7 @@ class TestErrorContext:
         assert "🚨 SWAPLAYER CONFIGURATION ERROR" in context
         assert "Test error message" in context
         assert "📋 Your configuration:" in context
-        assert "payments:" in context
+        assert "billing:" in context
         assert "provider: stripe" in context
         # Secrets should be masked
         assert "******** (masked)" in context
@@ -326,7 +326,7 @@ class TestStartupValidationErrors:
         """Should format multiple validation errors nicely."""
         errors = [
             {
-                'loc': ('payments', 'stripe', 'secret_key'),
+                'loc': ('billing', 'stripe', 'secret_key'),
                 'msg': "Stripe secret key must start with 'sk_'",
                 'type': 'value_error'
             },
@@ -340,7 +340,7 @@ class TestStartupValidationErrors:
         formatted = format_startup_validation_errors(errors)
         
         assert "🚨 SWAPLAYER CONFIGURATION VALIDATION FAILED" in formatted
-        assert "1. ❌ payments → stripe → secret_key" in formatted
+        assert "1. ❌ billing → stripe → secret_key" in formatted
         assert "2. ❌ sms → twilio → account_sid" in formatted
         assert "python manage.py swaplayer_check" in formatted
         assert "SETTINGS_MANAGEMENT.md" in formatted
@@ -354,7 +354,7 @@ class TestRichErrorsInRealScenarios:
         """Simulate: Developer accidentally uses publishable key instead of secret key."""
         with pytest.raises(StripeKeyError) as exc_info:
             SwapLayerSettings(
-                payments={
+                billing={
                     'provider': 'stripe',
                     'stripe': {
                         'secret_key': 'pk_test_51Abc123...',  # Oops! Used wrong key
@@ -414,7 +414,7 @@ class TestRichErrorsInRealScenarios:
         """Simulate: Developer sets provider but forgets the actual config."""
         with pytest.raises(ProviderConfigMismatchError) as exc_info:
             SwapLayerSettings(
-                payments={'provider': 'stripe'}  # Forgot the stripe config!
+                billing={'provider': 'stripe'}  # Forgot the stripe config!
             )
         
         # Error should show complete example
@@ -443,7 +443,7 @@ class TestErrorInheritance:
         
         with pytest.raises(SwapLayerError):
             SwapLayerSettings(
-                payments={
+                billing={
                     'provider': 'stripe',
                     'stripe': {'secret_key': 'invalid_key'}
                 }

@@ -8,7 +8,7 @@ from pydantic import ValidationError
 
 from swap_layer.settings import (
     SwapLayerSettings,
-    PaymentsConfig,
+    BillingConfig,
     StripeConfig,
     SMSConfig,
     TwilioConfig,
@@ -69,15 +69,15 @@ class TestTwilioConfig:
             )
 
 
-class TestPaymentsConfig:
+class TestBillingConfig:
     def test_stripe_config_required_when_provider_is_stripe(self):
         """Test that Stripe config is required when using Stripe provider."""
         with pytest.raises(ProviderConfigMismatchError):
-            PaymentsConfig(provider='stripe')
+            BillingConfig(provider='stripe')
     
-    def test_valid_payments_config(self):
-        """Test valid payments configuration."""
-        config = PaymentsConfig(
+    def test_valid_billing_config(self):
+        """Test valid billing configuration."""
+        config = BillingConfig(
             provider='stripe',
             stripe=StripeConfig(secret_key='sk_test_123')
         )
@@ -108,13 +108,13 @@ class TestSwapLayerSettings:
     def test_minimal_config(self):
         """Test minimal configuration."""
         settings = SwapLayerSettings()
-        assert settings.payments is None
+        assert settings.billing is None
         assert settings.debug is False
     
     def test_full_config(self):
         """Test full configuration."""
         settings = SwapLayerSettings(
-            payments=PaymentsConfig(
+            billing=BillingConfig(
                 provider='stripe',
                 stripe=StripeConfig(secret_key='sk_test_123')
             ),
@@ -128,45 +128,45 @@ class TestSwapLayerSettings:
             ),
             debug=True,
         )
-        assert settings.payments.provider == 'stripe'
+        assert settings.billing.provider == 'stripe'
         assert settings.sms.provider == 'twilio'
         assert settings.debug is True
     
     def test_from_dict(self):
         """Test creating settings from dictionary."""
         settings = SwapLayerSettings(
-            payments={
+            billing={
                 'provider': 'stripe',
                 'stripe': {'secret_key': 'sk_test_123'}
             }
         )
-        assert settings.payments.provider == 'stripe'
-        assert settings.payments.stripe.secret_key == 'sk_test_123'
+        assert settings.billing.provider == 'stripe'
+        assert settings.billing.stripe.secret_key == 'sk_test_123'
     
     def test_get_status(self):
         """Test getting configuration status."""
         settings = SwapLayerSettings(
-            payments={
+            billing={
                 'provider': 'stripe',
                 'stripe': {'secret_key': 'sk_test_123'}
             }
         )
         status = settings.get_status()
-        assert 'payments' in status
-        assert status['payments'].startswith('configured')
+        assert 'billing' in status
+        assert status['billing'].startswith('configured')
         assert status['email'] == 'not configured'
     
     def test_validate_module(self):
         """Test module validation."""
         settings = SwapLayerSettings(
-            payments={
+            billing={
                 'provider': 'stripe',
                 'stripe': {'secret_key': 'sk_test_123'}
             }
         )
         
         # Should not raise for configured module
-        settings.validate_module('payments')
+        settings.validate_module('billing')
         
         # Should raise for unconfigured module
         with pytest.raises(ModuleNotConfiguredError):
@@ -175,32 +175,32 @@ class TestSwapLayerSettings:
     def test_repr(self):
         """Test string representation."""
         settings = SwapLayerSettings(
-            payments={
+            billing={
                 'provider': 'stripe',
                 'stripe': {'secret_key': 'sk_test_123'}
             }
         )
         repr_str = repr(settings)
         assert 'SwapLayerSettings' in repr_str
-        assert 'payments' in repr_str
+        assert 'billing' in repr_str
     
     def test_extra_fields_forbidden(self):
         """Test that extra fields are not allowed (prevents typos)."""
         with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
             SwapLayerSettings(
-                payment={'provider': 'stripe'}  # Typo: should be 'payments'
+                payment={'provider': 'stripe'}  # Typo: should be 'billing'
             )
 
 
 class TestEnvironmentVariables:
-    def test_from_env_payments(self, monkeypatch):
-        """Test loading payments config from environment."""
-        monkeypatch.setenv('SWAPLAYER_PAYMENTS_PROVIDER', 'stripe')
-        monkeypatch.setenv('SWAPLAYER_PAYMENTS_STRIPE_SECRET_KEY', 'sk_test_123')
+    def test_from_env_billing(self, monkeypatch):
+        """Test loading billing config from environment."""
+        monkeypatch.setenv('SWAPLAYER_BILLING_PROVIDER', 'stripe')
+        monkeypatch.setenv('SWAPLAYER_BILLING_STRIPE_SECRET_KEY', 'sk_test_123')
         
         settings = SwapLayerSettings.from_env()
-        assert settings.payments.provider == 'stripe'
-        assert settings.payments.stripe.secret_key == 'sk_test_123'
+        assert settings.billing.provider == 'stripe'
+        assert settings.billing.stripe.secret_key == 'sk_test_123'
     
     def test_from_env_sms(self, monkeypatch):
         """Test loading SMS config from environment."""
@@ -215,11 +215,11 @@ class TestEnvironmentVariables:
     
     def test_from_env_custom_prefix(self, monkeypatch):
         """Test loading with custom prefix."""
-        monkeypatch.setenv('MYAPP_PAYMENTS_PROVIDER', 'stripe')
-        monkeypatch.setenv('MYAPP_PAYMENTS_STRIPE_SECRET_KEY', 'sk_test_123')
+        monkeypatch.setenv('MYAPP_BILLING_PROVIDER', 'stripe')
+        monkeypatch.setenv('MYAPP_BILLING_STRIPE_SECRET_KEY', 'sk_test_123')
         
         settings = SwapLayerSettings.from_env(prefix='MYAPP_')
-        assert settings.payments.provider == 'stripe'
+        assert settings.billing.provider == 'stripe'
 
 
 class TestLegacyCompatibility:
@@ -232,8 +232,8 @@ class TestLegacyCompatibility:
         swaplayer_settings = SwapLayerSettings.from_django()
         
         # Verify we got valid settings (exact values depend on conftest.py)
-        assert swaplayer_settings.payments is not None
-        assert swaplayer_settings.payments.provider == 'stripe'
+        assert swaplayer_settings.billing is not None
+        assert swaplayer_settings.billing.provider == 'stripe'
         assert swaplayer_settings.email is not None
 
 
@@ -244,7 +244,7 @@ class TestValidation:
         
         # Set up a valid SWAPLAYER config
         test_config = SwapLayerSettings(
-            payments={
+            billing={
                 'provider': 'stripe',
                 'stripe': {'secret_key': 'sk_test_123'}
             }

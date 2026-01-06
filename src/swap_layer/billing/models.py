@@ -15,7 +15,7 @@ class StripeCustomerMixin(models.Model):
     
     Add this to your User or Customer model:
     
-        from swap_layer.payments.models import StripeCustomerMixin
+        from swap_layer.billing.models import StripeCustomerMixin
         
         class Customer(StripeCustomerMixin, models.Model):
             email = models.EmailField()
@@ -45,7 +45,7 @@ class PaymentProviderCustomerMixin(models.Model):
     
     Use this if you want to support multiple payment providers:
     
-        from swap_layer.payments.models import PaymentProviderCustomerMixin
+        from swap_layer.billing.models import PaymentProviderCustomerMixin
         
         class Customer(PaymentProviderCustomerMixin, models.Model):
             email = models.EmailField()
@@ -92,7 +92,7 @@ class SubscriptionMixin(models.Model):
     
     Add this to your Subscription model:
     
-        from swap_layer.payments.models import SubscriptionMixin
+        from swap_layer.billing.models import SubscriptionMixin
         
         class Subscription(SubscriptionMixin, models.Model):
             user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -158,7 +158,7 @@ class PaymentMethodMixin(models.Model):
     
     Add this to your PaymentMethod model:
     
-        from swap_layer.payments.models import PaymentMethodMixin
+        from swap_layer.billing.models import PaymentMethodMixin
         
         class PaymentMethod(PaymentMethodMixin, models.Model):
             customer = models.ForeignKey(Customer, on_delete=models.CASCADE)

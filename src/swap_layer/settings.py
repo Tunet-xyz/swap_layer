@@ -9,7 +9,7 @@ Usage:
     from swap_layer.settings import SwapLayerSettings
     
     SWAPLAYER = SwapLayerSettings(
-        payments={
+        billing={
             'provider': 'stripe',
             'stripe': {
                 'secret_key': os.environ['STRIPE_SECRET_KEY'],
@@ -58,15 +58,15 @@ class StripeConfig(BaseModel):
         return v
 
 
-class PaymentsConfig(BaseModel):
-    """Payment module configuration."""
+class BillingConfig(BaseModel):
+    """Billing module configuration."""
     provider: Literal['stripe'] = Field('stripe', description="Payment provider to use")
     stripe: Optional[StripeConfig] = Field(None, description="Stripe configuration")
     
     @model_validator(mode='after')
     def validate_provider_config(self):
         if self.provider == 'stripe' and not self.stripe:
-            raise ProviderConfigMismatchError('payments', 'stripe', 'stripe')
+            raise ProviderConfigMismatchError('billing', 'stripe', 'stripe')
         return self
 
 
@@ -194,14 +194,14 @@ class SwapLayerSettings(BaseModel):
     Example:
         # settings.py
         SWAPLAYER = SwapLayerSettings(
-            payments={'provider': 'stripe', 'stripe': {'secret_key': 'sk_test_...'}},
+            billing={'provider': 'stripe', 'stripe': {'secret_key': 'sk_test_...'}},
             email={'provider': 'django'},
             sms={'provider': 'twilio', 'twilio': {...}},
         )
     """
     
     # Module configurations
-    payments: Optional[PaymentsConfig] = Field(None, description="Payment module configuration")
+    billing: Optional[BillingConfig] = Field(None, description="Billing module configuration")
     email: Optional[EmailConfig] = Field(None, description="Email module configuration")
     sms: Optional[SMSConfig] = Field(None, description="SMS module configuration")
     storage: Optional[StorageConfig] = Field(None, description="Storage module configuration")
@@ -225,8 +225,8 @@ class SwapLayerSettings(BaseModel):
         Environment variables should be prefixed with SWAPLAYER_ (or custom prefix).
         
         Examples:
-            SWAPLAYER_PAYMENTS_PROVIDER=stripe
-            SWAPLAYER_PAYMENTS_STRIPE_SECRET_KEY=sk_test_...
+            SWAPLAYER_BILLING_PROVIDER=stripe
+            SWAPLAYER_BILLING_STRIPE_SECRET_KEY=sk_test_...
             SWAPLAYER_EMAIL_PROVIDER=django
             SWAPLAYER_SMS_PROVIDER=twilio
             SWAPLAYER_SMS_TWILIO_ACCOUNT_SID=AC...
@@ -295,7 +295,7 @@ class SwapLayerSettings(BaseModel):
         Example Django settings:
             # New way (recommended)
             SWAPLAYER = {
-                'payments': {'provider': 'stripe', 'stripe': {'secret_key': 'sk_...'}},
+                'billing': {'provider': 'stripe', 'stripe': {'secret_key': 'sk_...'}},
                 'email': {'provider': 'django'},
             }
             
@@ -321,13 +321,13 @@ class SwapLayerSettings(BaseModel):
         """Build config from legacy Django settings for backward compatibility."""
         config: Dict[str, Any] = {}
         
-        # Payments
+        # Billing
         if hasattr(settings, 'PAYMENT_PROVIDER'):
-            config['payments'] = {
+            config['billing'] = {
                 'provider': getattr(settings, 'PAYMENT_PROVIDER', 'stripe'),
             }
             if hasattr(settings, 'STRIPE_SECRET_KEY'):
-                config['payments']['stripe'] = {
+                config['billing']['stripe'] = {
                     'secret_key': settings.STRIPE_SECRET_KEY,
                     'publishable_key': getattr(settings, 'STRIPE_PUBLISHABLE_KEY', None),
                 }
@@ -389,7 +389,7 @@ class SwapLayerSettings(BaseModel):
         Validate that a specific module is properly configured.
         
         Args:
-            module: Module name ('payments', 'email', 'sms', etc.)
+            module: Module name ('billing', 'email', 'sms', etc.)
             
         Raises:
             ImproperlyConfigured: If module is not configured or invalid
@@ -408,7 +408,7 @@ class SwapLayerSettings(BaseModel):
             Dictionary mapping module names to status ('configured', 'not configured', 'invalid')
         """
         status = {}
-        for module in ['payments', 'email', 'sms', 'storage', 'identity', 'verification']:
+        for module in ['billing', 'email', 'sms', 'storage', 'identity', 'verification']:
             config = getattr(self, module, None)
             if config is None:
                 status[module] = 'not configured'

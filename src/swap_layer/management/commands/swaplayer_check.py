@@ -19,7 +19,7 @@ class Command(BaseCommand):
         parser.add_argument(
             '--module',
             type=str,
-            help='Check specific module (payments, email, sms, storage, identity, verification)',
+            help='Check specific module (billing, email, sms, storage, identity, verification)',
         )
         parser.add_argument(
             '--verbose',
@@ -45,7 +45,7 @@ class Command(BaseCommand):
             self.stdout.write('Example configuration:')
             self.stdout.write('')
             self.stdout.write('    SWAPLAYER = {')
-            self.stdout.write('        "payments": {')
+            self.stdout.write('        "billing": {')
             self.stdout.write('            "provider": "stripe",')
             self.stdout.write('            "stripe": {"secret_key": "sk_test_..."}')
             self.stdout.write('        },')
