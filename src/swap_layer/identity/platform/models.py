@@ -1,12 +1,17 @@
 """
-Django model mixins for storing identity platform provider metadata.
+Django models and Pydantic schemas for identity platform provider metadata.
 
-These mixins help you map external OAuth/OIDC identities to your Django users
+These models help you map external OAuth/OIDC identities to your Django users
 while maintaining provider independence.
 """
 
 from django.db import models
+from django.conf import settings
 from django.utils import timezone
+from pydantic import BaseModel, Field
+from typing import Optional, Dict, Any
+from datetime import datetime
+import uuid
 
 
 class OAuthIdentityMixin(models.Model):
@@ -143,3 +148,87 @@ class SSOConnectionMixin(models.Model):
             models.Index(fields=['sso_domain']),
         ]
 
+
+# Pydantic model for internal data transfer
+class UserIdentity(BaseModel):
+    """
+    Pydantic model representing a user identity mapping.
+    Used internally for data transfer between operations and repositories.
+    """
+    id: Optional[uuid.UUID] = Field(default_factory=uuid.uuid4)
+    user_id: str = Field(..., description="Internal user ID")
+    provider: str = Field(..., description="Identity provider name (e.g., 'workos', 'auth0')")
+    provider_user_id: str = Field(..., description="User ID from the provider")
+    email: Optional[str] = Field(None, description="Email from provider")
+    data: Dict[str, Any] = Field(default_factory=dict, description="Additional provider data")
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+# Django model for database persistence
+class AbstractUserIdentity(models.Model):
+    """
+    Abstract Django model for User Identity mapping.
+    Maps an external Identity Provider user to an internal Django User.
+    
+    Inherit from this model to create your own UserIdentity table:
+    
+        from swap_layer.identity.platform.models import AbstractUserIdentity
+        
+        class UserIdentity(AbstractUserIdentity):
+            class Meta:
+                db_table = 'user_identities'
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, 
+        on_delete=models.CASCADE, 
+        related_name='identities'
+    )
+    provider = models.CharField(max_length=50)  # e.g. 'workos', 'auth0'
+    provider_user_id = models.CharField(max_length=255)
+    
+    # Optional: Store extra data from the provider
+    email = models.EmailField(null=True, blank=True)
+    data = models.JSONField(default=dict, blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        abstract = True
+        unique_together = ('provider', 'provider_user_id')
+        indexes = [
+            models.Index(fields=['provider', 'provider_user_id']),
+        ]
+
+    def __str__(self):
+        return f"{self.provider}:{self.provider_user_id} -> {self.user}"
+
+    @classmethod
+    def from_dto(cls, dto: UserIdentity, user_instance) -> 'AbstractUserIdentity':
+        """Create Django model instance from Pydantic DTO."""
+        return cls(
+            id=dto.id,
+            user=user_instance,
+            provider=dto.provider,
+            provider_user_id=dto.provider_user_id,
+            email=dto.email,
+            data=dto.data
+        )
+
+    def to_dto(self) -> UserIdentity:
+        """Convert Django model instance to Pydantic DTO."""
+        return UserIdentity(
+            id=self.id,
+            user_id=str(self.user.pk),
+            provider=self.provider,
+            provider_user_id=self.provider_user_id,
+            email=self.email,
+            data=self.data,
+            created_at=self.created_at,
+            updated_at=self.updated_at
+        )
