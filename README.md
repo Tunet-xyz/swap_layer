@@ -47,7 +47,7 @@ SwapLayer uses a **Wrapper Pattern** to leverage the best existing tools while e
 | :--- | :--- | :--- | :--- |
 | **Storage** | **Wrapper** | `django-storages` | Unified interface for S3, Azure, GCloud, Local. |
 | **Email** | **Wrapper** | `django-anymail` | Unified interface for SendGrid, Mailgun, SES. |
-| **Payments** | **Custom** | Stripe / PayPal | **The Missing Link.** A unified Payment Adapter that Django lacks. |
+| **Payments** | **Custom** | Stripe / PayPal | **The Missing Link.** A unified Payment Adapter organized into subdomains: customers, subscriptions, payment_intents, and products. |
 | **Identity** | **Custom** | Auth0 / WorkOS | Lightweight OIDC/OAuth abstraction. |
 | **SMS** | **Custom** | Twilio / SNS | Simple, consistent messaging interface. |
 
@@ -83,12 +83,26 @@ from swap_layer.storage.factory import get_storage_provider
 def signup(request):
     # Code doesn't know if it's Stripe or PayPal
     payments = get_payment_provider()
-    customer = payments.create_customer(email=request.user.email)
+    
+    # Subdomain-organized operations
+    customer = payments.create_customer(email=request.user.email)  # customers subdomain
+    subscription = payments.create_subscription(  # subscriptions subdomain
+        customer_id=customer['id'],
+        price_id='price_monthly'
+    )
     
     # Code doesn't know if it's S3 or Azure
     storage = get_storage_provider()
     storage.upload_file(...)
 ```
+
+**Subdomain Architecture**: The payments module is organized into logical subdomains:
+- **customers**: Customer management (create, update, delete)
+- **subscriptions**: Subscription lifecycle (create, cancel, list)
+- **payment_intents**: Payment processing (intents, methods, checkout, invoices, webhooks)
+- **products**: Product catalog and pricing (placeholder for future)
+
+See [Payments Documentation](src/swap_layer/payments/README.md) for details.
 
 ---
 
