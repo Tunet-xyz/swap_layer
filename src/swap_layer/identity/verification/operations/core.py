@@ -10,35 +10,31 @@ logger = logging.getLogger(__name__)
 
 class IdentityOperations:
     """
-    Main operations class for Identity Service.
-    Handles business logic and interactions with the provider.
-    
-    NOTE: This layer is now Framework Agnostic (Pydantic). 
-    Persistence is the responsibility of the consumer.
+    Core Logic for interacting with Identity Providers.
+    This class is Stateless and Framework Agnostic.
+    It deals primarily with Pydantic Models and Vendor APIs.
     """
     
     def __init__(self, provider=None):
         """
         Initialize IdentityOperations.
-        
         Args:
-            provider: Optional provider instance for dependency injection (useful for testing)
+            provider: Optional provider instance for dependency injection
         """
         self.provider = provider or get_identity_verification_provider()
-        # Extract provider name from settings for backward compatibility
         self.provider_name = getattr(settings, 'IDENTITY_VERIFICATION_PROVIDER', 'stripe')
 
     def create_session(self, user_id: str, data: VerificationSessionCreate, user_email: Optional[str] = None) -> IdentityVerificationSession:
         """
         Creates a verification session with the provider.
-        Returns a Pydantic model instance (not saved to DB).
+        Returns a Pydantic model instance.
         """
         
         # 1. Call Provider
         email = data.email or user_email
 
         provider_data = self.provider.create_verification_session(
-            user=user_id, # adapter should handle string ID
+            user=user_id,
             verification_type=data.verification_type,
             options={
                 'return_url': data.return_url,
@@ -57,8 +53,10 @@ class IdentityOperations:
             client_secret=provider_data.get('client_secret', ''),
             metadata=data.metadata
         )
-        
+            
         return session
+
+
 
     def cancel_session(self, provider_session_id: str) -> Dict[str, Any]:
         """

@@ -15,7 +15,10 @@ class Settings:
         2. Try Environment variables
         3. Return default
         """
-        # 1. Django
+        # 1. Django (if FRAMEWORK is explicitly 'django' or detected)
+        # We can optionally control this via a FRAMEWORK env var, 
+        # but the try/except block handles auto-detection well.
+        
         try:
             from django.conf import settings as django_settings
             if django_settings.configured and hasattr(django_settings, key):
