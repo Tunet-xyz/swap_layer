@@ -284,8 +284,10 @@ class SwapLayerSettings(BaseModel):
             return cls(**config)
         except PydanticValidationError as e:
             # Enhance validation errors with rich context
-            print(format_startup_validation_errors(e.errors()))
-            print(ErrorContext.build_config_error_context(e, config))
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(format_startup_validation_errors(e.errors()))
+            logger.error(ErrorContext.build_config_error_context(e, config))
             raise
     
     @classmethod
@@ -388,8 +390,10 @@ class SwapLayerSettings(BaseModel):
             return cls(**config) if config else cls()
         except PydanticValidationError as e:
             # Enhance validation errors with rich context
-            print(format_startup_validation_errors(e.errors()))
-            print(ErrorContext.build_config_error_context(e, config))
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(format_startup_validation_errors(e.errors()))
+            logger.error(ErrorContext.build_config_error_context(e, config))
             raise
     
     def validate_module(self, module: str) -> None:

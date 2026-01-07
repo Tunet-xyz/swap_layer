@@ -1,22 +1,25 @@
 """
 Auth0 Management API Client
 
-Provides administrative operations for Auth0 using the Management API v2.
-This is separate from OAuth/OIDC authentication.
+Provides administrative operations for Auth0 using the Management API v2
+with resilient HTTP handling and automatic retries.
 
 Documentation: https://auth0.com/docs/api/management/v2
 """
 
-import requests
+import logging
 from typing import Dict, Any, Optional
 from django.conf import settings
 from django.core.cache import cache
 
-from ...management.adapter import IdentityManagementClient
+from swap_layer.http import ResilientSession, resilient_request
+from swap_layer.identity.platform.management.adapter import IdentityManagementClient
 from .users import Auth0UserManagement
 from .organizations import Auth0OrganizationManagement
 from .roles import Auth0RoleManagement
 from .logs import Auth0LogManagement
+
+logger = logging.getLogger(__name__)
 
 
 class Auth0ManagementClient(IdentityManagementClient):
@@ -70,6 +73,9 @@ class Auth0ManagementClient(IdentityManagementClient):
         # Token caching
         self._token_cache_key = f'auth0_mgmt_token_{app_name}'
         
+        # Create resilient session for API requests
+        self._session = None  # Lazily initialized after token fetch
+        
         # Initialize module adapters
         self._users = Auth0UserManagement(self)
         self._organizations = Auth0OrganizationManagement(self)
@@ -117,7 +123,7 @@ class Auth0ManagementClient(IdentityManagementClient):
         if cached_token:
             return cached_token
         
-        # Request new token
+        # Request new token with retry support
         payload = {
             'grant_type': 'client_credentials',
             'client_id': self.client_id,
@@ -125,10 +131,19 @@ class Auth0ManagementClient(IdentityManagementClient):
             'audience': f'https://{self.domain}/api/v2/'
         }
         
-        response = requests.post(self.token_url, json=payload)
-        response.raise_for_status()
+        try:
+            response = resilient_request(
+                'POST',
+                self.token_url,
+                json=payload,
+                timeout=30,
+                max_retries=3,
+            )
+            data = response.json()
+        except Exception as e:
+            logger.error(f"Failed to obtain Auth0 management token: {e}")
+            raise
         
-        data = response.json()
         token = data['access_token']
         expires_in = data.get('expires_in', 86400)  # Default 24 hours
         
@@ -136,6 +151,27 @@ class Auth0ManagementClient(IdentityManagementClient):
         cache.set(self._token_cache_key, token, timeout=expires_in - 300)
         
         return token
+    
+    def _get_session(self) -> ResilientSession:
+        """Get or create the resilient session with current auth token."""
+        token = self._get_management_token()
+        
+        # Recreate session if token changed or not initialized
+        if self._session is None:
+            self._session = ResilientSession(
+                base_url=self.base_url,
+                headers={
+                    'Authorization': f'Bearer {token}',
+                    'Content-Type': 'application/json'
+                },
+                timeout=30,
+                max_retries=3,
+            )
+        else:
+            # Update auth header in case token refreshed
+            self._session.session.headers['Authorization'] = f'Bearer {token}'
+        
+        return self._session
     
     def _make_request(
         self,
@@ -145,7 +181,7 @@ class Auth0ManagementClient(IdentityManagementClient):
         json: Optional[Dict] = None
     ) -> Dict[str, Any]:
         """
-        Make authenticated request to Management API.
+        Make authenticated request to Management API with automatic retries.
         
         This is the core method used by all management modules.
         
@@ -159,25 +195,21 @@ class Auth0ManagementClient(IdentityManagementClient):
             API response as dictionary
             
         Raises:
-            requests.HTTPError: If request fails
+            requests.HTTPError: If request fails after retries
         """
-        token = self._get_management_token()
-        headers = {
-            'Authorization': f'Bearer {token}',
-            'Content-Type': 'application/json'
-        }
+        session = self._get_session()
         
-        url = f"{self.base_url}{endpoint}"
-        response = requests.request(
-            method=method,
-            url=url,
-            headers=headers,
-            params=params,
-            json=json
-        )
-        response.raise_for_status()
-        
-        return response.json() if response.content else {}
+        try:
+            response = session._make_request(
+                method=method,
+                endpoint=endpoint,
+                params=params,
+                json=json,
+            )
+            return response.json() if response.content else {}
+        except Exception as e:
+            logger.error(f"Auth0 API request failed: {method} {endpoint} - {e}")
+            raise
     
     # ========================================================================
     # Additional Helper Methods

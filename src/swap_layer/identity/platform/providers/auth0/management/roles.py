@@ -3,7 +3,7 @@ Auth0 Role Management Implementation
 """
 
 from typing import Dict, Any, List, Optional
-from ...management.adapter import RoleManagementAdapter
+from swap_layer.identity.platform.management.adapter import RoleManagementAdapter
 
 
 class Auth0RoleManagement(RoleManagementAdapter):

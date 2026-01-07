@@ -3,7 +3,7 @@ Auth0 Log Management Implementation
 """
 
 from typing import Dict, Any, List, Optional
-from ...management.adapter import LogManagementAdapter
+from swap_layer.identity.platform.management.adapter import LogManagementAdapter
 
 
 class Auth0LogManagement(LogManagementAdapter):

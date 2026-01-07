@@ -3,7 +3,7 @@ Auth0 Organization Management Implementation
 """
 
 from typing import Dict, Any, List, Optional
-from ...management.adapter import OrganizationManagementAdapter
+from swap_layer.identity.platform.management.adapter import OrganizationManagementAdapter
 
 
 class Auth0OrganizationManagement(OrganizationManagementAdapter):

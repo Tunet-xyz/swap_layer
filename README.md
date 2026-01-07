@@ -35,7 +35,7 @@ customer = payments.create_customer(email='user@example.com')
 ### 1. Install
 
 ```bash
-pip install swap-layer[stripe,sendgrid,twilio]
+pip install swaplayer[stripe,email,sms]
 ```
 
 ### 2. Configure
@@ -86,7 +86,7 @@ get_provider('sms').send(to='+1555555', message='Welcome!')
 **[→ docs/](docs/) - One doc per module:**
 
 - **[Email](docs/email.md)** - Email providers
-- **[Payments](docs/payments.md)** - Payment processing
+- **[Billing](docs/billing.md)** - Payment processing
 - **[SMS](docs/sms.md)** - SMS messaging
 - **[Storage](docs/storage.md)** - File storage
 - **[Identity Platform](docs/identity-platform.md)** - OAuth/SSO
@@ -112,4 +112,4 @@ MIT - Because avoiding vendor lock-in should be free.
 
 ---
 
-**[→ Read Full Documentation](docs/index.md)**
+**[→ Read Full Documentation](docs/README.md)**

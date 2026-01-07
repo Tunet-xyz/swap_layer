@@ -82,22 +82,28 @@ class TestWorkOSClient(unittest.TestCase):
 
     def test_get_logout_url(self):
         """Test generating logout URL."""
-        # Mock the sealed session with a logout URL
-        mock_session = MagicMock()
-        mock_session.get_logout_url.return_value = "https://workos.com/logout"
+        # Test without sealed session - should return fallback URL
+        self.mock_request.session = {}
+        result = self.provider.get_logout_url(
+            request=self.mock_request,
+            return_to="https://example.com/"
+        )
         
-        # Add sealed session to mock request
-        self.mock_request.session = {'workos_sealed_session': 'sealed_value'}
+        # Should return fallback URL when no sealed session exists
+        self.assertEqual(result, "https://example.com/")
         
-        with patch.object(self.provider.client.user_management, 'load_sealed_session', return_value=mock_session):
-            result = self.provider.get_logout_url(
-                request=self.mock_request,
-                return_to="https://example.com/"
-            )
-            
-            # WorkOS may or may not have specific logout URL
-            # This test verifies the method exists and returns a string
-            self.assertIsInstance(result, str)
+    def test_get_logout_url_with_invalid_session(self):
+        """Test logout URL with invalid sealed session falls back gracefully."""
+        # Add invalid sealed session to mock request
+        self.mock_request.session = {'workos_sealed_session': 'invalid_sealed_value'}
+        
+        result = self.provider.get_logout_url(
+            request=self.mock_request,
+            return_to="https://example.com/fallback"
+        )
+        
+        # Should fallback to return_to when session loading fails
+        self.assertEqual(result, "https://example.com/fallback")
 
 
 class TestAuth0Client(unittest.TestCase):

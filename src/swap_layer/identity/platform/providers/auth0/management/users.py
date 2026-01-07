@@ -4,7 +4,7 @@ Auth0 User Management Implementation
 
 import requests
 from typing import Dict, Any, List, Optional
-from ...management.adapter import UserManagementAdapter
+from swap_layer.identity.platform.management.adapter import UserManagementAdapter
 
 
 class Auth0UserManagement(UserManagementAdapter):

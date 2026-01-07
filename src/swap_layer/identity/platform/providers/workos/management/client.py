@@ -1,14 +1,14 @@
 """
 WorkOS Management API client.
 
-Provides unified access to all WorkOS management operations.
+Provides unified access to all WorkOS management operations with
+resilient HTTP handling and automatic retries.
 """
 
 import logging
 from typing import Dict, Any, Optional
 
-import requests
-
+from swap_layer.http import ResilientSession, RETRYABLE_STATUS_CODES
 from swap_layer.identity.platform.management.adapter import IdentityManagementClient
 from swap_layer.identity.platform.providers.workos.management.users import WorkOSUserManagement
 from swap_layer.identity.platform.providers.workos.management.organizations import (
@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 
 class WorkOSManagementClient(IdentityManagementClient):
-    """WorkOS Management API client."""
+    """WorkOS Management API client with automatic retries."""
 
     BASE_URL = "https://api.workos.com"
 
@@ -33,6 +33,15 @@ class WorkOSManagementClient(IdentityManagementClient):
             api_key: WorkOS API key
         """
         self.api_key = api_key
+        self._session = ResilientSession(
+            base_url=self.BASE_URL,
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+            timeout=30,
+            max_retries=3,
+        )
         self._users = None
         self._organizations = None
         self._roles = None
@@ -73,7 +82,7 @@ class WorkOSManagementClient(IdentityManagementClient):
         data: Optional[Dict[str, Any]] = None,
         params: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
-        """Make HTTP request to WorkOS API.
+        """Make HTTP request to WorkOS API with automatic retries.
         
         Args:
             method: HTTP method
@@ -85,33 +94,30 @@ class WorkOSManagementClient(IdentityManagementClient):
             API response data
             
         Raises:
-            WorkOSAPIError: If API request fails
+            WorkOSAPIError: If API request fails after retries
         """
-        url = f"{self.BASE_URL}{endpoint}"
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json",
-        }
-
         try:
-            response = requests.request(
+            response = self._session._make_request(
                 method=method,
-                url=url,
+                endpoint=endpoint,
                 json=data,
                 params=params,
-                headers=headers,
             )
-            response.raise_for_status()
             return response.json()
-        except requests.exceptions.HTTPError as e:
-            logger.error(f"WorkOS API error: {e.response.text}")
+        except Exception as e:
+            error_msg = str(e)
+            status_code = None
+            
+            # Extract status code if available
+            if hasattr(e, 'response') and e.response is not None:
+                status_code = e.response.status_code
+                try:
+                    error_msg = e.response.text
+                except Exception:
+                    pass
+            
+            logger.error(f"WorkOS API error: {error_msg}")
             raise WorkOSAPIError(
-                message=f"WorkOS API request failed: {e.response.text}",
-                status_code=e.response.status_code,
-            )
-        except requests.exceptions.RequestException as e:
-            logger.error(f"WorkOS API request failed: {str(e)}")
-            raise WorkOSAPIError(
-                message=f"WorkOS API request failed: {str(e)}",
-                status_code=None,
+                message=f"WorkOS API request failed: {error_msg}",
+                status_code=status_code,
             )
