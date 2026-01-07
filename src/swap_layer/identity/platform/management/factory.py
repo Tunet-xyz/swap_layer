@@ -31,15 +31,19 @@ def get_management_client(app_name: str = 'default') -> IdentityManagementClient
     provider = getattr(settings, 'IDENTITY_PROVIDER', 'workos')
     
     if provider == 'auth0':
-        from ..providers.auth0.management import Auth0ManagementClient
+        from ..providers.auth0.management.client import Auth0ManagementClient
         # Map 'default' to 'developer' for Auth0 legacy support if needed
         if app_name == 'default':
             app_name = 'developer'
         return Auth0ManagementClient(app_name=app_name)
     
     elif provider == 'workos':
-        from ..providers.workos.management import WorkOSManagementClient
-        return WorkOSManagementClient(app_name=app_name)
+        from ..providers.workos.management.client import WorkOSManagementClient
+        # Get WorkOS API key from settings
+        from swap_layer.settings import get_settings
+        settings_obj = get_settings()
+        api_key = settings_obj.WORKOS_API_KEY
+        return WorkOSManagementClient(api_key=api_key)
     
     else:
         raise ValueError(
