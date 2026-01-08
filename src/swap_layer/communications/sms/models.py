@@ -6,17 +6,16 @@ in your Django models while maintaining vendor independence.
 """
 
 from django.db import models
-from django.utils import timezone
 
 
 class SMSMessageMixin(models.Model):
     """
     Mixin for logging sent SMS messages.
-    
+
     Add this to your SMSMessage model:
-    
+
         from swap_layer.sms.models import SMSMessageMixin
-        
+
         class SMSMessage(SMSMessageMixin, models.Model):
             user = models.ForeignKey(User, on_delete=models.CASCADE)
             # ... your fields
@@ -77,7 +76,7 @@ class SMSMessageMixin(models.Model):
         null=True,
         help_text="Error message if delivery failed"
     )
-    
+
     class Meta:
         abstract = True
         indexes = [
@@ -91,11 +90,11 @@ class SMSMessageMixin(models.Model):
 class SMSPhoneNumberMixin(models.Model):
     """
     Mixin for storing phone numbers with validation status.
-    
+
     Add this to your PhoneNumber model:
-    
+
         from swap_layer.sms.models import SMSPhoneNumberMixin
-        
+
         class PhoneNumber(SMSPhoneNumberMixin, models.Model):
             user = models.OneToOneField(User, on_delete=models.CASCADE)
             # ... your fields
@@ -137,7 +136,7 @@ class SMSPhoneNumberMixin(models.Model):
         null=True,
         help_text="ISO country code (US, GB, etc.)"
     )
-    
+
     class Meta:
         abstract = True
         indexes = [

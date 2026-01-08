@@ -1,9 +1,12 @@
 import unittest
 from unittest.mock import MagicMock, patch
+
 from django.conf import settings
+
+from swap_layer.billing.adapter import PaymentProviderAdapter
 from swap_layer.billing.factory import get_payment_provider
-from swap_layer.billing.adapter import PaymentProviderAdapter, PaymentError
 from swap_layer.billing.providers.stripe import StripePaymentProvider
+
 
 class TestPaymentFactory(unittest.TestCase):
     def test_get_payment_provider_returns_stripe(self):

@@ -1,8 +1,10 @@
 import unittest
-from unittest.mock import MagicMock, patch, Mock
+from unittest.mock import MagicMock, patch
+
 from django.conf import settings
-from swap_layer.communications.sms.factory import get_sms_provider
+
 from swap_layer.communications.sms.adapter import SMSProviderAdapter
+from swap_layer.communications.sms.factory import get_sms_provider
 from swap_layer.communications.sms.providers.twilio_sms import TwilioSMSProvider
 
 
@@ -36,7 +38,7 @@ class TestTwilioProvider(unittest.TestCase):
         mock_message.to = "+15555555678"
         mock_message.from_ = "+15555551234"
         mock_message.num_segments = 1
-        
+
         self.mock_client.messages.create.return_value = mock_message
 
         result = self.provider.send_sms(
@@ -57,7 +59,7 @@ class TestTwilioProvider(unittest.TestCase):
         mock_message.status = "sent"
         self.mock_client.messages.create.return_value = mock_message
 
-        result = self.provider.send_sms(
+        self.provider.send_sms(
             to="+15555555678",
             message="Test",
             from_number="+15555559999"
@@ -128,7 +130,7 @@ class TestTwilioProvider(unittest.TestCase):
         mock_message.status = "delivered"
         mock_message.error_code = None
         mock_message.error_message = None
-        
+
         self.mock_client.messages.return_value.fetch.return_value = mock_message
 
         result = self.provider.get_message_status("SM123456")
@@ -143,7 +145,7 @@ class TestTwilioProvider(unittest.TestCase):
         mock_lookup.phone_number = "+15555555678"
         mock_lookup.country_code = "US"
         mock_lookup.carrier = {'name': 'Verizon', 'type': 'mobile'}
-        
+
         self.mock_client.lookups.v1.phone_numbers.return_value.fetch.return_value = mock_lookup
 
         result = self.provider.validate_phone_number("+15555555678")
@@ -159,7 +161,7 @@ class TestTwilioProvider(unittest.TestCase):
         mock_balance = MagicMock()
         mock_balance.balance = "25.00"
         mock_balance.currency = "USD"
-        
+
         self.mock_client.balance.fetch.return_value = mock_balance
 
         result = self.provider.get_account_balance()
@@ -170,8 +172,9 @@ class TestTwilioProvider(unittest.TestCase):
     def test_sms_send_error_handling(self):
         """Test that Twilio errors are converted to SMSSendError."""
         from twilio.base.exceptions import TwilioRestException
+
         from swap_layer.communications.sms.adapter import SMSSendError
-        
+
         error = TwilioRestException(
             status=400,
             uri='',

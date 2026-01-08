@@ -8,8 +8,8 @@ Usage:
 """
 
 from django.core.management.base import BaseCommand, CommandError
-from django.core.exceptions import ImproperlyConfigured
-from swap_layer.settings import get_swaplayer_settings, validate_swaplayer_config
+
+from swap_layer.settings import validate_swaplayer_config
 
 
 class Command(BaseCommand):
@@ -35,7 +35,7 @@ class Command(BaseCommand):
 
         # Validate configuration
         result = validate_swaplayer_config()
-        
+
         if not result['valid']:
             self.stdout.write(self.style.ERROR('✗ Configuration Invalid'))
             self.stdout.write(self.style.ERROR(f"  Error: {result['error']}"))
@@ -52,17 +52,17 @@ class Command(BaseCommand):
             self.stdout.write('        "email": {"provider": "django"},')
             self.stdout.write('    }')
             raise CommandError('SwapLayer configuration is invalid')
-        
+
         settings = result['settings']
         modules_status = result['modules']
-        
+
         # Filter by module if specified
         if options['module']:
             module = options['module']
             if module not in modules_status:
                 raise CommandError(f"Unknown module: {module}")
             modules_status = {module: modules_status[module]}
-        
+
         # Display status for each module
         configured_count = 0
         for module, status in modules_status.items():
@@ -73,9 +73,9 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.WARNING(f'○ {module:15s} {status}'))
             else:
                 self.stdout.write(self.style.ERROR(f'✗ {module:15s} {status}'))
-        
+
         self.stdout.write('')
-        
+
         # Summary
         total_modules = len(modules_status)
         self.stdout.write(
@@ -83,40 +83,40 @@ class Command(BaseCommand):
                 f'Configured: {configured_count}/{total_modules} modules'
             )
         )
-        
+
         # Verbose output
         if options['verbose'] and configured_count > 0:
             self.stdout.write('')
             self.stdout.write(self.style.HTTP_INFO('Detailed Configuration:'))
             self.stdout.write(self.style.HTTP_INFO('-' * 60))
-            
+
             for module in modules_status.keys():
                 config = getattr(settings, module, None)
                 if config:
                     self.stdout.write('')
                     self.stdout.write(self.style.HTTP_INFO(f'{module.upper()}:'))
                     self._print_config(config, indent=2)
-        
+
         self.stdout.write('')
         self.stdout.write(self.style.HTTP_INFO('=' * 60))
-        
+
         if configured_count == 0:
             self.stdout.write(self.style.WARNING('No modules configured yet.'))
             self.stdout.write('')
             self.stdout.write('Get started by configuring your first module in settings.py')
         else:
             self.stdout.write(self.style.SUCCESS('Configuration looks good! 🚀'))
-        
+
         self.stdout.write(self.style.HTTP_INFO('=' * 60))
 
     def _print_config(self, config, indent=0):
         """Print configuration with sensitive values masked."""
         prefix = ' ' * indent
-        
+
         for field_name, field_value in config.__dict__.items():
             if field_value is None:
                 continue
-            
+
             # Mask sensitive values
             if any(keyword in field_name.lower() for keyword in ['key', 'secret', 'token', 'password']):
                 if isinstance(field_value, str):

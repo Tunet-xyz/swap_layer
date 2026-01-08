@@ -6,17 +6,17 @@ resilient HTTP handling and automatic retries.
 """
 
 import logging
-from typing import Dict, Any, Optional
+from typing import Any
 
-from swap_layer.http import ResilientSession, RETRYABLE_STATUS_CODES
+from swap_layer.http import ResilientSession
 from swap_layer.identity.platform.management.adapter import IdentityManagementClient
-from swap_layer.identity.platform.providers.workos.management.users import WorkOSUserManagement
+from swap_layer.identity.platform.providers.workos.management.logs import WorkOSLogManagement
 from swap_layer.identity.platform.providers.workos.management.organizations import (
-    WorkOSOrganizationManagement,
     WorkOSAPIError,
+    WorkOSOrganizationManagement,
 )
 from swap_layer.identity.platform.providers.workos.management.roles import WorkOSRoleManagement
-from swap_layer.identity.platform.providers.workos.management.logs import WorkOSLogManagement
+from swap_layer.identity.platform.providers.workos.management.users import WorkOSUserManagement
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +28,7 @@ class WorkOSManagementClient(IdentityManagementClient):
 
     def __init__(self, api_key: str):
         """Initialize WorkOS management client.
-        
+
         Args:
             api_key: WorkOS API key
         """
@@ -79,20 +79,20 @@ class WorkOSManagementClient(IdentityManagementClient):
         self,
         method: str,
         endpoint: str,
-        data: Optional[Dict[str, Any]] = None,
-        params: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        data: dict[str, Any] | None = None,
+        params: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """Make HTTP request to WorkOS API with automatic retries.
-        
+
         Args:
             method: HTTP method
             endpoint: API endpoint path
             data: Request body data
             params: Query parameters
-            
+
         Returns:
             API response data
-            
+
         Raises:
             WorkOSAPIError: If API request fails after retries
         """
@@ -107,7 +107,7 @@ class WorkOSManagementClient(IdentityManagementClient):
         except Exception as e:
             error_msg = str(e)
             status_code = None
-            
+
             # Extract status code if available
             if hasattr(e, 'response') and e.response is not None:
                 status_code = e.response.status_code
@@ -115,7 +115,7 @@ class WorkOSManagementClient(IdentityManagementClient):
                     error_msg = e.response.text
                 except Exception:
                     pass
-            
+
             logger.error(f"WorkOS API error: {error_msg}")
             raise WorkOSAPIError(
                 message=f"WorkOS API request failed: {error_msg}",

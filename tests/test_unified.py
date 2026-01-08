@@ -1,6 +1,8 @@
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
+
 from django.conf import settings
+
 from swap_layer import get_provider
 
 
@@ -77,7 +79,7 @@ class TestUnifiedProvider(unittest.TestCase):
         """Test that unknown service type raises ValueError."""
         with self.assertRaises(ValueError) as cm:
             get_provider('unknown_service')
-        
+
         self.assertIn('Unknown service type', str(cm.exception))
 
     def test_case_insensitive_service_type(self):
@@ -86,7 +88,7 @@ class TestUnifiedProvider(unittest.TestCase):
             provider1 = get_provider('EMAIL')
             provider2 = get_provider('Email')
             provider3 = get_provider('email')
-            
+
             from swap_layer.communications.email.adapter import EmailProviderAdapter
             self.assertIsInstance(provider1, EmailProviderAdapter)
             self.assertIsInstance(provider2, EmailProviderAdapter)

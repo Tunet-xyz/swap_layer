@@ -3,14 +3,14 @@ Identity verification infrastructure module.
 Provides an abstraction layer for identity verification providers (Stripe, Onfido, etc.).
 """
 
-from .factory import get_identity_verification_provider
 from .adapter import IdentityVerificationProviderAdapter
+from .factory import get_identity_verification_provider
 from .models import (
-    VerificationSessionCreate,
-    WebhookPayload,
+    AbstractIdentityVerificationSession,
     IdentityVerificationMixin,
     KYCStatusMixin,
-    AbstractIdentityVerificationSession,
+    VerificationSessionCreate,
+    WebhookPayload,
 )
 
 # Convenience alias

@@ -9,10 +9,10 @@ identity.platform module.
 """
 
 from .adapter import (
-    UserManagementAdapter,
+    LogManagementAdapter,
     OrganizationManagementAdapter,
     RoleManagementAdapter,
-    LogManagementAdapter,
+    UserManagementAdapter,
 )
 from .factory import get_management_client
 

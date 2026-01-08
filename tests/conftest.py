@@ -3,7 +3,6 @@ Pytest configuration for SwapLayer tests.
 
 Configures Django settings before running tests.
 """
-import os
 import django
 from django.conf import settings
 
@@ -26,23 +25,23 @@ def pytest_configure():
             # Email settings
             EMAIL_PROVIDER='django',
             EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend',
-            
+
             # Payment settings
             PAYMENT_PROVIDER='stripe',
             STRIPE_SECRET_KEY='sk_test_mock',
             STRIPE_PUBLISHABLE_KEY='pk_test_mock',
-            
+
             # Storage settings
             STORAGE_PROVIDER='local',
             MEDIA_ROOT='/tmp/test_media',
             MEDIA_URL='/media/',
-            
+
             # SMS settings
             SMS_PROVIDER='twilio',
             TWILIO_ACCOUNT_SID='AC_test',
             TWILIO_AUTH_TOKEN='token_test',
             TWILIO_FROM_NUMBER='+15555551234',
-            
+
             # Identity Platform settings
             IDENTITY_PROVIDER='workos',
             WORKOS_API_KEY='sk_test',
@@ -59,7 +58,7 @@ def pytest_configure():
                     'cookie_password': 'test_cookie_password_32_chars_min'
                 }
             },
-            
+
             AUTH0_DEVELOPER_DOMAIN='test.auth0.com',
             AUTH0_APPS={
                 'developer': {
@@ -67,11 +66,11 @@ def pytest_configure():
                     'client_secret': 'auth0_secret_test'
                 }
             },
-            
+
             # Identity Verification settings
             IDENTITY_VERIFICATION_PROVIDER='stripe',
             STRIPE_IDENTITY_SECRET_KEY='sk_test_identity',
-            
+
             SECRET_KEY='test-secret-key-for-testing-only',
             USE_TZ=True,
         )

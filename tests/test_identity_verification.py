@@ -1,14 +1,16 @@
 import unittest
-from unittest.mock import MagicMock, patch, Mock
+from unittest.mock import MagicMock, patch
+
 from django.conf import settings
-from swap_layer.identity.verification.factory import get_identity_verification_provider
+
 from swap_layer.identity.verification.adapter import (
     IdentityVerificationProviderAdapter,
-    IdentityVerificationError,
-    IdentityVerificationValidationError,
     IdentityVerificationSessionNotFoundError,
+    IdentityVerificationValidationError,
 )
+from swap_layer.identity.verification.factory import get_identity_verification_provider
 from swap_layer.identity.verification.providers.stripe import StripeIdentityVerificationProvider
+
 
 class TestIdentityVerificationFactory(unittest.TestCase):
     def test_get_provider_returns_stripe(self):
@@ -128,7 +130,7 @@ class TestStripeProvider(unittest.TestCase):
         client = self.provider.get_vendor_client()
         import stripe
         self.assertEqual(client, stripe)
-    
+
     @patch('swap_layer.identity.verification.providers.stripe.stripe.identity.VerificationSession.list')
     def test_list_verification_sessions(self, mock_list):
         """Test listing verification sessions."""
@@ -136,23 +138,23 @@ class TestStripeProvider(unittest.TestCase):
         mock_session1.id = "vs_1"
         mock_session1.status = "verified"
         mock_session1.created = 1234567890
-        
+
         mock_session2 = MagicMock()
         mock_session2.id = "vs_2"
         mock_session2.status = "requires_input"
         mock_session2.created = 1234567891
-        
+
         mock_result = MagicMock()
         mock_result.data = [mock_session1, mock_session2]
         mock_result.has_more = False
         mock_list.return_value = mock_result
-        
+
         result = self.provider.list_verification_sessions(limit=10, status="verified")
-        
+
         # The method returns the Stripe object directly, not a dict
         self.assertIsNotNone(result)
         mock_list.assert_called_once()
-    
+
     @patch('swap_layer.identity.verification.providers.stripe.stripe.identity.VerificationSession.redact')
     def test_redact_verification_session(self, mock_redact):
         """Test redacting a verification session."""
@@ -160,12 +162,12 @@ class TestStripeProvider(unittest.TestCase):
         mock_session.id = "vs_123"
         mock_session.status = "verified"
         mock_redact.return_value = mock_session
-        
+
         result = self.provider.redact_verification_session("vs_123")
-        
+
         self.assertEqual(result['id'], "vs_123")
         mock_redact.assert_called_once_with("vs_123")
-    
+
     @patch('swap_layer.identity.verification.providers.stripe.stripe.identity.VerificationReport.retrieve')
     def test_get_verification_report(self, mock_retrieve):
         """Test retrieving a verification report."""
@@ -186,14 +188,14 @@ class TestStripeProvider(unittest.TestCase):
         mock_report.verification_session = "vs_123"
         mock_report.options = {}
         mock_retrieve.return_value = mock_report
-        
+
         result = self.provider.get_verification_report("vr_123")
-        
+
         self.assertEqual(result['id'], "vr_123")
         self.assertEqual(result['type'], "document")
         self.assertIn('document', result)
         mock_retrieve.assert_called_once_with("vr_123")
-    
+
     @patch('swap_layer.identity.verification.providers.stripe.stripe.identity.VerificationSession.create')
     def test_create_session_with_email_option(self, mock_create):
         """Test creating session with email in options."""
@@ -205,26 +207,26 @@ class TestStripeProvider(unittest.TestCase):
         mock_session.url = "https://verify.stripe.com/123"
         mock_session.created = 1234567890
         mock_create.return_value = mock_session
-        
+
         result = self.provider.create_verification_session(
             user=self.mock_user,
             verification_type="document",
             options={"email": "user@example.com", "return_url": "https://example.com"}
         )
-        
+
         self.assertEqual(result['provider_session_id'], "vs_123")
         # Verify the create call included provided_details
         call_args = mock_create.call_args
         self.assertIn('provided_details', call_args[1])
         self.assertEqual(call_args[1]['provided_details']['email'], "user@example.com")
-    
+
     @patch('swap_layer.identity.verification.providers.stripe.stripe.identity.VerificationSession.create')
     def test_create_session_connection_error(self, mock_create):
         """Test handling of connection errors."""
         import stripe
         error = stripe.error.APIConnectionError("Network error")
         mock_create.side_effect = error
-        
+
         from swap_layer.identity.verification.adapter import IdentityVerificationConnectionError
         with self.assertRaises(IdentityVerificationConnectionError):
             self.provider.create_verification_session(

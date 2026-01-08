@@ -4,7 +4,7 @@ WorkOS user management operations.
 Handles user CRUD operations via the WorkOS AuthKit user management API.
 """
 
-from typing import Dict, List, Optional, Any
+from typing import Any
 
 from swap_layer.identity.platform.management.adapter import UserManagementAdapter
 
@@ -14,7 +14,7 @@ class WorkOSUserManagement(UserManagementAdapter):
 
     def __init__(self, base_client):
         """Initialize with base management client.
-        
+
         Args:
             base_client: WorkOSManagementClient instance
         """
@@ -22,19 +22,19 @@ class WorkOSUserManagement(UserManagementAdapter):
 
     def list_users(
         self,
-        email: Optional[str] = None,
-        organization_id: Optional[str] = None,
+        email: str | None = None,
+        organization_id: str | None = None,
         limit: int = 50,
         **kwargs
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """List users with optional filters.
-        
+
         Args:
             email: Filter by email address
             organization_id: Filter by organization ID
             limit: Number of results to return
             **kwargs: Additional query parameters (before, after, order)
-            
+
         Returns:
             Dict with 'data' (list of users) and 'listMetadata'
         """
@@ -46,12 +46,12 @@ class WorkOSUserManagement(UserManagementAdapter):
         params.update(kwargs)
         return self.base_client._make_request("GET", "/user_management/users", params=params)
 
-    def get_user(self, user_id: str) -> Dict[str, Any]:
+    def get_user(self, user_id: str) -> dict[str, Any]:
         """Get user by ID.
-        
+
         Args:
             user_id: WorkOS user ID
-            
+
         Returns:
             User object
         """
@@ -60,14 +60,14 @@ class WorkOSUserManagement(UserManagementAdapter):
     def create_user(
         self,
         email: str,
-        password: Optional[str] = None,
-        first_name: Optional[str] = None,
-        last_name: Optional[str] = None,
+        password: str | None = None,
+        first_name: str | None = None,
+        last_name: str | None = None,
         email_verified: bool = False,
         **kwargs
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Create a new user.
-        
+
         Args:
             email: User email address
             password: User password
@@ -75,7 +75,7 @@ class WorkOSUserManagement(UserManagementAdapter):
             last_name: User last name
             email_verified: Whether email is verified
             **kwargs: Additional user properties (external_id, metadata)
-            
+
         Returns:
             Created user object
         """
@@ -92,14 +92,14 @@ class WorkOSUserManagement(UserManagementAdapter):
     def update_user(
         self,
         user_id: str,
-        first_name: Optional[str] = None,
-        last_name: Optional[str] = None,
-        email: Optional[str] = None,
-        email_verified: Optional[bool] = None,
+        first_name: str | None = None,
+        last_name: str | None = None,
+        email: str | None = None,
+        email_verified: bool | None = None,
         **kwargs
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Update an existing user.
-        
+
         Args:
             user_id: WorkOS user ID
             first_name: Updated first name
@@ -107,7 +107,7 @@ class WorkOSUserManagement(UserManagementAdapter):
             email: Updated email
             email_verified: Updated email verification status
             **kwargs: Additional properties to update (password, external_id, metadata)
-            
+
         Returns:
             Updated user object
         """
@@ -125,23 +125,23 @@ class WorkOSUserManagement(UserManagementAdapter):
 
     def delete_user(self, user_id: str) -> bool:
         """Delete a user.
-        
+
         Args:
             user_id: WorkOS user ID
-            
+
         Returns:
             True if successful
         """
         self.base_client._make_request("DELETE", f"/user_management/users/{user_id}")
         return True
 
-    def search_users(self, query: str, **kwargs) -> Dict[str, Any]:
+    def search_users(self, query: str, **kwargs) -> dict[str, Any]:
         """Search users by email.
-        
+
         Args:
             query: Email to search for
             **kwargs: Additional search parameters
-            
+
         Returns:
             Dict with search results
         """

@@ -5,23 +5,23 @@ These models help you map external OAuth/OIDC identities to your Django users
 while maintaining provider independence.
 """
 
-from django.db import models
-from django.conf import settings
-from django.utils import timezone
-from pydantic import BaseModel, Field, ConfigDict
-from typing import Optional, Dict, Any
-from datetime import datetime
 import uuid
+from datetime import datetime
+from typing import Any
+
+from django.conf import settings
+from django.db import models
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class OAuthIdentityMixin(models.Model):
     """
     Mixin for storing OAuth/OIDC identity provider data.
-    
+
     Add this to your User model or create a separate UserIdentity model:
-    
+
         from swap_layer.identity.platform.models import OAuthIdentityMixin
-        
+
         class UserIdentity(OAuthIdentityMixin, models.Model):
             user = models.ForeignKey(User, on_delete=models.CASCADE)
             # ... your fields
@@ -79,7 +79,7 @@ class OAuthIdentityMixin(models.Model):
         auto_now_add=True,
         help_text="When the identity was first linked"
     )
-    
+
     class Meta:
         abstract = True
         indexes = [
@@ -93,11 +93,11 @@ class OAuthIdentityMixin(models.Model):
 class SSOConnectionMixin(models.Model):
     """
     Mixin for storing SSO connection data (for WorkOS organizations).
-    
+
     Add this to your Organization or Tenant model:
-    
+
         from swap_layer.identity.platform.models import SSOConnectionMixin
-        
+
         class Organization(SSOConnectionMixin, models.Model):
             name = models.CharField(max_length=255)
             # ... your fields
@@ -140,7 +140,7 @@ class SSOConnectionMixin(models.Model):
         blank=True,
         help_text="Additional SSO configuration"
     )
-    
+
     class Meta:
         abstract = True
         indexes = [
@@ -155,14 +155,14 @@ class UserIdentity(BaseModel):
     Pydantic model representing a user identity mapping.
     Used internally for data transfer between operations and repositories.
     """
-    id: Optional[uuid.UUID] = Field(default_factory=uuid.uuid4)
+    id: uuid.UUID | None = Field(default_factory=uuid.uuid4)
     user_id: str = Field(..., description="Internal user ID")
     provider: str = Field(..., description="Identity provider name (e.g., 'workos', 'auth0')")
     provider_user_id: str = Field(..., description="User ID from the provider")
-    email: Optional[str] = Field(None, description="Email from provider")
-    data: Dict[str, Any] = Field(default_factory=dict, description="Additional provider data")
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
+    email: str | None = Field(None, description="Email from provider")
+    data: dict[str, Any] = Field(default_factory=dict, description="Additional provider data")
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -172,31 +172,31 @@ class AbstractUserIdentity(models.Model):
     """
     Abstract Django model for User Identity mapping.
     Maps an external Identity Provider user to an internal Django User.
-    
+
     Inherit from this model to create your own UserIdentity table:
-    
+
         from swap_layer.identity.platform.models import AbstractUserIdentity
-        
+
         class UserIdentity(AbstractUserIdentity):
             class Meta:
                 db_table = 'user_identities'
     """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, 
-        on_delete=models.CASCADE, 
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
         related_name='identities'
     )
     provider = models.CharField(max_length=50)  # e.g. 'workos', 'auth0'
     provider_user_id = models.CharField(max_length=255)
-    
+
     # Optional: Store extra data from the provider
     email = models.EmailField(null=True, blank=True)
     data = models.JSONField(default=dict, blank=True)
-    
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
         abstract = True
         unique_together = ('provider', 'provider_user_id')

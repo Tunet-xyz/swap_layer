@@ -6,17 +6,16 @@ in your Django models while maintaining vendor independence.
 """
 
 from django.db import models
-from django.utils import timezone
 
 
 class EmailLogMixin(models.Model):
     """
     Mixin for logging sent emails.
-    
+
     Add this to your EmailLog model:
-    
+
         from swap_layer.email.models import EmailLogMixin
-        
+
         class EmailLog(EmailLogMixin, models.Model):
             user = models.ForeignKey(User, on_delete=models.CASCADE)
             # ... your fields
@@ -78,7 +77,7 @@ class EmailLogMixin(models.Model):
         null=True,
         help_text="When the email was first opened"
     )
-    
+
     class Meta:
         abstract = True
         indexes = [
@@ -92,11 +91,11 @@ class EmailLogMixin(models.Model):
 class EmailSuppressionMixin(models.Model):
     """
     Mixin for tracking email suppressions (bounces, complaints).
-    
+
     Add this to your EmailSuppression model:
-    
+
         from swap_layer.email.models import EmailSuppressionMixin
-        
+
         class EmailSuppression(EmailSuppressionMixin, models.Model):
             # ... your fields
     """
@@ -130,7 +129,7 @@ class EmailSuppressionMixin(models.Model):
         null=True,
         help_text="Provider that reported the suppression"
     )
-    
+
     class Meta:
         abstract = True
         indexes = [

@@ -5,13 +5,12 @@ These models help you track KYC/identity verification sessions and results
 while maintaining provider independence.
 """
 
-from django.db import models
-from django.conf import settings
-from django.utils import timezone
-from pydantic import BaseModel, Field, ConfigDict
-from typing import Optional, Dict, Any
-from datetime import datetime, date
+from datetime import datetime
+from typing import Any
 
+from django.conf import settings
+from django.db import models
+from pydantic import BaseModel, ConfigDict, Field
 
 # =============================================================================
 # Pydantic Schemas (for API/data transfer)
@@ -20,16 +19,16 @@ from datetime import datetime, date
 class VerificationSessionCreate(BaseModel):
     """Input schema for creating a verification session."""
     verification_type: str = Field(default='document', pattern='^(document|id_number)$')
-    return_url: Optional[str] = None
-    email: Optional[str] = None
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    return_url: str | None = None
+    email: str | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class WebhookPayload(BaseModel):
     """Schema for webhook payloads from providers."""
     raw_body: bytes
     signature: str
-    headers: Dict[str, Any]
+    headers: dict[str, Any]
 
 
 # =============================================================================
@@ -39,11 +38,11 @@ class WebhookPayload(BaseModel):
 class IdentityVerificationMixin(models.Model):
     """
     Mixin for storing identity verification session data.
-    
+
     Add this to your User model or create a separate IdentityVerification model:
-    
+
         from swap_layer.identity.verification.models import IdentityVerificationMixin
-        
+
         class IdentityVerification(IdentityVerificationMixin, models.Model):
             user = models.ForeignKey(User, on_delete=models.CASCADE)
             # ... your fields
@@ -94,7 +93,7 @@ class IdentityVerificationMixin(models.Model):
         null=True,
         help_text="URL for user to complete verification"
     )
-    
+
     # Verified data fields
     verified_first_name = models.CharField(
         max_length=100,
@@ -137,7 +136,7 @@ class IdentityVerificationMixin(models.Model):
         null=True,
         help_text="Country code from verified document"
     )
-    
+
     # Timestamps
     created_at = models.DateTimeField(
         auto_now_add=True,
@@ -148,14 +147,14 @@ class IdentityVerificationMixin(models.Model):
         null=True,
         help_text="When verification was completed"
     )
-    
+
     # Metadata
     verification_metadata = models.JSONField(
         default=dict,
         blank=True,
         help_text="Additional verification data from provider"
     )
-    
+
     class Meta:
         abstract = True
         indexes = [
@@ -177,13 +176,13 @@ class IdentityVerificationSession(BaseModel):
     status: str = Field(..., description="Verification status")
     verification_type: str = Field(..., description="Type of verification")
     client_secret: str = Field(default='', description="Client secret for frontend integration")
-    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
-    verification_report_id: Optional[str] = Field(None, description="Provider's verification report ID")
-    verified_at: Optional[datetime] = Field(None, description="When verification was completed")
-    verified_first_name: Optional[str] = None
-    verified_last_name: Optional[str] = None
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
+    metadata: dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
+    verification_report_id: str | None = Field(None, description="Provider's verification report ID")
+    verified_at: datetime | None = Field(None, description="When verification was completed")
+    verified_first_name: str | None = None
+    verified_last_name: str | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -193,18 +192,18 @@ class AbstractIdentityVerificationSession(models.Model):
     """
     Abstract Django model for identity verification session persistence.
     Maps verification sessions to Django users.
-    
+
     Inherit from this model to create your own verification table:
-    
+
         from swap_layer.identity.verification.models import AbstractIdentityVerificationSession
-        
+
         class IdentityVerification(AbstractIdentityVerificationSession):
             class Meta:
                 db_table = 'identity_verifications'
     """
     provider_session_id = models.CharField(
-        max_length=255, 
-        unique=True, 
+        max_length=255,
+        unique=True,
         db_index=True,
         help_text="Session ID from the identity provider"
     )
@@ -213,25 +212,25 @@ class AbstractIdentityVerificationSession(models.Model):
         on_delete=models.CASCADE,
         related_name='identity_verifications'
     )
-    
+
     status = models.CharField(max_length=50, db_index=True)
     verification_type = models.CharField(max_length=50)
     provider = models.CharField(max_length=50)
-    
+
     client_secret = models.CharField(max_length=255, blank=True, null=True)
     verification_report_id = models.CharField(max_length=255, blank=True, null=True)
-    
+
     verified_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     # Store the full metadata blob
     metadata = models.JSONField(default=dict, blank=True)
 
-    # Simplified Verified Data 
+    # Simplified Verified Data
     verified_first_name = models.CharField(max_length=255, blank=True)
     verified_last_name = models.CharField(max_length=255, blank=True)
-    
+
     class Meta:
         abstract = True
 
@@ -274,11 +273,11 @@ class AbstractIdentityVerificationSession(models.Model):
 class KYCStatusMixin(models.Model):
     """
     Simple KYC status mixin for User models.
-    
+
     Add this directly to your User model:
-    
+
         from swap_layer.identity.verification.models import KYCStatusMixin
-        
+
         class User(KYCStatusMixin, AbstractUser):
             # ... your fields
     """
@@ -302,7 +301,7 @@ class KYCStatusMixin(models.Model):
         default=False,
         help_text="Whether KYC is required for this user"
     )
-    
+
     class Meta:
         abstract = True
 

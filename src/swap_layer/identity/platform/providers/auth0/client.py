@@ -1,10 +1,11 @@
-import os
-from django.conf import settings
-from django.urls import reverse
+from typing import Any
 from urllib.parse import quote_plus, urlencode
+
 from authlib.integrations.django_client import OAuth
+from django.conf import settings
+
 from ...adapter import AuthProviderAdapter
-from typing import Dict, Any, Optional
+
 
 class Auth0Client(AuthProviderAdapter):
     def __init__(self, app_name='developer'):
@@ -12,7 +13,7 @@ class Auth0Client(AuthProviderAdapter):
         self.config = settings.AUTH0_APPS.get(app_name)
         if not self.config:
             raise ValueError(f"Auth0 configuration for '{app_name}' not found in settings.AUTH0_APPS")
-        
+
         self.oauth = OAuth()
         self.oauth.register(
             app_name,
@@ -25,15 +26,15 @@ class Auth0Client(AuthProviderAdapter):
         )
         self.client = getattr(self.oauth, app_name)
 
-    def get_authorization_url(self, request, redirect_uri: str, state: Optional[str] = None) -> str:
+    def get_authorization_url(self, request, redirect_uri: str, state: str | None = None) -> str:
         rv = self.client.create_authorization_url(redirect_uri, state=state)
         return rv['url']
 
-    def exchange_code_for_user(self, request, code: str) -> Dict[str, Any]:
+    def exchange_code_for_user(self, request, code: str) -> dict[str, Any]:
         # Authlib needs the request object to validate state
         token = self.client.authorize_access_token(request)
         user_info = token.get('userinfo')
-        
+
         return {
             'id': user_info.get('sub'),
             'email': user_info.get('email'),

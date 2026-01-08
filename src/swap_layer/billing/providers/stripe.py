@@ -1,14 +1,16 @@
+from decimal import Decimal
+from typing import Any
+
 import stripe
 from django.conf import settings
-from typing import Dict, Any, Optional, List
-from decimal import Decimal
+
 from ..adapter import (
-    PaymentProviderAdapter,
-    PaymentError,
-    PaymentValidationError,
-    PaymentDeclinedError,
     PaymentConnectionError,
-    ResourceNotFoundError
+    PaymentDeclinedError,
+    PaymentError,
+    PaymentProviderAdapter,
+    PaymentValidationError,
+    ResourceNotFoundError,
 )
 
 
@@ -49,11 +51,11 @@ class StripePaymentProvider(PaymentProviderAdapter):
 
     # Customer Management
     def create_customer(
-        self, 
-        email: str, 
-        name: Optional[str] = None, 
-        metadata: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+        self,
+        email: str,
+        name: str | None = None,
+        metadata: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """Create a Stripe customer."""
         try:
             params = {'email': email}
@@ -63,7 +65,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
                 params['metadata'] = metadata
 
             customer = stripe.Customer.create(**params)
-            
+
             return {
                 'id': customer.id,
                 'email': customer.email,
@@ -74,11 +76,11 @@ class StripePaymentProvider(PaymentProviderAdapter):
         except Exception as e:
             self._handle_stripe_error(e)
 
-    def get_customer(self, customer_id: str) -> Dict[str, Any]:
+    def get_customer(self, customer_id: str) -> dict[str, Any]:
         """Retrieve a Stripe customer."""
         try:
             customer = stripe.Customer.retrieve(customer_id)
-            
+
             return {
                 'id': customer.id,
                 'email': customer.email,
@@ -90,12 +92,12 @@ class StripePaymentProvider(PaymentProviderAdapter):
             self._handle_stripe_error(e)
 
     def update_customer(
-        self, 
-        customer_id: str, 
-        email: Optional[str] = None,
-        name: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+        self,
+        customer_id: str,
+        email: str | None = None,
+        name: str | None = None,
+        metadata: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """Update a Stripe customer."""
         try:
             params = {}
@@ -107,7 +109,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
                 params['metadata'] = metadata
 
             customer = stripe.Customer.modify(customer_id, **params)
-            
+
             return {
                 'id': customer.id,
                 'email': customer.email,
@@ -117,11 +119,11 @@ class StripePaymentProvider(PaymentProviderAdapter):
         except Exception as e:
             self._handle_stripe_error(e)
 
-    def delete_customer(self, customer_id: str) -> Dict[str, Any]:
+    def delete_customer(self, customer_id: str) -> dict[str, Any]:
         """Delete a Stripe customer."""
         try:
             result = stripe.Customer.delete(customer_id)
-            
+
             return {
                 'id': result.id,
                 'deleted': result.deleted,
@@ -134,9 +136,9 @@ class StripePaymentProvider(PaymentProviderAdapter):
         self,
         customer_id: str,
         price_id: str,
-        metadata: Optional[Dict[str, Any]] = None,
-        trial_period_days: Optional[int] = None
-    ) -> Dict[str, Any]:
+        metadata: dict[str, Any] | None = None,
+        trial_period_days: int | None = None
+    ) -> dict[str, Any]:
         """Create a Stripe subscription."""
         try:
             params = {
@@ -149,12 +151,12 @@ class StripePaymentProvider(PaymentProviderAdapter):
                 params['trial_period_days'] = trial_period_days
 
             subscription = stripe.Subscription.create(**params)
-            
+
             return self._normalize_subscription(subscription)
         except Exception as e:
             self._handle_stripe_error(e)
 
-    def get_subscription(self, subscription_id: str) -> Dict[str, Any]:
+    def get_subscription(self, subscription_id: str) -> dict[str, Any]:
         """Retrieve a Stripe subscription."""
         subscription = stripe.Subscription.retrieve(subscription_id)
         return self._normalize_subscription(subscription)
@@ -162,12 +164,12 @@ class StripePaymentProvider(PaymentProviderAdapter):
     def update_subscription(
         self,
         subscription_id: str,
-        price_id: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+        price_id: str | None = None,
+        metadata: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """Update a Stripe subscription."""
         params = {}
-        
+
         if price_id:
             # Get the subscription to find the item ID
             subscription = stripe.Subscription.retrieve(subscription_id)
@@ -175,7 +177,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
                 'id': subscription['items']['data'][0].id,
                 'price': price_id,
             }]
-        
+
         if metadata:
             params['metadata'] = metadata
 
@@ -186,7 +188,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
         self,
         subscription_id: str,
         at_period_end: bool = True
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Cancel a Stripe subscription."""
         if at_period_end:
             subscription = stripe.Subscription.modify(
@@ -195,15 +197,15 @@ class StripePaymentProvider(PaymentProviderAdapter):
             )
         else:
             subscription = stripe.Subscription.delete(subscription_id)
-        
+
         return self._normalize_subscription(subscription)
 
     def list_subscriptions(
         self,
         customer_id: str,
-        status: Optional[str] = None,
+        status: str | None = None,
         limit: int = 10
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """List Stripe subscriptions for a customer."""
         params = {
             'customer': customer_id,
@@ -215,7 +217,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
         subscriptions = stripe.Subscription.list(**params)
         return [self._normalize_subscription(sub) for sub in subscriptions.data]
 
-    def _normalize_subscription(self, subscription) -> Dict[str, Any]:
+    def _normalize_subscription(self, subscription) -> dict[str, Any]:
         """Normalize Stripe subscription data to standard format."""
         items = []
         if hasattr(subscription, 'items') and subscription.items:
@@ -225,7 +227,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
                     'price_id': item.price.id,
                     'quantity': item.quantity,
                 })
-        
+
         return {
             'id': subscription.id,
             'customer_id': subscription.customer,
@@ -243,19 +245,19 @@ class StripePaymentProvider(PaymentProviderAdapter):
         self,
         customer_id: str,
         payment_method_id: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Attach a payment method to a Stripe customer."""
         payment_method = stripe.PaymentMethod.attach(
             payment_method_id,
             customer=customer_id,
         )
-        
+
         return self._normalize_payment_method(payment_method)
 
-    def detach_payment_method(self, payment_method_id: str) -> Dict[str, Any]:
+    def detach_payment_method(self, payment_method_id: str) -> dict[str, Any]:
         """Detach a payment method from a Stripe customer."""
         payment_method = stripe.PaymentMethod.detach(payment_method_id)
-        
+
         return {
             'id': payment_method.id,
             'customer_id': payment_method.customer,
@@ -264,8 +266,8 @@ class StripePaymentProvider(PaymentProviderAdapter):
     def list_payment_methods(
         self,
         customer_id: str,
-        method_type: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
+        method_type: str | None = None
+    ) -> list[dict[str, Any]]:
         """List payment methods for a Stripe customer."""
         params = {
             'customer': customer_id,
@@ -279,7 +281,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
         self,
         customer_id: str,
         payment_method_id: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Set the default payment method for a Stripe customer."""
         customer = stripe.Customer.modify(
             customer_id,
@@ -287,20 +289,20 @@ class StripePaymentProvider(PaymentProviderAdapter):
                 'default_payment_method': payment_method_id,
             },
         )
-        
+
         return {
             'id': customer.id,
             'default_payment_method': customer.invoice_settings.default_payment_method,
         }
 
-    def _normalize_payment_method(self, payment_method) -> Dict[str, Any]:
+    def _normalize_payment_method(self, payment_method) -> dict[str, Any]:
         """Normalize Stripe payment method data to standard format."""
         result = {
             'id': payment_method.id,
             'customer_id': payment_method.customer,
             'type': payment_method.type,
         }
-        
+
         if payment_method.type == 'card' and hasattr(payment_method, 'card'):
             result['card'] = {
                 'brand': payment_method.card.brand,
@@ -308,7 +310,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
                 'exp_month': payment_method.card.exp_month,
                 'exp_year': payment_method.card.exp_year,
             }
-        
+
         return result
 
     # One-time Payments
@@ -316,16 +318,16 @@ class StripePaymentProvider(PaymentProviderAdapter):
         self,
         amount: Decimal,
         currency: str,
-        customer_id: Optional[str] = None,
-        payment_method_id: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+        customer_id: str | None = None,
+        payment_method_id: str | None = None,
+        metadata: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """Create a Stripe payment intent."""
         params = {
             'amount': int(amount),  # Stripe expects amount in cents
             'currency': currency,
         }
-        
+
         if customer_id:
             params['customer'] = customer_id
         if payment_method_id:
@@ -334,7 +336,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
             params['metadata'] = metadata
 
         payment_intent = stripe.PaymentIntent.create(**params)
-        
+
         return {
             'id': payment_intent.id,
             'amount': payment_intent.amount,
@@ -347,15 +349,15 @@ class StripePaymentProvider(PaymentProviderAdapter):
     def confirm_payment_intent(
         self,
         payment_intent_id: str,
-        payment_method_id: Optional[str] = None
-    ) -> Dict[str, Any]:
+        payment_method_id: str | None = None
+    ) -> dict[str, Any]:
         """Confirm a Stripe payment intent."""
         params = {}
         if payment_method_id:
             params['payment_method'] = payment_method_id
 
         payment_intent = stripe.PaymentIntent.confirm(payment_intent_id, **params)
-        
+
         return {
             'id': payment_intent.id,
             'status': payment_intent.status,
@@ -363,10 +365,10 @@ class StripePaymentProvider(PaymentProviderAdapter):
             'currency': payment_intent.currency,
         }
 
-    def get_payment_intent(self, payment_intent_id: str) -> Dict[str, Any]:
+    def get_payment_intent(self, payment_intent_id: str) -> dict[str, Any]:
         """Retrieve a Stripe payment intent."""
         payment_intent = stripe.PaymentIntent.retrieve(payment_intent_id)
-        
+
         return {
             'id': payment_intent.id,
             'amount': payment_intent.amount,
@@ -378,24 +380,24 @@ class StripePaymentProvider(PaymentProviderAdapter):
     # Checkout Sessions
     def create_checkout_session(
         self,
-        customer_id: Optional[str] = None,
-        price_id: Optional[str] = None,
-        success_url: Optional[str] = None,
-        cancel_url: Optional[str] = None,
+        customer_id: str | None = None,
+        price_id: str | None = None,
+        success_url: str | None = None,
+        cancel_url: str | None = None,
         mode: str = 'subscription',
-        metadata: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+        metadata: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """Create a Stripe checkout session."""
         params = {
             'mode': mode,
         }
-        
+
         if customer_id:
             params['customer'] = customer_id
-        
+
         if price_id:
             params['line_items'] = [{'price': price_id, 'quantity': 1}]
-        
+
         if success_url:
             params['success_url'] = success_url
         if cancel_url:
@@ -404,7 +406,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
             params['metadata'] = metadata
 
         session = stripe.checkout.Session.create(**params)
-        
+
         return {
             'id': session.id,
             'url': session.url,
@@ -413,10 +415,10 @@ class StripePaymentProvider(PaymentProviderAdapter):
             'payment_status': session.payment_status,
         }
 
-    def get_checkout_session(self, session_id: str) -> Dict[str, Any]:
+    def get_checkout_session(self, session_id: str) -> dict[str, Any]:
         """Retrieve a Stripe checkout session."""
         session = stripe.checkout.Session.retrieve(session_id)
-        
+
         return {
             'id': session.id,
             'customer_id': session.customer,
@@ -426,10 +428,10 @@ class StripePaymentProvider(PaymentProviderAdapter):
         }
 
     # Invoices
-    def get_invoice(self, invoice_id: str) -> Dict[str, Any]:
+    def get_invoice(self, invoice_id: str) -> dict[str, Any]:
         """Retrieve a Stripe invoice."""
         invoice = stripe.Invoice.retrieve(invoice_id)
-        
+
         return {
             'id': invoice.id,
             'customer_id': invoice.customer,
@@ -444,10 +446,10 @@ class StripePaymentProvider(PaymentProviderAdapter):
         self,
         customer_id: str,
         limit: int = 10
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """List Stripe invoices for a customer."""
         invoices = stripe.Invoice.list(customer=customer_id, limit=limit)
-        
+
         return [{
             'id': invoice.id,
             'customer_id': invoice.customer,
@@ -464,7 +466,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
         payload: bytes,
         signature: str,
         webhook_secret: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Verify and parse a Stripe webhook payload."""
         try:
             event = stripe.Webhook.construct_event(

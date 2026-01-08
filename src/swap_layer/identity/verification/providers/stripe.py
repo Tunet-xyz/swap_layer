@@ -1,12 +1,14 @@
+from typing import Any
+
 import stripe
 from django.conf import settings
-from typing import Dict, Any, Optional
+
 from ..adapter import (
-    IdentityVerificationProviderAdapter,
-    IdentityVerificationError,
-    IdentityVerificationValidationError,
-    IdentityVerificationSessionNotFoundError,
     IdentityVerificationConnectionError,
+    IdentityVerificationError,
+    IdentityVerificationProviderAdapter,
+    IdentityVerificationSessionNotFoundError,
+    IdentityVerificationValidationError,
 )
 
 
@@ -29,19 +31,19 @@ class StripeIdentityVerificationProvider(IdentityVerificationProviderAdapter):
         return stripe
 
     def create_verification_session(
-        self, 
-        user: Any, 
-        verification_type: str, 
-        options: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+        self,
+        user: Any,
+        verification_type: str,
+        options: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """
         Create a verification session with Stripe.
-        
+
         Args:
             user: The user to verify
             verification_type: Type of verification (e.g., 'document')
             options: Optional dict with return_url, metadata, email
-            
+
         Returns:
             Dict with session details
         """
@@ -58,13 +60,13 @@ class StripeIdentityVerificationProvider(IdentityVerificationProviderAdapter):
                 # Handle return_url specifically if passed in options
                 if 'return_url' in options and options['return_url']:
                     default_options['return_url'] = options['return_url']
-                
+
                 # Handle provided_details (e.g. email)
                 if 'email' in options and options['email']:
                     default_options['provided_details'] = {
                         'email': options['email']
                     }
-                    
+
                 # Merge other options
                 if 'metadata' in options:
                     default_options['metadata'].update(options['metadata'])
@@ -86,13 +88,13 @@ class StripeIdentityVerificationProvider(IdentityVerificationProviderAdapter):
         except stripe.error.StripeError as e:
             raise IdentityVerificationError(f"Stripe error: {str(e)}")
 
-    def get_verification_session(self, session_id: str) -> Dict[str, Any]:
+    def get_verification_session(self, session_id: str) -> dict[str, Any]:
         """
         Retrieve session details from Stripe.
-        
+
         Args:
             session_id: The Stripe session ID
-            
+
         Returns:
             Dict with session details
         """
@@ -101,7 +103,7 @@ class StripeIdentityVerificationProvider(IdentityVerificationProviderAdapter):
                 session_id,
                 expand=['verified_outputs', 'last_error']
             )
-            
+
             result = {
                 'id': session.id,
                 'status': session.status,
@@ -128,19 +130,19 @@ class StripeIdentityVerificationProvider(IdentityVerificationProviderAdapter):
             raise IdentityVerificationError(f"Stripe error: {str(e)}")
 
     def list_verification_sessions(
-        self, 
-        limit: int = 10, 
-        status: Optional[str] = None, 
+        self,
+        limit: int = 10,
+        status: str | None = None,
         **kwargs
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         List verification sessions from Stripe.
-        
+
         Args:
             limit: Maximum number of results
             status: Optional status filter
             **kwargs: Additional Stripe-specific filters
-            
+
         Returns:
             Dict with session data
         """
@@ -148,7 +150,7 @@ class StripeIdentityVerificationProvider(IdentityVerificationProviderAdapter):
             params = {'limit': limit}
             if status:
                 params['status'] = status
-            
+
             # Add optional filters from kwargs (Stripe specific)
             if 'created_gte' in kwargs and kwargs['created_gte']:
                 params['created[gte]'] = kwargs['created_gte']
@@ -162,13 +164,13 @@ class StripeIdentityVerificationProvider(IdentityVerificationProviderAdapter):
         except stripe.error.StripeError as e:
             raise IdentityVerificationError(f"Stripe error: {str(e)}")
 
-    def cancel_verification_session(self, session_id: str) -> Dict[str, Any]:
+    def cancel_verification_session(self, session_id: str) -> dict[str, Any]:
         """
         Cancel a verification session in Stripe.
-        
+
         Args:
             session_id: The Stripe session ID
-            
+
         Returns:
             Dict with id and status
         """
@@ -187,13 +189,13 @@ class StripeIdentityVerificationProvider(IdentityVerificationProviderAdapter):
         except stripe.error.StripeError as e:
             raise IdentityVerificationError(f"Stripe error: {str(e)}")
 
-    def redact_verification_session(self, session_id: str) -> Dict[str, Any]:
+    def redact_verification_session(self, session_id: str) -> dict[str, Any]:
         """
         Redact a verification session in Stripe to remove PII.
-        
+
         Args:
             session_id: The Stripe session ID
-            
+
         Returns:
             Dict with id and status
         """
@@ -212,13 +214,13 @@ class StripeIdentityVerificationProvider(IdentityVerificationProviderAdapter):
         except stripe.error.StripeError as e:
             raise IdentityVerificationError(f"Stripe error: {str(e)}")
 
-    def get_verification_report(self, report_id: str) -> Dict[str, Any]:
+    def get_verification_report(self, report_id: str) -> dict[str, Any]:
         """
         Retrieve a verification report from Stripe.
-        
+
         Args:
             report_id: The Stripe report ID
-            
+
         Returns:
             Dict with report details
         """
@@ -243,19 +245,19 @@ class StripeIdentityVerificationProvider(IdentityVerificationProviderAdapter):
         except stripe.error.StripeError as e:
             raise IdentityVerificationError(f"Stripe error: {str(e)}")
 
-    def get_verification_insights(self, session_id: str) -> Dict[str, Any]:
+    def get_verification_insights(self, session_id: str) -> dict[str, Any]:
         """
         Get insights from a verification session.
-        
+
         Args:
             session_id: The Stripe session ID
-            
+
         Returns:
             Dict with session insights including checks performed
         """
         try:
             session_data = self.get_verification_session(session_id)
-            
+
             insights = {
                 'session_id': session_id,
                 'status': session_data.get('status'),
@@ -269,9 +271,9 @@ class StripeIdentityVerificationProvider(IdentityVerificationProviderAdapter):
                 session_id,
                 expand=['last_verification_report']
             )
-            
+
             report = session.last_verification_report
-            
+
             if report:
                 # Document checks
                 if hasattr(report, 'document') and report.document:
@@ -308,19 +310,19 @@ class StripeIdentityVerificationProvider(IdentityVerificationProviderAdapter):
         except stripe.error.StripeError as e:
             raise IdentityVerificationError(f"Stripe error: {str(e)}")
 
-    def handle_webhook(self, payload: bytes, signature: str) -> Dict[str, Any]:
+    def handle_webhook(self, payload: bytes, signature: str) -> dict[str, Any]:
         """
         Verify and parse a webhook payload from Stripe.
-        
+
         Args:
             payload: Raw webhook payload
             signature: Webhook signature header
-            
+
         Returns:
             Dict with parsed event data
         """
         endpoint_secret = getattr(settings, 'STRIPE_IDENTITY_WEBHOOK_SECRET', None)
-        
+
         try:
             event = stripe.Webhook.construct_event(
                 payload, signature, endpoint_secret

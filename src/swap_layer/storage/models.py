@@ -6,17 +6,16 @@ in your Django models while maintaining vendor independence.
 """
 
 from django.db import models
-from django.utils import timezone
 
 
 class StorageFileMixin(models.Model):
     """
     Mixin for tracking uploaded files.
-    
+
     Add this to your UploadedFile model:
-    
+
         from swap_layer.storage.models import StorageFileMixin
-        
+
         class UploadedFile(StorageFileMixin, models.Model):
             user = models.ForeignKey(User, on_delete=models.CASCADE)
             # ... your fields
@@ -71,7 +70,7 @@ class StorageFileMixin(models.Model):
         blank=True,
         help_text="Additional metadata (dimensions, duration, etc.)"
     )
-    
+
     class Meta:
         abstract = True
         indexes = [
@@ -84,11 +83,11 @@ class StorageFileMixin(models.Model):
 class StorageQuotaMixin(models.Model):
     """
     Mixin for tracking storage quota usage.
-    
+
     Add this to your User or Account model:
-    
+
         from swap_layer.storage.models import StorageQuotaMixin
-        
+
         class Account(StorageQuotaMixin, models.Model):
             # ... your fields
     """
@@ -109,20 +108,20 @@ class StorageQuotaMixin(models.Model):
         null=True,
         help_text="When storage usage was last calculated"
     )
-    
+
     class Meta:
         abstract = True
-    
+
     def storage_usage_percentage(self):
         """Calculate percentage of quota used."""
         if self.storage_quota_bytes == 0:
             return 0
         return (self.storage_used_bytes / self.storage_quota_bytes) * 100
-    
+
     def storage_available_bytes(self):
         """Calculate remaining storage in bytes."""
         return max(0, self.storage_quota_bytes - self.storage_used_bytes)
-    
+
     def is_storage_quota_exceeded(self):
         """Check if quota is exceeded."""
         return self.storage_used_bytes >= self.storage_quota_bytes

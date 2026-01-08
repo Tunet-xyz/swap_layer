@@ -1,11 +1,13 @@
 import unittest
-from unittest.mock import MagicMock, patch, mock_open
 from io import BytesIO
+from unittest.mock import MagicMock, mock_open, patch
+
 from django.conf import settings
-from swap_layer.storage.factory import get_storage_provider
+
 from swap_layer.storage.adapter import StorageProviderAdapter
-from swap_layer.storage.providers.local import LocalFileStorageProvider
+from swap_layer.storage.factory import get_storage_provider
 from swap_layer.storage.providers.django_storage import DjangoStorageAdapter
+from swap_layer.storage.providers.local import LocalFileStorageProvider
 
 
 class TestStorageFactory(unittest.TestCase):
@@ -31,7 +33,7 @@ class TestLocalStorageProvider(unittest.TestCase):
     def test_upload_file_success(self, mock_file):
         """Test successful file upload."""
         file_data = BytesIO(b'test file content')
-        
+
         with patch('swap_layer.storage.providers.local.Path.mkdir'):
             with patch('swap_layer.storage.providers.local.Path.stat') as mock_stat:
                 mock_stat.return_value.st_size = 17
@@ -53,14 +55,14 @@ class TestLocalStorageProvider(unittest.TestCase):
         """Test successful file download."""
         with patch('swap_layer.storage.providers.local.Path.exists', return_value=True):
             result = self.provider.download_file('uploads/test.txt')
-        
+
         self.assertEqual(result, b'file content')
 
-    @patch('swap_layer.storage.providers.local.os.path.exists', return_value=False)
+    @patch('swap_layer.storage.providers.local.Path.exists', return_value=False)
     def test_download_file_not_found(self, mock_exists):
         """Test downloading non-existent file raises error."""
         from swap_layer.storage.adapter import StorageFileNotFoundError
-        
+
         with self.assertRaises(StorageFileNotFoundError):
             self.provider.download_file('nonexistent.txt')
 
@@ -69,7 +71,7 @@ class TestLocalStorageProvider(unittest.TestCase):
     def test_delete_file_success(self, mock_unlink, mock_exists):
         """Test successful file deletion."""
         result = self.provider.delete_file('uploads/test.txt')
-        
+
         self.assertTrue(result['deleted'])
 
     def test_file_exists(self):
@@ -77,14 +79,14 @@ class TestLocalStorageProvider(unittest.TestCase):
         with patch('swap_layer.storage.providers.local.Path.exists', return_value=True):
             with patch('swap_layer.storage.providers.local.Path.is_file', return_value=True):
                 result = self.provider.file_exists('uploads/test.txt')
-                
+
                 self.assertTrue(result)
 
-    @patch('swap_layer.storage.providers.local.os.path.exists', return_value=False)
+    @patch('swap_layer.storage.providers.local.Path.exists', return_value=False)
     def test_file_not_exists(self, mock_exists):
         """Test checking non-existent file."""
         result = self.provider.file_exists('nonexistent.txt')
-        
+
         self.assertFalse(result)
 
     def test_get_file_metadata(self):
@@ -96,14 +98,14 @@ class TestLocalStorageProvider(unittest.TestCase):
                 with patch.object(self.provider, '_calculate_etag', return_value='abc123'):
                     with patch('builtins.open', mock_open(read_data='')):
                         result = self.provider.get_file_metadata('uploads/test.txt')
-        
+
         self.assertEqual(result['size'], 1024)
         self.assertIn('last_modified', result)
 
     def test_list_files(self):
         """Test listing files with prefix."""
         from pathlib import Path
-        
+
         with patch('swap_layer.storage.providers.local.Path.exists', return_value=True):
             with patch('swap_layer.storage.providers.local.Path.rglob') as mock_rglob:
                 mock_files = []
@@ -116,10 +118,10 @@ class TestLocalStorageProvider(unittest.TestCase):
                     mock_file.stat.return_value.st_mtime = 1640000000
                     mock_files.append(mock_file)
                 mock_rglob.return_value = mock_files
-                
+
                 with patch.object(self.provider, '_calculate_etag', return_value='abc123'):
                     result = self.provider.list_files(prefix='uploads/')
-        
+
         self.assertEqual(len(result), 3)
         self.assertTrue(any('file1.txt' in f['file_path'] for f in result))
 
@@ -133,7 +135,7 @@ class TestLocalStorageProvider(unittest.TestCase):
                         source_path='uploads/original.txt',
                         destination_path='backups/copy.txt'
                     )
-        
+
         self.assertEqual(result['source_path'], 'uploads/original.txt')
         self.assertEqual(result['destination_path'], 'backups/copy.txt')
 
@@ -146,35 +148,35 @@ class TestLocalStorageProvider(unittest.TestCase):
                     source_path='uploads/temp.txt',
                     destination_path='uploads/final.txt'
                 )
-        
+
         self.assertEqual(result['source_path'], 'uploads/temp.txt')
         self.assertEqual(result['destination_path'], 'uploads/final.txt')
 
     def test_delete_files_bulk(self):
         """Test bulk file deletion."""
         files = ['file1.txt', 'file2.txt', 'file3.txt']
-        
+
         with patch('swap_layer.storage.providers.local.Path.exists', return_value=True):
             with patch('swap_layer.storage.providers.local.Path.unlink'):
                 result = self.provider.delete_files(files)
-        
+
         self.assertEqual(len(result['deleted']), 3)
         self.assertEqual(len(result['errors']), 0)
 
     def test_get_file_url(self):
         """Test generating file URL."""
         result = self.provider.get_file_url('uploads/test.txt')
-        
+
         self.assertIn('/media/uploads/test.txt', result)
         self.assertIsInstance(result, str)
 
 
 class TestDjangoStorageProvider(unittest.TestCase):
     """Tests for DjangoStorageAdapter wrapping django-storages."""
-    
+
     def setUp(self):
         self.provider = DjangoStorageAdapter()
-    
+
     @patch('swap_layer.storage.providers.django_storage.default_storage')
     def test_upload_file_success(self, mock_storage):
         """Test successful file upload via django-storages."""
@@ -182,18 +184,18 @@ class TestDjangoStorageProvider(unittest.TestCase):
         mock_storage.save.return_value = 'uploads/test.txt'
         mock_storage.url.return_value = 'https://s3.amazonaws.com/bucket/uploads/test.txt'
         mock_storage.size.return_value = 12
-        
+
         result = self.provider.upload_file(
             file_path='uploads/test.txt',
             file_data=file_data,
             content_type='text/plain'
         )
-        
+
         self.assertEqual(result['file_path'], 'uploads/test.txt')
         self.assertEqual(result['url'], 'https://s3.amazonaws.com/bucket/uploads/test.txt')
         self.assertEqual(result['size'], 12)
         mock_storage.save.assert_called_once()
-    
+
     @patch('swap_layer.storage.providers.django_storage.default_storage')
     def test_download_file_success(self, mock_storage):
         """Test downloading a file via django-storages."""
@@ -201,42 +203,42 @@ class TestDjangoStorageProvider(unittest.TestCase):
         mock_file.read.return_value = b'file content'
         mock_storage.open.return_value.__enter__.return_value = mock_file
         mock_storage.exists.return_value = True
-        
+
         result = self.provider.download_file('uploads/test.txt')
-        
+
         self.assertEqual(result, b'file content')
         mock_storage.open.assert_called_once_with('uploads/test.txt', 'rb')
-    
+
     @patch('swap_layer.storage.providers.django_storage.default_storage')
     def test_download_file_not_found(self, mock_storage):
         """Test downloading non-existent file raises error."""
         from swap_layer.storage.adapter import StorageFileNotFoundError
         mock_storage.exists.return_value = False
-        
+
         with self.assertRaises(StorageFileNotFoundError):
             self.provider.download_file('nonexistent.txt')
-    
+
     @patch('swap_layer.storage.providers.django_storage.default_storage')
     def test_delete_file_success(self, mock_storage):
         """Test deleting a file via django-storages."""
         mock_storage.exists.return_value = True
-        
+
         result = self.provider.delete_file('uploads/test.txt')
-        
+
         self.assertTrue(result['deleted'])
         self.assertEqual(result['file_path'], 'uploads/test.txt')
         mock_storage.delete.assert_called_once_with('uploads/test.txt')
-    
+
     @patch('swap_layer.storage.providers.django_storage.default_storage')
     def test_file_exists(self, mock_storage):
         """Test checking if file exists."""
         mock_storage.exists.return_value = True
-        
+
         result = self.provider.file_exists('uploads/test.txt')
-        
+
         self.assertTrue(result)
         mock_storage.exists.assert_called_once_with('uploads/test.txt')
-    
+
     @patch('swap_layer.storage.providers.django_storage.default_storage')
     def test_get_file_metadata(self, mock_storage):
         """Test retrieving file metadata."""
@@ -245,32 +247,32 @@ class TestDjangoStorageProvider(unittest.TestCase):
         mock_storage.size.return_value = 1024
         mock_storage.get_modified_time.return_value = datetime(2026, 1, 1, 12, 0, 0)
         mock_storage.get_created_time.return_value = datetime(2026, 1, 1, 10, 0, 0)
-        
+
         result = self.provider.get_file_metadata('uploads/file.txt')
-        
+
         self.assertEqual(result['size'], 1024)
         self.assertIn('modified_time', result)
-    
+
     @patch('swap_layer.storage.providers.django_storage.default_storage')
     def test_list_files(self, mock_storage):
         """Test listing files with prefix."""
         mock_storage.listdir.return_value = ([], ['file1.txt', 'file2.pdf'])
-        
+
         result = self.provider.list_files(prefix='uploads/')
-        
+
         self.assertEqual(len(result['files']), 2)
         self.assertIn('file1.txt', result['files'])
-    
+
     @patch('swap_layer.storage.providers.django_storage.default_storage')
     def test_get_file_url(self, mock_storage):
         """Test generating file URL."""
         mock_storage.url.return_value = 'https://s3.amazonaws.com/bucket/uploads/test.txt'
-        
+
         result = self.provider.get_file_url('uploads/test.txt')
-        
+
         self.assertEqual(result, 'https://s3.amazonaws.com/bucket/uploads/test.txt')
         mock_storage.url.assert_called_once_with('uploads/test.txt')
-    
+
     @patch('swap_layer.storage.providers.django_storage.default_storage')
     def test_copy_file(self, mock_storage):
         """Test copying a file."""
@@ -279,12 +281,12 @@ class TestDjangoStorageProvider(unittest.TestCase):
         mock_file.read.return_value = b'content'
         mock_storage.open.return_value.__enter__.return_value = mock_file
         mock_storage.save.return_value = 'destination.txt'
-        
+
         result = self.provider.copy_file('source.txt', 'destination.txt')
-        
+
         self.assertEqual(result['source_path'], 'source.txt')
         self.assertEqual(result['destination_path'], 'destination.txt')
-    
+
     @patch('swap_layer.storage.providers.django_storage.default_storage')
     def test_move_file(self, mock_storage):
         """Test moving a file."""
@@ -293,23 +295,23 @@ class TestDjangoStorageProvider(unittest.TestCase):
         mock_file.read.return_value = b'content'
         mock_storage.open.return_value.__enter__.return_value = mock_file
         mock_storage.save.return_value = 'destination.txt'
-        
+
         result = self.provider.move_file('source.txt', 'destination.txt')
-        
+
         self.assertEqual(result['source_path'], 'source.txt')
         self.assertEqual(result['destination_path'], 'destination.txt')
         mock_storage.delete.assert_called_once_with('source.txt')
-    
+
     @patch('swap_layer.storage.providers.django_storage.default_storage')
     def test_delete_files_bulk(self, mock_storage):
         """Test bulk file deletion."""
         mock_storage.exists.side_effect = [True, True, False]
-        
+
         result = self.provider.delete_files(['file1.txt', 'file2.txt', 'file3.txt'])
-        
+
         self.assertEqual(len(result['deleted']), 2)
         self.assertEqual(len(result['errors']), 1)
-    
+
     @patch('swap_layer.storage.providers.django_storage.default_storage')
     def test_upload_file_with_metadata(self, mock_storage):
         """Test uploading file with metadata."""
@@ -317,7 +319,7 @@ class TestDjangoStorageProvider(unittest.TestCase):
         mock_storage.save.return_value = 'uploads/test.txt'
         mock_storage.url.return_value = 'https://s3.amazonaws.com/bucket/uploads/test.txt'
         mock_storage.size.return_value = 12
-        
+
         result = self.provider.upload_file(
             file_path='uploads/test.txt',
             file_data=file_data,
@@ -325,10 +327,10 @@ class TestDjangoStorageProvider(unittest.TestCase):
             metadata={'user_id': '123'},
             public=True
         )
-        
+
         self.assertEqual(result['file_path'], 'uploads/test.txt')
         self.assertEqual(result['content_type'], 'text/plain')
-    
+
     def test_generate_presigned_url_not_implemented(self):
         """Test that presigned URLs raise NotImplementedError."""
         with self.assertRaises(NotImplementedError):

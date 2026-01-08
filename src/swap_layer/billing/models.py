@@ -6,17 +6,16 @@ while maintaining vendor independence.
 """
 
 from django.db import models
-from django.utils import timezone
 
 
 class StripeCustomerMixin(models.Model):
     """
     Mixin for storing Stripe customer metadata.
-    
+
     Add this to your User or Customer model:
-    
+
         from swap_layer.billing.models import StripeCustomerMixin
-        
+
         class Customer(StripeCustomerMixin, models.Model):
             email = models.EmailField()
             # ... your fields
@@ -34,7 +33,7 @@ class StripeCustomerMixin(models.Model):
         null=True,
         help_text="When the Stripe customer was created"
     )
-    
+
     class Meta:
         abstract = True
 
@@ -42,15 +41,15 @@ class StripeCustomerMixin(models.Model):
 class PaymentProviderCustomerMixin(models.Model):
     """
     Generic mixin for storing payment provider customer IDs.
-    
+
     Use this if you want to support multiple payment providers:
-    
+
         from swap_layer.billing.models import PaymentProviderCustomerMixin
-        
+
         class Customer(PaymentProviderCustomerMixin, models.Model):
             email = models.EmailField()
             # ... your fields
-            
+
     Then store IDs like:
         customer.payment_provider = 'stripe'
         customer.payment_customer_id = 'cus_...'
@@ -78,7 +77,7 @@ class PaymentProviderCustomerMixin(models.Model):
         null=True,
         help_text="When the payment customer was created"
     )
-    
+
     class Meta:
         abstract = True
         indexes = [
@@ -89,11 +88,11 @@ class PaymentProviderCustomerMixin(models.Model):
 class SubscriptionMixin(models.Model):
     """
     Mixin for storing subscription metadata.
-    
+
     Add this to your Subscription model:
-    
+
         from swap_layer.billing.models import SubscriptionMixin
-        
+
         class Subscription(SubscriptionMixin, models.Model):
             user = models.ForeignKey(User, on_delete=models.CASCADE)
             plan = models.CharField(max_length=100)
@@ -143,7 +142,7 @@ class SubscriptionMixin(models.Model):
         default=False,
         help_text="Whether subscription cancels at period end"
     )
-    
+
     class Meta:
         abstract = True
         indexes = [
@@ -155,11 +154,11 @@ class SubscriptionMixin(models.Model):
 class PaymentMethodMixin(models.Model):
     """
     Mixin for storing payment method metadata.
-    
+
     Add this to your PaymentMethod model:
-    
+
         from swap_layer.billing.models import PaymentMethodMixin
-        
+
         class PaymentMethod(PaymentMethodMixin, models.Model):
             customer = models.ForeignKey(Customer, on_delete=models.CASCADE)
             # ... your fields
@@ -208,6 +207,6 @@ class PaymentMethodMixin(models.Model):
         default=False,
         help_text="Is this the default payment method"
     )
-    
+
     class Meta:
         abstract = True

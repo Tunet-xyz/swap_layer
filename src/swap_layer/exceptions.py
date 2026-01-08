@@ -4,25 +4,26 @@ SwapLayer Custom Exceptions
 Provides rich, actionable error messages that guide developers to solutions.
 """
 
-from typing import Optional, List, Dict, Any
+from typing import Any
+
 from django.core.exceptions import ImproperlyConfigured
 
 
 class SwapLayerError(Exception):
     """Base exception for all SwapLayer errors."""
-    
+
     def __init__(
         self,
         message: str,
         *,
-        hint: Optional[str] = None,
-        docs_url: Optional[str] = None,
-        examples: Optional[List[str]] = None,
-        related_settings: Optional[List[str]] = None,
+        hint: str | None = None,
+        docs_url: str | None = None,
+        examples: list[str] | None = None,
+        related_settings: list[str] | None = None,
     ):
         """
         Create a rich error with helpful context.
-        
+
         Args:
             message: Main error message
             hint: Helpful hint on how to fix the issue
@@ -34,26 +35,26 @@ class SwapLayerError(Exception):
         self.docs_url = docs_url
         self.examples = examples or []
         self.related_settings = related_settings or []
-        
+
         # Build comprehensive error message
         parts = [message]
-        
+
         if hint:
             parts.append(f"\n💡 Hint: {hint}")
-        
+
         if examples:
             parts.append("\n\n✅ Valid examples:")
             for example in examples:
                 parts.append(f"   {example}")
-        
+
         if related_settings:
             parts.append("\n\n🔍 Check these settings:")
             for setting in related_settings:
                 parts.append(f"   - {setting}")
-        
+
         if docs_url:
             parts.append(f"\n\n📚 Documentation: {docs_url}")
-        
+
         super().__init__("\n".join(parts))
 
 
@@ -78,7 +79,7 @@ class ProviderError(SwapLayerError):
 
 class StripeKeyError(ConfigurationError):
     """Stripe API key is invalid or incorrectly formatted."""
-    
+
     def __init__(self, key_type: str, provided_value: str):
         super().__init__(
             f"❌ Invalid Stripe {key_type}",
@@ -101,7 +102,7 @@ class StripeKeyError(ConfigurationError):
 
 class TwilioConfigError(ConfigurationError):
     """Twilio configuration is invalid."""
-    
+
     @classmethod
     def invalid_account_sid(cls, provided_value: str) -> 'TwilioConfigError':
         return cls(
@@ -116,7 +117,7 @@ class TwilioConfigError(ConfigurationError):
                 "SWAPLAYER.sms.twilio.account_sid",
             ]
         )
-    
+
     @classmethod
     def invalid_phone_number(cls, provided_value: str) -> 'TwilioConfigError':
         return cls(
@@ -137,7 +138,7 @@ class TwilioConfigError(ConfigurationError):
 
 class WorkOSConfigError(ConfigurationError):
     """WorkOS configuration is invalid."""
-    
+
     @classmethod
     def short_cookie_password(cls, provided_length: int) -> 'WorkOSConfigError':
         return cls(
@@ -157,7 +158,7 @@ class WorkOSConfigError(ConfigurationError):
 
 class ProviderConfigMismatchError(ConfigurationError):
     """Provider is selected but configuration is missing."""
-    
+
     def __init__(self, module: str, provider: str, missing_config: str):
         examples_map = {
             'stripe': [
@@ -176,7 +177,7 @@ class ProviderConfigMismatchError(ConfigurationError):
                 "identity={'provider': 'auth0', 'auth0_apps': {'default': {'client_id': '...', 'client_secret': '...'}}, 'auth0_domain': 'myapp.auth0.com'}",
             ],
         }
-        
+
         super().__init__(
             f"❌ {module.title()} provider '{provider}' selected but {missing_config} not configured",
             hint=f"When you set provider='{provider}', you must also provide the {missing_config} configuration.",
@@ -191,7 +192,7 @@ class ProviderConfigMismatchError(ConfigurationError):
 
 class ModuleNotConfiguredError(ConfigurationError):
     """Attempted to use a module that isn't configured."""
-    
+
     def __init__(self, module: str):
         module_examples = {
             'billing': "billing={'provider': 'stripe', 'stripe': {'secret_key': 'sk_test_...'}}",
@@ -200,16 +201,16 @@ class ModuleNotConfiguredError(ConfigurationError):
             'identity': "identity={'provider': 'workos', 'workos_apps': {...}}",
             'verification': "verification={'provider': 'stripe', 'stripe_secret_key': 'sk_test_...'}",
         }
-        
+
         super().__init__(
             f"❌ SwapLayer '{module}' module is not configured",
             hint=f"You tried to use the {module} module, but it's not configured in your settings. "
                  f"Add it to SWAPLAYER settings.",
             examples=[
-                f"# In settings.py",
-                f"SWAPLAYER = SwapLayerSettings(",
+                "# In settings.py",
+                "SWAPLAYER = SwapLayerSettings(",
                 f"    {module_examples.get(module, f'{module}={{...}}')}",
-                f")",
+                ")",
             ],
             docs_url="https://github.com/yourusername/swap_layer/blob/main/SETTINGS_MANAGEMENT.md",
             related_settings=[
@@ -220,18 +221,18 @@ class ModuleNotConfiguredError(ConfigurationError):
 
 class EnvironmentVariableError(ConfigurationError):
     """Required environment variable is missing or invalid."""
-    
-    def __init__(self, var_name: str, expected_format: Optional[str] = None):
+
+    def __init__(self, var_name: str, expected_format: str | None = None):
         hint_parts = [f"Set the environment variable: export {var_name}=<value>"]
         if expected_format:
             hint_parts.append(f"Expected format: {expected_format}")
-        
+
         super().__init__(
             f"❌ Missing or invalid environment variable: {var_name}",
             hint=" ".join(hint_parts),
             examples=[
                 f"export {var_name}=your_value_here",
-                f"# Or in .env file:",
+                "# Or in .env file:",
                 f"{var_name}=your_value_here",
             ],
             related_settings=[f"Environment variable: {var_name}"]
@@ -240,17 +241,17 @@ class EnvironmentVariableError(ConfigurationError):
 
 class MultiTenantConfigError(ConfigurationError):
     """Multi-tenant app configuration error."""
-    
-    def __init__(self, app_name: str, provider: str, available_apps: List[str]):
+
+    def __init__(self, app_name: str, provider: str, available_apps: list[str]):
         super().__init__(
             f"❌ App '{app_name}' not found in {provider} configuration",
             hint=f"You requested app '{app_name}', but it's not configured. "
                  f"Available apps: {', '.join(available_apps) if available_apps else 'none'}",
             examples=[
-                f"# Configure the app in settings:",
+                "# Configure the app in settings:",
                 f"identity={{'provider': '{provider}', '{provider}_apps': {{",
                 f"    '{app_name}': {{'api_key': '...', 'client_id': '...', ...}}",
-                f"}}}}",
+                "}}",
             ],
             related_settings=[
                 f"SWAPLAYER.identity.{provider}_apps",
@@ -264,19 +265,19 @@ class MultiTenantConfigError(ConfigurationError):
 
 class ErrorContext:
     """Build rich error context for debugging."""
-    
+
     @staticmethod
     def build_config_error_context(
         error: Exception,
-        config_dict: Optional[Dict[str, Any]] = None,
+        config_dict: dict[str, Any] | None = None,
     ) -> str:
         """
         Build a detailed error context from a configuration error.
-        
+
         Args:
             error: The exception that occurred
             config_dict: The configuration dictionary that caused the error
-            
+
         Returns:
             Formatted error message with context
         """
@@ -288,7 +289,7 @@ class ErrorContext:
             str(error),
             "",
         ]
-        
+
         if config_dict:
             lines.extend([
                 "📋 Your configuration:",
@@ -296,7 +297,7 @@ class ErrorContext:
                 ErrorContext._format_config(config_dict, indent=0),
                 "",
             ])
-        
+
         lines.extend([
             "=" * 80,
             "Need help? Check the documentation or file an issue:",
@@ -304,9 +305,9 @@ class ErrorContext:
             "  🐛 https://github.com/yourusername/swap_layer/issues",
             "=" * 80,
         ])
-        
+
         return "\n".join(lines)
-    
+
     @staticmethod
     def _format_config(config: Any, indent: int = 0) -> str:
         """Format configuration for display (mask secrets)."""
@@ -323,7 +324,7 @@ class ErrorContext:
                     lines.append(f"{prefix}{key}: {value}")
             return "\n".join(lines)
         return str(config)
-    
+
     @staticmethod
     def _is_sensitive_key(key: str) -> bool:
         """Check if a key contains sensitive data."""
@@ -338,36 +339,36 @@ class ErrorContext:
 # Helper Functions
 # ============================================================================
 
-def enhance_validation_error(error: Exception, context: Dict[str, Any]) -> Exception:
+def enhance_validation_error(error: Exception, context: dict[str, Any]) -> Exception:
     """
     Enhance a Pydantic validation error with more helpful information.
-    
+
     Args:
         error: Original validation error
         context: Context dictionary with config information
-        
+
     Returns:
         Enhanced error with better messaging
     """
     error_str = str(error)
-    
+
     # Detect common error patterns and provide better messages
     if "secret_key" in error_str and "must start with 'sk_'" in error_str:
         provided = context.get('secret_key', '')
         return StripeKeyError('secret key', provided)
-    
+
     if "Account SID" in error_str and "must start with 'AC'" in error_str:
         provided = context.get('account_sid', '')
         return TwilioConfigError.invalid_account_sid(provided)
-    
+
     if "E.164 format" in error_str:
         provided = context.get('from_number', '')
         return TwilioConfigError.invalid_phone_number(provided)
-    
+
     if "Cookie password" in error_str and "32 characters" in error_str:
         provided_length = len(context.get('cookie_password', ''))
         return WorkOSConfigError.short_cookie_password(provided_length)
-    
+
     # Default: wrap in SwapLayerError with context
     return SwapLayerError(
         str(error),
@@ -376,13 +377,13 @@ def enhance_validation_error(error: Exception, context: Dict[str, Any]) -> Excep
     )
 
 
-def format_startup_validation_errors(errors: List[Dict[str, Any]]) -> str:
+def format_startup_validation_errors(errors: list[dict[str, Any]]) -> str:
     """
     Format Pydantic validation errors for display at startup.
-    
+
     Args:
         errors: List of validation error dictionaries from Pydantic
-        
+
     Returns:
         Formatted error message
     """
@@ -395,19 +396,19 @@ def format_startup_validation_errors(errors: List[Dict[str, Any]]) -> str:
         "The following configuration errors were found:",
         "",
     ]
-    
+
     for i, error in enumerate(errors, 1):
-        loc = " → ".join(str(l) for l in error.get('loc', []))
+        loc = " → ".join(str(location) for location in error.get('loc', []))
         msg = error.get('msg', 'Unknown error')
         error_type = error.get('type', 'unknown')
-        
+
         lines.extend([
             f"{i}. ❌ {loc}",
             f"   Error: {msg}",
             f"   Type: {error_type}",
             "",
         ])
-    
+
     lines.extend([
         "💡 Tips:",
         "  • Run: python manage.py swaplayer_check --verbose",
@@ -416,5 +417,5 @@ def format_startup_validation_errors(errors: List[Dict[str, Any]]) -> str:
         "",
         "=" * 80,
     ])
-    
+
     return "\n".join(lines)

@@ -9,9 +9,9 @@ Usage:
     python manage.py migrate_payment_provider stripe paypal --confirm
 """
 
-from django.core.management.base import BaseCommand, CommandError
-from django.conf import settings
 from django.apps import apps
+from django.conf import settings
+from django.core.management.base import BaseCommand, CommandError
 
 
 class Command(BaseCommand):
@@ -121,7 +121,7 @@ class Command(BaseCommand):
 
         for customer in customers:
             customer_identifier = getattr(customer, 'email', None) or str(customer.pk)
-            
+
             if dry_run:
                 self.stdout.write(
                     f'  [DRY RUN] Would migrate: {customer_identifier} '
@@ -172,7 +172,7 @@ class Command(BaseCommand):
             ))
             if failed > 0:
                 self.stdout.write(self.style.WARNING(
-                    f'\nSome migrations failed. Review errors above.'
+                    '\nSome migrations failed. Review errors above.'
                 ))
-        
+
         self.stdout.write(f'{"="*70}\n')

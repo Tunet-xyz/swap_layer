@@ -6,8 +6,8 @@ application to switch between different email services (SMTP, SendGrid, Mailgun,
 AWS SES, etc.) without modifying business logic.
 """
 
-from .factory import get_email_provider
 from .adapter import EmailProviderAdapter
+from .factory import get_email_provider
 
 # Convenience alias
 get_provider = get_email_provider

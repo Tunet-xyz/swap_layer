@@ -3,9 +3,9 @@ from typing import Any
 
 # Import subdomain adapters
 from swap_layer.billing.customers.adapter import CustomerAdapter
-from swap_layer.billing.subscriptions.adapter import SubscriptionAdapter
 from swap_layer.billing.payment_intents.adapter import PaymentAdapter
 from swap_layer.billing.products.adapter import ProductAdapter
+from swap_layer.billing.subscriptions.adapter import SubscriptionAdapter
 
 
 class PaymentError(Exception):
@@ -33,14 +33,14 @@ class PaymentProviderAdapter(ABC, CustomerAdapter, SubscriptionAdapter, PaymentA
     """
     Abstract base class for Payment Providers (Stripe, PayPal, Square, etc.)
     This ensures we can switch providers without rewriting the application logic.
-    
+
     This adapter now composes functionality from subdomain adapters:
     - CustomerAdapter: Customer management operations
-    - SubscriptionAdapter: Subscription lifecycle operations  
+    - SubscriptionAdapter: Subscription lifecycle operations
     - PaymentAdapter: Payment intents, methods, checkout, invoices, webhooks
     - ProductAdapter: Product and pricing management (placeholder)
     """
-    
+
     @abstractmethod
     def get_vendor_client(self) -> Any:
         """
