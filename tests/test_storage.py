@@ -5,6 +5,7 @@ from django.conf import settings
 from swap_layer.storage.factory import get_storage_provider
 from swap_layer.storage.adapter import StorageProviderAdapter
 from swap_layer.storage.providers.local import LocalFileStorageProvider
+from swap_layer.storage.providers.django_storage import DjangoStorageAdapter
 
 
 class TestStorageFactory(unittest.TestCase):
@@ -166,6 +167,172 @@ class TestLocalStorageProvider(unittest.TestCase):
         
         self.assertIn('/media/uploads/test.txt', result)
         self.assertIsInstance(result, str)
+
+
+class TestDjangoStorageProvider(unittest.TestCase):
+    """Tests for DjangoStorageAdapter wrapping django-storages."""
+    
+    def setUp(self):
+        self.provider = DjangoStorageAdapter()
+    
+    @patch('swap_layer.storage.providers.django_storage.default_storage')
+    def test_upload_file_success(self, mock_storage):
+        """Test successful file upload via django-storages."""
+        file_data = BytesIO(b'test content')
+        mock_storage.save.return_value = 'uploads/test.txt'
+        mock_storage.url.return_value = 'https://s3.amazonaws.com/bucket/uploads/test.txt'
+        mock_storage.size.return_value = 12
+        
+        result = self.provider.upload_file(
+            file_path='uploads/test.txt',
+            file_data=file_data,
+            content_type='text/plain'
+        )
+        
+        self.assertEqual(result['file_path'], 'uploads/test.txt')
+        self.assertEqual(result['url'], 'https://s3.amazonaws.com/bucket/uploads/test.txt')
+        self.assertEqual(result['size'], 12)
+        mock_storage.save.assert_called_once()
+    
+    @patch('swap_layer.storage.providers.django_storage.default_storage')
+    def test_download_file_success(self, mock_storage):
+        """Test downloading a file via django-storages."""
+        mock_file = MagicMock()
+        mock_file.read.return_value = b'file content'
+        mock_storage.open.return_value.__enter__.return_value = mock_file
+        mock_storage.exists.return_value = True
+        
+        result = self.provider.download_file('uploads/test.txt')
+        
+        self.assertEqual(result, b'file content')
+        mock_storage.open.assert_called_once_with('uploads/test.txt', 'rb')
+    
+    @patch('swap_layer.storage.providers.django_storage.default_storage')
+    def test_download_file_not_found(self, mock_storage):
+        """Test downloading non-existent file raises error."""
+        from swap_layer.storage.adapter import StorageFileNotFoundError
+        mock_storage.exists.return_value = False
+        
+        with self.assertRaises(StorageFileNotFoundError):
+            self.provider.download_file('nonexistent.txt')
+    
+    @patch('swap_layer.storage.providers.django_storage.default_storage')
+    def test_delete_file_success(self, mock_storage):
+        """Test deleting a file via django-storages."""
+        mock_storage.exists.return_value = True
+        
+        result = self.provider.delete_file('uploads/test.txt')
+        
+        self.assertTrue(result['deleted'])
+        self.assertEqual(result['file_path'], 'uploads/test.txt')
+        mock_storage.delete.assert_called_once_with('uploads/test.txt')
+    
+    @patch('swap_layer.storage.providers.django_storage.default_storage')
+    def test_file_exists(self, mock_storage):
+        """Test checking if file exists."""
+        mock_storage.exists.return_value = True
+        
+        result = self.provider.file_exists('uploads/test.txt')
+        
+        self.assertTrue(result)
+        mock_storage.exists.assert_called_once_with('uploads/test.txt')
+    
+    @patch('swap_layer.storage.providers.django_storage.default_storage')
+    def test_get_file_metadata(self, mock_storage):
+        """Test retrieving file metadata."""
+        from datetime import datetime
+        mock_storage.exists.return_value = True
+        mock_storage.size.return_value = 1024
+        mock_storage.get_modified_time.return_value = datetime(2026, 1, 1, 12, 0, 0)
+        mock_storage.get_created_time.return_value = datetime(2026, 1, 1, 10, 0, 0)
+        
+        result = self.provider.get_file_metadata('uploads/file.txt')
+        
+        self.assertEqual(result['size'], 1024)
+        self.assertIn('modified_time', result)
+    
+    @patch('swap_layer.storage.providers.django_storage.default_storage')
+    def test_list_files(self, mock_storage):
+        """Test listing files with prefix."""
+        mock_storage.listdir.return_value = ([], ['file1.txt', 'file2.pdf'])
+        
+        result = self.provider.list_files(prefix='uploads/')
+        
+        self.assertEqual(len(result['files']), 2)
+        self.assertIn('file1.txt', result['files'])
+    
+    @patch('swap_layer.storage.providers.django_storage.default_storage')
+    def test_get_file_url(self, mock_storage):
+        """Test generating file URL."""
+        mock_storage.url.return_value = 'https://s3.amazonaws.com/bucket/uploads/test.txt'
+        
+        result = self.provider.get_file_url('uploads/test.txt')
+        
+        self.assertEqual(result, 'https://s3.amazonaws.com/bucket/uploads/test.txt')
+        mock_storage.url.assert_called_once_with('uploads/test.txt')
+    
+    @patch('swap_layer.storage.providers.django_storage.default_storage')
+    def test_copy_file(self, mock_storage):
+        """Test copying a file."""
+        mock_storage.exists.return_value = True
+        mock_file = MagicMock()
+        mock_file.read.return_value = b'content'
+        mock_storage.open.return_value.__enter__.return_value = mock_file
+        mock_storage.save.return_value = 'destination.txt'
+        
+        result = self.provider.copy_file('source.txt', 'destination.txt')
+        
+        self.assertEqual(result['source_path'], 'source.txt')
+        self.assertEqual(result['destination_path'], 'destination.txt')
+    
+    @patch('swap_layer.storage.providers.django_storage.default_storage')
+    def test_move_file(self, mock_storage):
+        """Test moving a file."""
+        mock_storage.exists.return_value = True
+        mock_file = MagicMock()
+        mock_file.read.return_value = b'content'
+        mock_storage.open.return_value.__enter__.return_value = mock_file
+        mock_storage.save.return_value = 'destination.txt'
+        
+        result = self.provider.move_file('source.txt', 'destination.txt')
+        
+        self.assertEqual(result['source_path'], 'source.txt')
+        self.assertEqual(result['destination_path'], 'destination.txt')
+        mock_storage.delete.assert_called_once_with('source.txt')
+    
+    @patch('swap_layer.storage.providers.django_storage.default_storage')
+    def test_delete_files_bulk(self, mock_storage):
+        """Test bulk file deletion."""
+        mock_storage.exists.side_effect = [True, True, False]
+        
+        result = self.provider.delete_files(['file1.txt', 'file2.txt', 'file3.txt'])
+        
+        self.assertEqual(len(result['deleted']), 2)
+        self.assertEqual(len(result['errors']), 1)
+    
+    @patch('swap_layer.storage.providers.django_storage.default_storage')
+    def test_upload_file_with_metadata(self, mock_storage):
+        """Test uploading file with metadata."""
+        file_data = BytesIO(b'test content')
+        mock_storage.save.return_value = 'uploads/test.txt'
+        mock_storage.url.return_value = 'https://s3.amazonaws.com/bucket/uploads/test.txt'
+        mock_storage.size.return_value = 12
+        
+        result = self.provider.upload_file(
+            file_path='uploads/test.txt',
+            file_data=file_data,
+            content_type='text/plain',
+            metadata={'user_id': '123'},
+            public=True
+        )
+        
+        self.assertEqual(result['file_path'], 'uploads/test.txt')
+        self.assertEqual(result['content_type'], 'text/plain')
+    
+    def test_generate_presigned_url_not_implemented(self):
+        """Test that presigned URLs raise NotImplementedError."""
+        with self.assertRaises(NotImplementedError):
+            self.provider.generate_presigned_upload_url('test.txt')
 
 
 if __name__ == '__main__':

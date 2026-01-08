@@ -55,7 +55,11 @@ class DjangoStorageAdapter(StorageProviderAdapter):
         file_path: str,
         destination: Optional[str] = None
     ) -> bytes:
+        from ..adapter import StorageFileNotFoundError
         try:
+            if not default_storage.exists(file_path):
+                raise StorageFileNotFoundError(f"File not found: {file_path}")
+            
             with default_storage.open(file_path, 'rb') as f:
                 content = f.read()
             
@@ -64,15 +68,20 @@ class DjangoStorageAdapter(StorageProviderAdapter):
                     f.write(content)
             
             return content
+        except StorageFileNotFoundError:
+            raise
         except Exception as e:
             raise StorageDownloadError(f"Failed to download file: {str(e)}") from e
 
-    def delete_file(self, file_path: str) -> bool:
+    def delete_file(self, file_path: str) -> Dict[str, Any]:
         try:
             if default_storage.exists(file_path):
                 default_storage.delete(file_path)
-                return True
-            return False
+                return {'deleted': True, 'file_path': file_path}
+            from ..adapter import StorageFileNotFoundError
+            raise StorageFileNotFoundError(f"File not found: {file_path}")
+        except StorageFileNotFoundError:
+            raise
         except Exception as e:
             raise StorageDeleteError(f"Failed to delete file: {str(e)}") from e
 
@@ -107,3 +116,81 @@ class DjangoStorageAdapter(StorageProviderAdapter):
             }
         except Exception:
             return {}
+    
+    def generate_presigned_upload_url(
+        self,
+        file_path: str,
+        content_type: Optional[str] = None,
+        expiration: int = 3600
+    ) -> Dict[str, Any]:
+        """
+        Generate a presigned URL for direct upload.
+        Note: Not all Django storage backends support this (e.g., S3 does, local doesn't).
+        """
+        # Most Django storages don't have presigned URL support
+        # This would need to be implemented per-backend or with django-storages extras
+        raise NotImplementedError(
+            "Presigned URLs are not universally supported by Django storages. "
+            "Use a provider-specific implementation or django-storages with S3."
+        )
+    
+    def copy_file(self, source_path: str, destination_path: str) -> Dict[str, Any]:
+        """Copy a file within storage."""
+        from ..adapter import StorageFileNotFoundError, StorageCopyError
+        try:
+            if not default_storage.exists(source_path):
+                raise StorageFileNotFoundError(f"Source file not found: {source_path}")
+            
+            # Read and write (Django storage doesn't have native copy)
+            with default_storage.open(source_path, 'rb') as source:
+                content = source.read()
+                default_storage.save(destination_path, ContentFile(content))
+            
+            return {
+                'source_path': source_path,
+                'destination_path': destination_path,
+            }
+        except StorageFileNotFoundError:
+            raise
+        except Exception as e:
+            raise StorageCopyError(f"Failed to copy file: {str(e)}") from e
+    
+    def move_file(self, source_path: str, destination_path: str) -> Dict[str, Any]:
+        """Move/rename a file within storage."""
+        from ..adapter import StorageFileNotFoundError, StorageMoveError
+        try:
+            if not default_storage.exists(source_path):
+                raise StorageFileNotFoundError(f"Source file not found: {source_path}")
+            
+            # Copy then delete (Django storage doesn't have native move)
+            self.copy_file(source_path, destination_path)
+            default_storage.delete(source_path)
+            
+            return {
+                'source_path': source_path,
+                'destination_path': destination_path,
+            }
+        except StorageFileNotFoundError:
+            raise
+        except Exception as e:
+            raise StorageMoveError(f"Failed to move file: {str(e)}") from e
+    
+    def delete_files(self, file_paths: list) -> Dict[str, Any]:
+        """Delete multiple files from storage."""
+        deleted = []
+        errors = []
+        
+        for file_path in file_paths:
+            try:
+                if default_storage.exists(file_path):
+                    default_storage.delete(file_path)
+                    deleted.append(file_path)
+                else:
+                    errors.append({'file_path': file_path, 'error': 'File not found'})
+            except Exception as e:
+                errors.append({'file_path': file_path, 'error': str(e)})
+        
+        return {
+            'deleted': deleted,
+            'errors': errors,
+        }
