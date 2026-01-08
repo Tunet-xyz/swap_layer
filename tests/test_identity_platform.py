@@ -1,14 +1,23 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
+import pytest
 from django.conf import settings
 
 from swap_layer.identity.platform.adapter import AuthProviderAdapter
 from swap_layer.identity.platform.factory import get_identity_client
-from swap_layer.identity.platform.providers.workos.client import WorkOSClient
+
+# Import WorkOSClient conditionally - skip tests if workos not installed
+try:
+    from swap_layer.identity.platform.providers.workos.client import WorkOSClient
+    WORKOS_AVAILABLE = True
+except ImportError:
+    WORKOS_AVAILABLE = False
+    WorkOSClient = None
 
 
 class TestIdentityPlatformFactory(unittest.TestCase):
+    @pytest.mark.skipif(not WORKOS_AVAILABLE, reason="workos package not installed")
     def test_get_identity_client_returns_workos(self):
         """Test that the factory returns the correct provider based on settings."""
         with patch.object(settings, 'IDENTITY_PROVIDER', 'workos'):
@@ -22,13 +31,16 @@ class TestIdentityPlatformFactory(unittest.TestCase):
             with self.assertRaises(ValueError):
                 get_identity_client()
 
+    @pytest.mark.skipif(not WORKOS_AVAILABLE, reason="workos package not installed")
     def test_factory_supports_app_name_parameter(self):
         """Test that factory accepts app_name parameter."""
         with patch.object(settings, 'IDENTITY_PROVIDER', 'workos'):
             provider = get_identity_client(app_name='custom_app')
-            self.assertIsInstance(provider, WorkOSClient)
+            if WORKOS_AVAILABLE:
+                self.assertIsInstance(provider, WorkOSClient)
 
 
+@pytest.mark.skipif(not WORKOS_AVAILABLE, reason="workos package not installed")
 class TestWorkOSClient(unittest.TestCase):
     def setUp(self):
         with patch('swap_layer.identity.platform.providers.workos.client.workos') as mock_workos:
