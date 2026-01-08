@@ -53,8 +53,8 @@ class TestWorkOSClient(unittest.TestCase):
 
     def test_get_authorization_url(self):
         """Test generating authorization URL."""
-        with patch('swap_layer.identity.platform.providers.workos.client.workos.client') as mock_client:
-            mock_client.user_management.get_authorization_url.return_value = "https://workos.com/sso/authorize?client_id=..."
+        with patch('swap_layer.identity.platform.providers.workos.client.workos') as mock_workos:
+            mock_workos.client.user_management.get_authorization_url.return_value = "https://workos.com/sso/authorize?client_id=..."
             result = self.provider.get_authorization_url(
                 request=self.mock_request,
                 redirect_uri="https://example.com/callback",
@@ -62,7 +62,7 @@ class TestWorkOSClient(unittest.TestCase):
             )
 
             self.assertIn("workos.com", result)
-            mock_client.user_management.get_authorization_url.assert_called_once()
+            mock_workos.client.user_management.get_authorization_url.assert_called_once()
 
     def test_exchange_code_for_user_success(self):
         """Test exchanging authorization code for user data."""
