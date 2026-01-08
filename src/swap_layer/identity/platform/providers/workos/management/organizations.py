@@ -4,16 +4,16 @@ WorkOS organization management operations.
 Handles organization CRUD and membership management via the WorkOS Organizations API.
 """
 
-from typing import Dict, List, Optional, Any
+from typing import Any
 
-from swap_layer.identity.platform.management.adapter import OrganizationManagementAdapter
 from swap_layer.exceptions import SwapLayerException
+from swap_layer.identity.platform.management.adapter import OrganizationManagementAdapter
 
 
 class WorkOSAPIError(SwapLayerException):
     """WorkOS API error."""
 
-    def __init__(self, status_code: int, message: str, details: Optional[Dict] = None):
+    def __init__(self, status_code: int, message: str, details: dict | None = None):
         super().__init__(f"WorkOS API Error ({status_code}): {message}")
         self.status_code = status_code
         self.details = details or {}
@@ -24,25 +24,22 @@ class WorkOSOrganizationManagement(OrganizationManagementAdapter):
 
     def __init__(self, base_client):
         """Initialize with base management client.
-        
+
         Args:
             base_client: WorkOSManagementClient instance
         """
         self.base_client = base_client
 
     def list_organizations(
-        self, 
-        domains: Optional[List[str]] = None, 
-        limit: int = 50, 
-        **kwargs
-    ) -> Dict[str, Any]:
+        self, domains: list[str] | None = None, limit: int = 50, **kwargs
+    ) -> dict[str, Any]:
         """List organizations.
-        
+
         Args:
             domains: Filter by domains
             limit: Number of results to return
             **kwargs: Additional query parameters
-            
+
         Returns:
             Dict with 'data' (list of organizations) and 'listMetadata'
         """
@@ -52,30 +49,27 @@ class WorkOSOrganizationManagement(OrganizationManagementAdapter):
         params.update(kwargs)
         return self.base_client._make_request("GET", "/organizations", params=params)
 
-    def get_organization(self, organization_id: str) -> Dict[str, Any]:
+    def get_organization(self, organization_id: str) -> dict[str, Any]:
         """Get organization by ID.
-        
+
         Args:
             organization_id: WorkOS organization ID
-            
+
         Returns:
             Organization object
         """
         return self.base_client._make_request("GET", f"/organizations/{organization_id}")
 
     def create_organization(
-        self, 
-        name: str, 
-        domains: Optional[List[str]] = None, 
-        **kwargs
-    ) -> Dict[str, Any]:
+        self, name: str, domains: list[str] | None = None, **kwargs
+    ) -> dict[str, Any]:
         """Create a new organization.
-        
+
         Args:
             name: Organization name
             domains: List of domain names
             **kwargs: Additional properties (external_id, metadata, domain_data)
-            
+
         Returns:
             Created organization object
         """
@@ -89,18 +83,18 @@ class WorkOSOrganizationManagement(OrganizationManagementAdapter):
     def update_organization(
         self,
         organization_id: str,
-        name: Optional[str] = None,
-        domains: Optional[List[str]] = None,
-        **kwargs
-    ) -> Dict[str, Any]:
+        name: str | None = None,
+        domains: list[str] | None = None,
+        **kwargs,
+    ) -> dict[str, Any]:
         """Update an existing organization.
-        
+
         Args:
             organization_id: WorkOS organization ID
             name: Updated organization name
             domains: Updated list of domains
             **kwargs: Additional properties to update
-            
+
         Returns:
             Updated organization object
         """
@@ -114,10 +108,10 @@ class WorkOSOrganizationManagement(OrganizationManagementAdapter):
 
     def delete_organization(self, organization_id: str) -> bool:
         """Delete an organization.
-        
+
         Args:
             organization_id: WorkOS organization ID
-            
+
         Returns:
             True if successful
         """
@@ -125,18 +119,15 @@ class WorkOSOrganizationManagement(OrganizationManagementAdapter):
         return True
 
     def list_organization_members(
-        self, 
-        organization_id: str, 
-        limit: int = 50, 
-        **kwargs
-    ) -> Dict[str, Any]:
+        self, organization_id: str, limit: int = 50, **kwargs
+    ) -> dict[str, Any]:
         """List organization members.
-        
+
         Args:
             organization_id: WorkOS organization ID
             limit: Number of results to return
             **kwargs: Additional query parameters
-            
+
         Returns:
             Dict with organization membership data
         """
@@ -147,18 +138,15 @@ class WorkOSOrganizationManagement(OrganizationManagementAdapter):
         )
 
     def add_organization_member(
-        self, 
-        organization_id: str, 
-        user_id: str, 
-        role_slug: Optional[str] = None
-    ) -> Dict[str, Any]:
+        self, organization_id: str, user_id: str, role_slug: str | None = None
+    ) -> dict[str, Any]:
         """Add a member to an organization.
-        
+
         Args:
             organization_id: WorkOS organization ID
             user_id: WorkOS user ID
             role_slug: Role slug to assign
-            
+
         Returns:
             Organization membership object
         """
@@ -171,11 +159,11 @@ class WorkOSOrganizationManagement(OrganizationManagementAdapter):
 
     def remove_organization_member(self, organization_id: str, user_id: str) -> bool:
         """Remove a member from an organization.
-        
+
         Args:
             organization_id: WorkOS organization ID
             user_id: WorkOS user ID
-            
+
         Returns:
             True if successful
         """
@@ -190,21 +178,18 @@ class WorkOSOrganizationManagement(OrganizationManagementAdapter):
         return False
 
     def update_organization_member_role(
-        self, 
-        organization_id: str, 
-        user_id: str, 
-        role_slug: str
-    ) -> Dict[str, Any]:
+        self, organization_id: str, user_id: str, role_slug: str
+    ) -> dict[str, Any]:
         """Update organization member's role.
-        
+
         Args:
             organization_id: WorkOS organization ID
             user_id: WorkOS user ID
             role_slug: New role slug
-            
+
         Returns:
             Updated membership object
-            
+
         Raises:
             WorkOSAPIError: If membership not found
         """

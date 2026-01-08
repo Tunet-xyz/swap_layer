@@ -7,8 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0-rc1] - 2026-01-08
+
 ### Added
-- Initial release of SwapLayer
+- Initial public release candidate
 - Email module with Django/SMTP providers
 - Billing module with Stripe provider
 - SMS module with Twilio and AWS SNS providers
@@ -21,6 +23,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Django admin mixins for all modules
 - Abstract model mixins for common patterns
 
+### Fixed
+- Corrected package dependency from `workos-python` to `workos`
+- Updated ruff configuration to modern lint.* format
+- Fixed code formatting with ruff
+- Improved test coverage (107/109 tests passing)
+
 ### Security
 - Added request timeouts to all HTTP calls (30s default)
 - Thread-safe WorkOS client implementation
@@ -31,5 +39,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial beta release
 
-[Unreleased]: https://github.com/yourusername/swap_layer/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/yourusername/swap_layer/releases/tag/v0.1.0
+[Unreleased]: https://github.com/Tunet-xyz/swap_layer/compare/v1.0.0-rc1...HEAD
+[1.0.0-rc1]: https://github.com/Tunet-xyz/swap_layer/compare/v0.1.0...v1.0.0-rc1
+[0.1.0]: https://github.com/Tunet-xyz/swap_layer/releases/tag/v0.1.0

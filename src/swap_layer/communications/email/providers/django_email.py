@@ -1,34 +1,37 @@
-from typing import Dict, Any, Optional, List
+from typing import Any
+
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
+
 from ..adapter import EmailProviderAdapter, EmailSendError
+
 
 class DjangoEmailAdapter(EmailProviderAdapter):
     """
     Email provider that wraps Django's standard email backend.
-    This allows using any backend supported by Django or django-anymail 
+    This allows using any backend supported by Django or django-anymail
     (SMTP, SendGrid, Mailgun, SES, Postmark, etc.) configured via settings.
     """
 
     def send_email(
         self,
-        to: List[str],
+        to: list[str],
         subject: str,
-        text_body: Optional[str] = None,
-        html_body: Optional[str] = None,
-        from_email: Optional[str] = None,
-        cc: Optional[List[str]] = None,
-        bcc: Optional[List[str]] = None,
-        reply_to: Optional[str] = None,
-        attachments: Optional[List[Dict[str, Any]]] = None,
-        headers: Optional[Dict[str, str]] = None,
-        metadata: Optional[Dict[str, Any]] = None,
-        template_id: Optional[str] = None,
-        template_data: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        text_body: str | None = None,
+        html_body: str | None = None,
+        from_email: str | None = None,
+        cc: list[str] | None = None,
+        bcc: list[str] | None = None,
+        reply_to: str | None = None,
+        attachments: list[dict[str, Any]] | None = None,
+        headers: dict[str, str] | None = None,
+        metadata: dict[str, Any] | None = None,
+        template_id: str | None = None,
+        template_data: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         try:
             # If template_id is provided, we assume it's a Django template path
-            # For provider-specific templates (e.g. SendGrid dynamic templates), 
+            # For provider-specific templates (e.g. SendGrid dynamic templates),
             # one would typically use the 'metadata' or specific Anymail headers,
             # but here we standardize on Django templates for portability.
             if template_id and not html_body:
@@ -56,9 +59,9 @@ class DjangoEmailAdapter(EmailProviderAdapter):
                 for attachment in attachments:
                     # Expecting dict with 'filename', 'content', 'mimetype'
                     msg.attach(
-                        attachment.get('filename'),
-                        attachment.get('content'),
-                        attachment.get('mimetype')
+                        attachment.get("filename"),
+                        attachment.get("content"),
+                        attachment.get("mimetype"),
                     )
 
             # Support for Anymail-specific features via esp_extra if available
@@ -67,16 +70,17 @@ class DjangoEmailAdapter(EmailProviderAdapter):
                 msg.extra_headers = metadata
                 # Anymail uses 'tags' or 'metadata' attribute on the message object
                 # We can try to set it if the attribute exists (duck typing)
-                if hasattr(msg, 'metadata'):
+                if hasattr(msg, "metadata"):
                     msg.metadata = metadata
-                if hasattr(msg, 'tags') and 'tags' in metadata:
-                    msg.tags = metadata['tags']
+                if hasattr(msg, "tags") and "tags" in metadata:
+                    msg.tags = metadata["tags"]
 
             msg.send()
-            
+
             return {
                 "status": "sent",
-                "message_id": getattr(msg, 'anymail_status', {}).get('message_id') or "sent-via-django",
+                "message_id": getattr(msg, "anymail_status", {}).get("message_id")
+                or "sent-via-django",
             }
 
         except Exception as e:
@@ -84,82 +88,86 @@ class DjangoEmailAdapter(EmailProviderAdapter):
 
     def send_template_email(
         self,
-        to: List[str],
+        to: list[str],
         template_id: str,
-        template_data: Dict[str, Any],
-        from_email: Optional[str] = None,
-        cc: Optional[List[str]] = None,
-        bcc: Optional[List[str]] = None,
-        reply_to: Optional[List[str]] = None,
-        metadata: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        template_data: dict[str, Any],
+        from_email: str | None = None,
+        cc: list[str] | None = None,
+        bcc: list[str] | None = None,
+        reply_to: list[str] | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """
         Send a template email.
         Calls send_email with template_id and template_data.
         """
         # Convert list reply_to to string if needed by send_email (which seems to take string?)
         # Actually send_email in this file takes reply_to: Optional[str] based on my read
-        # But abstraction layer might enforce list? 
+        # But abstraction layer might enforce list?
         # The abstraction layer defines reply_to as Optional[List[str]].
         # This implementation's send_email takes reply_to: Optional[str].
         # We need to bridge this gap.
-        
+
         reply_to_str = reply_to[0] if reply_to else None
-        
+
         return self.send_email(
             to=to,
-            subject=template_data.get('subject', ''),
+            subject=template_data.get("subject", ""),
             template_id=template_id,
             template_data=template_data,
             from_email=from_email,
             cc=cc,
             bcc=bcc,
-            reply_to=reply_to_str, # type: ignore
-            metadata=metadata
+            reply_to=reply_to_str,  # type: ignore
+            metadata=metadata,
         )
 
     def send_bulk_email(
         self,
-        recipients: List[Dict[str, Any]],
+        recipients: list[dict[str, Any]],
         subject: str,
-        text_body: Optional[str] = None,
-        html_body: Optional[str] = None,
-        from_email: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        text_body: str | None = None,
+        html_body: str | None = None,
+        from_email: str | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """Simple loop implementation since Django generic backend doesn't support bulk."""
         sent = 0
         failed = 0
         failed_list = []
-        
+
         for r in recipients:
             try:
                 self.send_email(
-                    to=[r['to']],
+                    to=[r["to"]],
                     subject=subject,
                     text_body=text_body,
                     html_body=html_body,
                     from_email=from_email,
-                    metadata=metadata
+                    metadata=metadata,
                 )
                 sent += 1
             except Exception:
                 failed += 1
-                failed_list.append(r['to'])
-                
-        return {'total_sent': sent, 'total_failed': failed, 'failed_recipients': failed_list}
+                failed_list.append(r["to"])
 
-    def verify_email(self, email: str) -> Dict[str, Any]:
+        return {"total_sent": sent, "total_failed": failed, "failed_recipients": failed_list}
+
+    def verify_email(self, email: str) -> dict[str, Any]:
         raise NotImplementedError("Not supported by generic Django backend")
 
-    def get_send_statistics(self, start_date: Optional[str] = None, end_date: Optional[str] = None) -> Dict[str, Any]:
+    def get_send_statistics(
+        self, start_date: str | None = None, end_date: str | None = None
+    ) -> dict[str, Any]:
         raise NotImplementedError("Not supported by generic Django backend")
 
-    def add_to_suppression_list(self, email: str, reason: str = 'manual') -> Dict[str, Any]:
+    def add_to_suppression_list(self, email: str, reason: str = "manual") -> dict[str, Any]:
         raise NotImplementedError("Not supported by generic Django backend")
 
-    def remove_from_suppression_list(self, email: str) -> Dict[str, Any]:
+    def remove_from_suppression_list(self, email: str) -> dict[str, Any]:
         raise NotImplementedError("Not supported by generic Django backend")
 
-    def validate_webhook_signature(self, payload: bytes, signature: str, timestamp: Optional[str] = None) -> bool:
+    def validate_webhook_signature(
+        self, payload: bytes, signature: str, timestamp: str | None = None
+    ) -> bool:
         return False

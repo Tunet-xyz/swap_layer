@@ -1,13 +1,14 @@
-from typing import Dict, Any, Optional, BinaryIO
+from typing import Any, BinaryIO
+
 from django.core.files.storage import default_storage
-from django.core.files.base import ContentFile
+
 from ..adapter import (
+    StorageDeleteError,
+    StorageDownloadError,
     StorageProviderAdapter,
     StorageUploadError,
-    StorageDownloadError,
-    StorageDeleteError,
 )
-import mimetypes
+
 
 class DjangoStorageAdapter(StorageProviderAdapter):
     """
@@ -20,14 +21,14 @@ class DjangoStorageAdapter(StorageProviderAdapter):
         self,
         file_path: str,
         file_data: BinaryIO,
-        content_type: Optional[str] = None,
-        metadata: Optional[Dict[str, str]] = None,
-        public: bool = False
-    ) -> Dict[str, Any]:
+        content_type: str | None = None,
+        metadata: dict[str, str] | None = None,
+        public: bool = False,
+    ) -> dict[str, Any]:
         try:
             # Django storage saves the file and returns the name
             saved_path = default_storage.save(file_path, file_data)
-            
+
             # Try to get the URL, might fail for some backends
             try:
                 url = default_storage.url(saved_path)
@@ -50,19 +51,15 @@ class DjangoStorageAdapter(StorageProviderAdapter):
         except Exception as e:
             raise StorageUploadError(f"Failed to upload file: {str(e)}") from e
 
-    def download_file(
-        self,
-        file_path: str,
-        destination: Optional[str] = None
-    ) -> bytes:
+    def download_file(self, file_path: str, destination: str | None = None) -> bytes:
         try:
-            with default_storage.open(file_path, 'rb') as f:
+            with default_storage.open(file_path, "rb") as f:
                 content = f.read()
-            
+
             if destination:
-                with open(destination, 'wb') as f:
+                with open(destination, "wb") as f:
                     f.write(content)
-            
+
             return content
         except Exception as e:
             raise StorageDownloadError(f"Failed to download file: {str(e)}") from e
@@ -80,25 +77,22 @@ class DjangoStorageAdapter(StorageProviderAdapter):
         try:
             # Note: expiry_seconds might be ignored by some backends or require specific config
             return default_storage.url(file_path)
-        except Exception as e:
+        except Exception:
             # Fallback or re-raise depending on strictness needed
             return ""
 
-    def list_files(self, prefix: str = "") -> Dict[str, Any]:
+    def list_files(self, prefix: str = "") -> dict[str, Any]:
         try:
             directories, files = default_storage.listdir(prefix)
-            return {
-                "files": files,
-                "directories": directories
-            }
-        except Exception as e:
-             # Some backends don't support listing
-             return {"files": [], "directories": []}
+            return {"files": files, "directories": directories}
+        except Exception:
+            # Some backends don't support listing
+            return {"files": [], "directories": []}
 
     def file_exists(self, file_path: str) -> bool:
         return default_storage.exists(file_path)
 
-    def get_file_metadata(self, file_path: str) -> Dict[str, Any]:
+    def get_file_metadata(self, file_path: str) -> dict[str, Any]:
         try:
             return {
                 "size": default_storage.size(file_path),

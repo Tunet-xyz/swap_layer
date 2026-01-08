@@ -9,17 +9,17 @@ identity.platform module.
 """
 
 from .adapter import (
-    UserManagementAdapter,
+    LogManagementAdapter,
     OrganizationManagementAdapter,
     RoleManagementAdapter,
-    LogManagementAdapter,
+    UserManagementAdapter,
 )
 from .factory import get_management_client
 
 __all__ = [
-    'UserManagementAdapter',
-    'OrganizationManagementAdapter',
-    'RoleManagementAdapter',
-    'LogManagementAdapter',
-    'get_management_client',
+    "UserManagementAdapter",
+    "OrganizationManagementAdapter",
+    "RoleManagementAdapter",
+    "LogManagementAdapter",
+    "get_management_client",
 ]
