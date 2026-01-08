@@ -53,7 +53,8 @@ class TestWorkOSClient(unittest.TestCase):
 
     def test_get_authorization_url(self):
         """Test generating authorization URL."""
-        with patch('swap_layer.identity.platform.providers.workos.client.workos') as mock_workos:
+        with patch('swap_layer.identity.platform.providers.workos.client.workos') as mock_workos, \
+             patch('swap_layer.identity.platform.providers.workos.client.UserManagementProviderType') as mock_provider_type:
             mock_workos.client.user_management.get_authorization_url.return_value = "https://workos.com/sso/authorize?client_id=..."
             result = self.provider.get_authorization_url(
                 request=self.mock_request,
