@@ -57,7 +57,7 @@ class TestLocalStorageProvider(unittest.TestCase):
 
         self.assertEqual(result, b"file content")
 
-    @patch("swap_layer.storage.providers.local.os.path.exists", return_value=False)
+    @patch("swap_layer.storage.providers.local.Path.exists", return_value=False)
     def test_download_file_not_found(self, mock_exists):
         """Test downloading non-existent file raises error."""
         from swap_layer.storage.adapter import StorageFileNotFoundError
@@ -81,7 +81,7 @@ class TestLocalStorageProvider(unittest.TestCase):
 
                 self.assertTrue(result)
 
-    @patch("swap_layer.storage.providers.local.os.path.exists", return_value=False)
+    @patch("swap_layer.storage.providers.local.Path.exists", return_value=False)
     def test_file_not_exists(self, mock_exists):
         """Test checking non-existent file."""
         result = self.provider.file_exists("nonexistent.txt")
