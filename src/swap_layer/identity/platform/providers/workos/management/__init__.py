@@ -10,7 +10,7 @@ This package provides modular access to WorkOS management operations:
 Example:
     ```python
     from swap_layer.identity.platform.management.factory import get_management_client
-    
+
     mgmt = get_management_client()
     user = mgmt.users.get_user("user_01H8...")
     ```

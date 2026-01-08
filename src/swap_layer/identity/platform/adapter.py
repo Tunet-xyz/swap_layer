@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional
+from typing import Any
+
 
 class AuthProviderAdapter(ABC):
     """
@@ -8,14 +9,14 @@ class AuthProviderAdapter(ABC):
     """
 
     @abstractmethod
-    def get_authorization_url(self, request, redirect_uri: str, state: Optional[str] = None) -> str:
+    def get_authorization_url(self, request, redirect_uri: str, state: str | None = None) -> str:
         """
         Generate the URL to redirect the user to for login.
         """
         pass
 
     @abstractmethod
-    def exchange_code_for_user(self, request, code: str) -> Dict[str, Any]:
+    def exchange_code_for_user(self, request, code: str) -> dict[str, Any]:
         """
         Exchange the authorization code for user details.
         Returns a dictionary with normalized user data.

@@ -6,14 +6,12 @@ Provides resilient HTTP requests with exponential backoff for all provider integ
 
 import logging
 from functools import wraps
-from typing import Any, Callable, Optional, Type, Union
 
 import requests
 from requests.exceptions import (
     ConnectionError,
     HTTPError,
     Timeout,
-    RequestException,
 )
 
 logger = logging.getLogger(__name__)
@@ -41,16 +39,16 @@ def is_retryable_error(exception: Exception) -> bool:
 
 try:
     from tenacity import (
+        RetryError,
+        before_sleep_log,
         retry,
+        retry_if_exception,
         stop_after_attempt,
         wait_exponential,
-        retry_if_exception,
-        before_sleep_log,
-        RetryError,
     )
-    
+
     TENACITY_AVAILABLE = True
-    
+
     def create_retry_decorator(
         max_retries: int = DEFAULT_MAX_RETRIES,
         min_wait: float = 1,
@@ -58,12 +56,12 @@ try:
     ):
         """
         Create a retry decorator with exponential backoff.
-        
+
         Args:
             max_retries: Maximum number of retry attempts
             min_wait: Minimum wait time between retries (seconds)
             max_wait: Maximum wait time between retries (seconds)
-            
+
         Returns:
             Configured retry decorator
         """
@@ -74,26 +72,29 @@ try:
             before_sleep=before_sleep_log(logger, logging.WARNING),
             reraise=True,
         )
-    
+
     # Default retry decorator
     with_retry = create_retry_decorator()
 
 except ImportError:
     TENACITY_AVAILABLE = False
-    
+
     def create_retry_decorator(
         max_retries: int = DEFAULT_MAX_RETRIES,
         min_wait: float = 1,
         max_wait: float = 60,
     ):
         """Fallback when tenacity is not installed - no retry logic."""
+
         def decorator(func):
             @wraps(func)
             def wrapper(*args, **kwargs):
                 return func(*args, **kwargs)
+
             return wrapper
+
         return decorator
-    
+
     def with_retry(func):
         """Fallback decorator when tenacity is not installed."""
         return func
@@ -102,25 +103,25 @@ except ImportError:
 class ResilientSession:
     """
     A requests session with built-in retry logic and timeouts.
-    
+
     Use this for all HTTP requests to external providers to ensure
     resilient communication with automatic retries on transient failures.
-    
+
     Example:
         session = ResilientSession(base_url="https://api.provider.com")
         response = session.get("/users", params={"limit": 10})
     """
-    
+
     def __init__(
         self,
         base_url: str = "",
         timeout: int = DEFAULT_TIMEOUT,
         max_retries: int = DEFAULT_MAX_RETRIES,
-        headers: Optional[dict] = None,
+        headers: dict | None = None,
     ):
         """
         Initialize resilient session.
-        
+
         Args:
             base_url: Base URL for all requests
             timeout: Request timeout in seconds
@@ -131,10 +132,10 @@ class ResilientSession:
         self.timeout = timeout
         self.max_retries = max_retries
         self.session = requests.Session()
-        
+
         if headers:
             self.session.headers.update(headers)
-    
+
     def _make_request(
         self,
         method: str,
@@ -143,56 +144,56 @@ class ResilientSession:
     ) -> requests.Response:
         """
         Make an HTTP request with retry logic.
-        
+
         Args:
             method: HTTP method
             endpoint: API endpoint (will be appended to base_url)
             **kwargs: Additional arguments passed to requests
-            
+
         Returns:
             Response object
-            
+
         Raises:
             RequestException: If all retries fail
         """
         url = f"{self.base_url}{endpoint}" if self.base_url else endpoint
         kwargs.setdefault("timeout", self.timeout)
-        
+
         @create_retry_decorator(max_retries=self.max_retries)
         def _request():
             response = self.session.request(method, url, **kwargs)
             response.raise_for_status()
             return response
-        
+
         return _request()
-    
+
     def get(self, endpoint: str, **kwargs) -> requests.Response:
         """Make a GET request."""
         return self._make_request("GET", endpoint, **kwargs)
-    
+
     def post(self, endpoint: str, **kwargs) -> requests.Response:
         """Make a POST request."""
         return self._make_request("POST", endpoint, **kwargs)
-    
+
     def put(self, endpoint: str, **kwargs) -> requests.Response:
         """Make a PUT request."""
         return self._make_request("PUT", endpoint, **kwargs)
-    
+
     def patch(self, endpoint: str, **kwargs) -> requests.Response:
         """Make a PATCH request."""
         return self._make_request("PATCH", endpoint, **kwargs)
-    
+
     def delete(self, endpoint: str, **kwargs) -> requests.Response:
         """Make a DELETE request."""
         return self._make_request("DELETE", endpoint, **kwargs)
-    
+
     def close(self):
         """Close the session."""
         self.session.close()
-    
+
     def __enter__(self):
         return self
-    
+
     def __exit__(self, *args):
         self.close()
 
@@ -206,26 +207,26 @@ def resilient_request(
 ) -> requests.Response:
     """
     Make a single resilient HTTP request with retry logic.
-    
+
     Use this for one-off requests. For multiple requests to the same
     service, use ResilientSession instead.
-    
+
     Args:
         method: HTTP method
         url: Full URL
         timeout: Request timeout in seconds
         max_retries: Maximum retry attempts
         **kwargs: Additional arguments passed to requests
-        
+
     Returns:
         Response object
     """
     kwargs.setdefault("timeout", timeout)
-    
+
     @create_retry_decorator(max_retries=max_retries)
     def _request():
         response = requests.request(method, url, **kwargs)
         response.raise_for_status()
         return response
-    
+
     return _request()
