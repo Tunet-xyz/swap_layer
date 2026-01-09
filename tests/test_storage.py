@@ -20,7 +20,16 @@ class TestStorageFactory(unittest.TestCase):
 
     def test_factory_raises_for_unknown_provider(self):
         """Test that the factory raises ValueError for unknown providers."""
-        with patch.object(settings, 'STORAGE_PROVIDER', 'unknown'):
+        from swap_layer.settings import SwapLayerSettings
+
+        # Create mock settings with unknown provider
+        mock_settings = SwapLayerSettings(
+            storage={'provider': 'local'}
+        )
+        # Override provider to invalid value after creation
+        mock_settings.storage.provider = 'unknown'
+
+        with patch('swap_layer.storage.factory.get_swaplayer_settings', return_value=mock_settings):
             with self.assertRaises(ValueError):
                 get_storage_provider()
 

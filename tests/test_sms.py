@@ -18,7 +18,18 @@ class TestSMSFactory(unittest.TestCase):
 
     def test_factory_raises_for_unknown_provider(self):
         """Test that the factory raises ValueError for unknown providers."""
-        with patch.object(settings, 'SMS_PROVIDER', 'unknown'):
+        from swap_layer.settings import SwapLayerSettings
+
+        # Create mock settings with unknown provider
+        mock_settings = SwapLayerSettings(
+            communications={
+                'sms': {'provider': 'twilio', 'twilio': {'account_sid': 'AC123', 'auth_token': 'test', 'from_number': '+1555'}}
+            }
+        )
+        # Override provider to invalid value after creation
+        mock_settings.communications.sms.provider = 'unknown'
+
+        with patch('swap_layer.communications.sms.factory.get_swaplayer_settings', return_value=mock_settings):
             with self.assertRaises(ValueError):
                 get_sms_provider()
 

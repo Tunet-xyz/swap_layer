@@ -1,4 +1,4 @@
-from django.conf import settings
+from swap_layer.settings import get_swaplayer_settings
 
 from .adapter import IdentityVerificationProviderAdapter
 
@@ -6,7 +6,7 @@ from .adapter import IdentityVerificationProviderAdapter
 def get_identity_verification_provider() -> IdentityVerificationProviderAdapter:
     """
     Factory function to return the configured Identity Verification Provider.
-    This allows switching vendors by changing the IDENTITY_VERIFICATION_PROVIDER Django setting.
+    This allows switching vendors by changing the provider in SwapLayerSettings.
 
     Returns:
         IdentityVerificationProviderAdapter: The configured provider instance
@@ -14,7 +14,15 @@ def get_identity_verification_provider() -> IdentityVerificationProviderAdapter:
     Raises:
         ValueError: If the provider is not supported or not configured
     """
-    provider = getattr(settings, 'IDENTITY_VERIFICATION_PROVIDER', 'stripe')
+    # Get provider from SwapLayerSettings
+    settings = get_swaplayer_settings()
+
+    if settings.verification:
+        provider = settings.verification.provider
+    else:
+        # Fallback to legacy Django settings for backward compatibility
+        from django.conf import settings as django_settings
+        provider = getattr(django_settings, 'IDENTITY_VERIFICATION_PROVIDER', 'stripe')
 
     if provider == 'stripe':
         from .providers.stripe import StripeIdentityVerificationProvider

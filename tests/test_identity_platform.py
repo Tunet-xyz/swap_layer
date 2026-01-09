@@ -27,7 +27,17 @@ class TestIdentityPlatformFactory(unittest.TestCase):
 
     def test_factory_raises_for_unknown_provider(self):
         """Test that the factory raises ValueError for unknown providers."""
-        with patch.object(settings, 'IDENTITY_PROVIDER', 'unknown'):
+        from unittest.mock import MagicMock
+
+        from swap_layer.settings import SwapLayerSettings
+
+        # Create a mock settings object that returns 'unknown' provider
+        mock_settings = MagicMock(spec=SwapLayerSettings)
+        mock_identity = MagicMock()
+        mock_identity.provider = 'unknown'
+        mock_settings.identity = mock_identity
+
+        with patch('swap_layer.identity.platform.factory.get_swaplayer_settings', return_value=mock_settings):
             with self.assertRaises(ValueError):
                 get_identity_client()
 

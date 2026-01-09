@@ -1,4 +1,4 @@
-from django.conf import settings
+from swap_layer.settings import get_swaplayer_settings
 
 from .adapter import AuthProviderAdapter
 
@@ -6,9 +6,17 @@ from .adapter import AuthProviderAdapter
 def get_identity_client(app_name='default') -> AuthProviderAdapter:
     """
     Factory function to return the configured Identity Provider Client.
-    This allows switching vendors by changing the IDENTITY_PROVIDER Django setting.
+    This allows switching vendors by changing the provider in SwapLayerSettings.
     """
-    provider = getattr(settings, 'IDENTITY_PROVIDER', 'workos')
+    # Get provider from SwapLayerSettings
+    settings = get_swaplayer_settings()
+
+    if settings.identity:
+        provider = settings.identity.provider
+    else:
+        # Fallback to legacy Django settings for backward compatibility
+        from django.conf import settings as django_settings
+        provider = getattr(django_settings, 'IDENTITY_PROVIDER', 'workos')
 
     if provider == 'workos':
         from .providers.workos.client import WorkOSClient

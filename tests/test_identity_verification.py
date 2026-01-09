@@ -22,7 +22,16 @@ class TestIdentityVerificationFactory(unittest.TestCase):
 
     def test_factory_raises_for_unknown_provider(self):
         """Test that the factory raises ValueError for unknown providers."""
-        with patch.object(settings, 'IDENTITY_VERIFICATION_PROVIDER', 'unknown'):
+        from swap_layer.settings import SwapLayerSettings
+
+        # Create mock settings with unknown provider
+        mock_settings = SwapLayerSettings(
+            verification={'provider': 'stripe', 'stripe_secret_key': 'sk_test_123'}
+        )
+        # Override provider to invalid value after creation
+        mock_settings.verification.provider = 'unknown'
+
+        with patch('swap_layer.identity.verification.factory.get_swaplayer_settings', return_value=mock_settings):
             with self.assertRaises(ValueError):
                 get_identity_verification_provider()
 
