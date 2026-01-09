@@ -1,0 +1,61 @@
+# SwapLayer MCP Server
+
+Model Context Protocol (MCP) server for SwapLayer - exposes provider management as AI assistant tools.
+
+## Quick Start
+
+Install:
+```bash
+pip install 'SwapLayer[mcp]'
+```
+
+Run:
+```bash
+swaplayer-mcp
+```
+
+## What This Does
+
+Exposes SwapLayer functionality as tools that AI assistants can use:
+
+- **Configuration Inspection**: Check which providers are configured
+- **Provider Discovery**: List available providers for each service
+- **Testing**: Send test emails, SMS, check storage connectivity
+- **Provider Information**: Get setup instructions and capabilities
+
+## Security
+
+Automatically redacts sensitive data (API keys, secrets, tokens) from all responses.
+
+## Documentation
+
+See [docs/mcp.md](../../../docs/mcp.md) for complete documentation.
+
+## Example Tools
+
+```python
+# Available tools:
+- swaplayer_get_config           # Get configuration
+- swaplayer_list_providers       # List available providers
+- swaplayer_send_test_email      # Send test email
+- swaplayer_send_test_sms        # Send test SMS
+- swaplayer_check_storage        # Check storage config
+- swaplayer_get_provider_info    # Get provider details
+```
+
+## Integration
+
+Works with any MCP-compatible AI assistant:
+- Claude Desktop
+- VS Code with Copilot
+- Custom AI tools
+
+## Why MCP?
+
+AI assistants can help you:
+- Configure SwapLayer providers through conversation
+- Switch providers with guided assistance
+- Test integrations without writing scripts
+- Learn provider capabilities on demand
+
+This aligns perfectly with SwapLayer's anti-vendor-lock-in philosophy by making provider switching even easier.
