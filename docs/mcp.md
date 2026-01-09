@@ -4,6 +4,8 @@
 
 SwapLayer provides a **Model Context Protocol (MCP)** server that exposes its provider management capabilities as tools for AI assistants and LLMs. This allows AI-powered development workflows to interact with SwapLayer's infrastructure abstractions through natural language.
 
+**Important**: The MCP server is intentionally scoped to **configuration and testing tools** for security and practicality. It does not expose full transactional APIs (e.g., creating production customers, processing payments). See [Coverage](#coverage) section for details.
+
 ## What is MCP?
 
 The Model Context Protocol (MCP) is a standard protocol that enables AI assistants to interact with external tools and data sources. By exposing SwapLayer as MCP tools, developers can:
@@ -12,6 +14,7 @@ The Model Context Protocol (MCP) is a standard protocol that enables AI assistan
 - Switch between providers with AI assistance
 - Perform operational tasks like sending test emails or SMS
 - Inspect configuration and available providers
+- Get provider information and capabilities
 
 ## Installation
 
@@ -200,6 +203,79 @@ Get detailed information about a specific provider implementation.
   }
 }
 ```
+
+## Coverage
+
+### What the MCP Server Covers
+
+The MCP server provides **configuration and testing tools** for all SwapLayer services:
+
+✅ **Configuration Management**
+- Inspect current configuration (all services)
+- List available providers (all services)
+- Get provider information and capabilities
+
+✅ **Testing & Validation**
+- Send test emails (email service)
+- Send test SMS (SMS service)
+- Check storage connectivity (storage service)
+
+✅ **Developer Guidance**
+- Provider setup instructions
+- Capability discovery
+- Configuration assistance
+
+### What the MCP Server Does NOT Cover
+
+For security and practical reasons, the MCP server does **not** expose full transactional/operational APIs:
+
+❌ **Billing/Payments Operations**
+- Customer management (create, update, delete)
+- Subscription operations (create, cancel, update)
+- Payment processing (create payment intents, checkout sessions)
+- Invoice management
+- Production transactions
+
+❌ **Identity Operations**
+- OAuth flows and user authentication
+- Session management
+- User data operations
+
+❌ **Identity Verification Operations**
+- Verification session lifecycle
+- Verification reports
+- Production verification operations
+
+❌ **Advanced Service Features**
+- Bulk operations
+- Production data management
+- Complex workflows requiring multiple API calls
+
+### Why This Scope?
+
+**Security**: AI assistants should not perform production transactions or manage sensitive data operations.
+
+**Practicality**: Configuration and testing tools are where AI assistance is most valuable—helping developers set up, explore, and validate their infrastructure.
+
+**Maintenance**: Limited scope means lower complexity and maintenance burden.
+
+### When You Need Full API Access
+
+For production operations, use SwapLayer's Python API directly:
+
+```python
+from swap_layer import get_provider
+
+# Full API access for production code
+payments = get_provider('payments')
+customer = payments.create_customer(email='user@example.com')
+subscription = payments.create_subscription(
+    customer_id=customer['id'],
+    price_id='price_123'
+)
+```
+
+The MCP server is designed to **complement** the Python API, not replace it.
 
 ## Use Cases
 

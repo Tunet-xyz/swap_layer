@@ -16,12 +16,14 @@ swaplayer-mcp
 
 ## What This Does
 
-Exposes SwapLayer functionality as tools that AI assistants can use:
+Exposes SwapLayer **configuration and testing tools** as AI assistant tools:
 
 - **Configuration Inspection**: Check which providers are configured
 - **Provider Discovery**: List available providers for each service
 - **Testing**: Send test emails, SMS, check storage connectivity
 - **Provider Information**: Get setup instructions and capabilities
+
+**Note**: For security, the MCP server does NOT expose full transactional APIs (e.g., creating customers, processing payments). It's focused on configuration and testing. See docs/mcp.md for details.
 
 ## Security
 
