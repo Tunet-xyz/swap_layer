@@ -4,6 +4,7 @@ MCP Server implementation for SwapLayer.
 Provides tools for AI assistants to interact with SwapLayer providers.
 """
 import json
+import uuid
 from typing import Any
 
 try:
@@ -13,6 +14,12 @@ try:
 except ImportError:
     MCP_AVAILABLE = False
     Server = None  # type: ignore
+
+# Sensitive keys that should be redacted from configuration output
+SENSITIVE_KEYS = {
+    'secret_key', 'api_key', 'password', 'token',
+    'account_sid', 'auth_token', 'client_secret'
+}
 
 
 def create_mcp_server() -> Any:
@@ -200,8 +207,7 @@ async def _get_config(service: str) -> dict[str, Any]:
                     if svc_config:
                         # Remove sensitive keys
                         safe_config = {k: v for k, v in svc_config.items()
-                                     if k not in ['secret_key', 'api_key', 'password', 'token',
-                                                'account_sid', 'auth_token', 'client_secret']}
+                                     if k not in SENSITIVE_KEYS}
                         config[svc] = safe_config
             return {"status": "success", "config": config}
         else:
@@ -210,8 +216,8 @@ async def _get_config(service: str) -> dict[str, Any]:
                 svc_config = getattr(settings, service)
                 if svc_config:
                     safe_config = {k: v for k, v in svc_config.items()
-                                 if k not in ['secret_key', 'api_key', 'password', 'token',
-                                            'account_sid', 'auth_token', 'client_secret']}
+                                 if k not in SENSITIVE_KEYS}
+                    return {"status": "success", "service": service, "config": safe_config}
                     return {"status": "success", "service": service, "config": safe_config}
             return {"status": "not_configured", "service": service}
     except Exception as e:
@@ -303,9 +309,9 @@ async def _check_storage(test_upload: bool = False) -> dict[str, Any]:
         }
 
         if test_upload:
-            # Perform a test upload
+            # Perform a test upload with unique filename to avoid conflicts
             test_content = b"SwapLayer MCP test file"
-            test_filename = "mcp_test.txt"
+            test_filename = f"mcp_test_{uuid.uuid4().hex[:8]}.txt"
 
             try:
                 storage_provider.save(test_filename, test_content)
