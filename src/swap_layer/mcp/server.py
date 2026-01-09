@@ -147,6 +147,48 @@ def create_mcp_server() -> Any:
                     "required": ["service", "provider"]
                 }
             ),
+            types.Tool(
+                name="swaplayer_generate_code",
+                description="Generate code examples for using SwapLayer with specific operations and services",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "service": {
+                            "type": "string",
+                            "description": "Service type to generate code for",
+                            "enum": ["email", "payments", "sms", "storage", "identity", "verification"]
+                        },
+                        "operation": {
+                            "type": "string",
+                            "description": "Operation to perform (e.g., 'send_email', 'create_customer', 'upload_file')"
+                        },
+                        "context": {
+                            "type": "string",
+                            "description": "Optional context about the use case or requirements"
+                        }
+                    },
+                    "required": ["service", "operation"]
+                }
+            ),
+            types.Tool(
+                name="swaplayer_get_usage_examples",
+                description="Get common usage examples and patterns for a specific service",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "service": {
+                            "type": "string",
+                            "description": "Service type to get examples for",
+                            "enum": ["email", "payments", "sms", "storage", "identity", "verification"]
+                        },
+                        "pattern": {
+                            "type": "string",
+                            "description": "Specific pattern or use case (e.g., 'welcome_email', 'subscription_flow', 'file_upload')",
+                        }
+                    },
+                    "required": ["service"]
+                }
+            ),
         ]
 
     @server.call_tool()
@@ -176,6 +218,17 @@ def create_mcp_server() -> Any:
                 result = await _get_provider_info(
                     arguments["service"],
                     arguments["provider"]
+                )
+            elif name == "swaplayer_generate_code":
+                result = await _generate_code(
+                    arguments["service"],
+                    arguments["operation"],
+                    arguments.get("context", "")
+                )
+            elif name == "swaplayer_get_usage_examples":
+                result = await _get_usage_examples(
+                    arguments["service"],
+                    arguments.get("pattern", "")
                 )
             else:
                 raise ValueError(f"Unknown tool: {name}")
@@ -415,4 +468,359 @@ async def _get_provider_info(service: str, provider: str) -> dict[str, Any]:
         "service": service,
         "provider": provider,
         "info": provider_info[service][provider]
+    }
+
+
+async def _generate_code(service: str, operation: str, context: str = "") -> dict[str, Any]:
+    """Generate code examples for using SwapLayer."""
+    code_templates = {
+        "email": {
+            "send_email": """# Send email using SwapLayer
+from swap_layer import get_provider
+
+email_provider = get_provider('email')
+result = email_provider.send_email(
+    to=['recipient@example.com'],
+    subject='Your Subject Here',
+    text_body='Plain text content',
+    html_body='<h1>HTML content</h1>',  # optional
+    from_email='sender@example.com'  # optional, uses default
+)
+print(f"Email sent: {{result['message_id']}}")""",
+            "send_with_attachment": """# Send email with attachment
+from swap_layer import get_provider
+
+email_provider = get_provider('email')
+result = email_provider.send_email(
+    to=['recipient@example.com'],
+    subject='Document Attached',
+    text_body='Please find the attached document.',
+    attachments=[
+        {
+            'filename': 'document.pdf',
+            'content': open('path/to/document.pdf', 'rb').read(),
+            'mimetype': 'application/pdf'
+        }
+    ]
+)""",
+        },
+        "payments": {
+            "create_customer": """# Create a customer
+from swap_layer import get_provider
+
+payments = get_provider('payments')
+customer = payments.create_customer(
+    email='customer@example.com',
+    name='John Doe',
+    metadata={'user_id': '12345'}
+)
+print(f"Customer created: {{customer['id']}}")""",
+            "create_subscription": """# Create a subscription
+from swap_layer import get_provider
+
+payments = get_provider('payments')
+
+# First create a customer
+customer = payments.create_customer(email='customer@example.com')
+
+# Then create a subscription
+subscription = payments.create_subscription(
+    customer_id=customer['id'],
+    price_id='price_xxxxx',  # Your price ID from provider
+    metadata={'plan': 'premium'}
+)
+print(f"Subscription created: {{subscription['id']}}")""",
+            "create_payment_intent": """# Create a payment intent
+from swap_layer import get_provider
+
+payments = get_provider('payments')
+intent = payments.create_payment_intent(
+    amount=2000,  # Amount in cents
+    currency='usd',
+    customer_id='cus_xxxxx',  # optional
+    metadata={'order_id': '12345'}
+)
+print(f"Payment intent: {{intent['id']}}")
+print(f"Client secret: {{intent['client_secret']}}")""",
+        },
+        "sms": {
+            "send_sms": """# Send SMS using SwapLayer
+from swap_layer import get_provider
+
+sms_provider = get_provider('sms')
+result = sms_provider.send_sms(
+    to='+15555551234',  # E.164 format
+    message='Your verification code is: 123456'
+)
+print(f"SMS sent: {{result['message_id']}}")""",
+        },
+        "storage": {
+            "upload_file": """# Upload file to storage
+from swap_layer import get_provider
+
+storage = get_provider('storage')
+
+# Upload a file
+with open('local_file.jpg', 'rb') as f:
+    file_content = f.read()
+
+storage.save('uploads/image.jpg', file_content)
+url = storage.url('uploads/image.jpg')
+print(f"File uploaded: {{url}}")""",
+            "check_file_exists": """# Check if file exists
+from swap_layer import get_provider
+
+storage = get_provider('storage')
+
+if storage.exists('uploads/image.jpg'):
+    print("File exists")
+    url = storage.url('uploads/image.jpg')
+    print(f"URL: {{url}}")
+else:
+    print("File not found")""",
+        },
+        "identity": {
+            "oauth_flow": """# OAuth authentication flow
+from swap_layer import get_provider
+
+# In your login view
+identity = get_provider('identity')
+auth_url = identity.get_authorization_url(
+    request=request,
+    redirect_uri='https://yourapp.com/callback',
+    state='random_state_string'
+)
+return redirect(auth_url)
+
+# In your callback view
+user_data = identity.exchange_code_for_user(
+    request=request,
+    code=request.GET['code']
+)
+print(f"User logged in: {{user_data['email']}}")""",
+        },
+        "verification": {
+            "create_verification": """# Create identity verification session
+from swap_layer import get_provider
+
+verification = get_provider('verification')
+session = verification.create_verification_session(
+    type='identity',
+    metadata={'user_id': '12345'}
+)
+print(f"Verification URL: {{session['url']}}")
+print(f"Session ID: {{session['id']}}")""",
+        }
+    }
+
+    # Try to find the specific operation
+    if service in code_templates and operation in code_templates[service]:
+        code = code_templates[service][operation]
+        return {
+            "status": "success",
+            "service": service,
+            "operation": operation,
+            "code": code,
+            "language": "python"
+        }
+
+    # Return generic template if specific operation not found
+    generic_templates = {
+        "email": "send_email",
+        "payments": "create_customer",
+        "sms": "send_sms",
+        "storage": "upload_file",
+        "identity": "oauth_flow",
+        "verification": "create_verification"
+    }
+
+    if service in generic_templates:
+        default_op = generic_templates[service]
+        code = code_templates[service][default_op]
+        return {
+            "status": "success",
+            "service": service,
+            "operation": f"{operation} (showing default example: {default_op})",
+            "code": code,
+            "language": "python",
+            "note": f"Specific operation '{operation}' not found. Showing common example."
+        }
+
+    return {
+        "status": "error",
+        "message": f"No code templates available for service '{service}'"
+    }
+
+
+async def _get_usage_examples(service: str, pattern: str = "") -> dict[str, Any]:
+    """Get common usage examples and patterns."""
+    examples = {
+        "email": {
+            "welcome_email": {
+                "description": "Send a welcome email when user signs up",
+                "code": """# Welcome email pattern
+from swap_layer import get_provider
+
+def send_welcome_email(user_email, user_name):
+    email = get_provider('email')
+    return email.send_email(
+        to=[user_email],
+        subject=f'Welcome to Our App, {user_name}!',
+        html_body=f'''
+            <h1>Welcome {user_name}!</h1>
+            <p>Thanks for joining our platform.</p>
+            <p><a href="https://yourapp.com/get-started">Get Started</a></p>
+        ''',
+        text_body=f'Welcome {user_name}! Thanks for joining.'
+    )"""
+            },
+            "transactional": {
+                "description": "Send transactional emails (receipts, confirmations)",
+                "code": """# Transactional email pattern
+from swap_layer import get_provider
+
+def send_order_confirmation(order):
+    email = get_provider('email')
+    return email.send_email(
+        to=[order.customer_email],
+        subject=f'Order Confirmation #{order.id}',
+        html_body=render_template('emails/order_confirmation.html', order=order),
+        metadata={'order_id': order.id, 'type': 'order_confirmation'}
+    )"""
+            }
+        },
+        "payments": {
+            "subscription_flow": {
+                "description": "Complete subscription creation flow",
+                "code": """# Subscription flow pattern
+from swap_layer import get_provider
+
+def create_subscription_for_user(user, plan_price_id):
+    payments = get_provider('payments')
+
+    # Create or get customer
+    customer = payments.create_customer(
+        email=user.email,
+        name=user.name,
+        metadata={'user_id': str(user.id)}
+    )
+
+    # Create subscription
+    subscription = payments.create_subscription(
+        customer_id=customer['id'],
+        price_id=plan_price_id,
+        metadata={'user_id': str(user.id)}
+    )
+
+    # Save subscription info to your database
+    user.stripe_customer_id = customer['id']
+    user.stripe_subscription_id = subscription['id']
+    user.save()
+
+    return subscription"""
+            },
+            "one_time_payment": {
+                "description": "Process a one-time payment",
+                "code": """# One-time payment pattern
+from swap_layer import get_provider
+
+def process_payment(amount_cents, customer_email, description):
+    payments = get_provider('payments')
+
+    # Create customer
+    customer = payments.create_customer(email=customer_email)
+
+    # Create payment intent
+    intent = payments.create_payment_intent(
+        amount=amount_cents,
+        currency='usd',
+        customer_id=customer['id'],
+        metadata={'description': description}
+    )
+
+    return {
+        'client_secret': intent['client_secret'],
+        'payment_id': intent['id']
+    }"""
+            }
+        },
+        "sms": {
+            "verification_code": {
+                "description": "Send SMS verification code",
+                "code": """# SMS verification pattern
+from swap_layer import get_provider
+import random
+
+def send_verification_code(phone_number):
+    # Generate code
+    code = random.randint(100000, 999999)
+
+    # Store code in session/cache for verification
+    # session['verification_code'] = code
+
+    # Send SMS
+    sms = get_provider('sms')
+    result = sms.send_sms(
+        to=phone_number,
+        message=f'Your verification code is: {code}'
+    )
+
+    return result"""
+            }
+        },
+        "storage": {
+            "user_upload": {
+                "description": "Handle user file uploads",
+                "code": """# User file upload pattern
+from swap_layer import get_provider
+from django.core.files.uploadedfile import UploadedFile
+
+def handle_user_upload(uploaded_file: UploadedFile, user_id: int):
+    storage = get_provider('storage')
+
+    # Create unique filename
+    import uuid
+    ext = uploaded_file.name.split('.')[-1]
+    filename = f'users/{user_id}/{uuid.uuid4()}.{ext}'
+
+    # Upload to storage
+    storage.save(filename, uploaded_file.read())
+
+    # Get URL
+    url = storage.url(filename)
+
+    return {'filename': filename, 'url': url}"""
+            }
+        }
+    }
+
+    if service not in examples:
+        return {
+            "status": "error",
+            "message": f"No examples available for service '{service}'"
+        }
+
+    if pattern and pattern in examples[service]:
+        example = examples[service][pattern]
+        return {
+            "status": "success",
+            "service": service,
+            "pattern": pattern,
+            "description": example["description"],
+            "code": example["code"],
+            "language": "python"
+        }
+
+    # Return all patterns for the service
+    return {
+        "status": "success",
+        "service": service,
+        "patterns": [
+            {
+                "name": name,
+                "description": data["description"],
+                "code": data["code"]
+            }
+            for name, data in examples[service].items()
+        ]
     }

@@ -16,14 +16,15 @@ swaplayer-mcp
 
 ## What This Does
 
-Exposes SwapLayer **configuration and testing tools** as AI assistant tools:
+Exposes SwapLayer **configuration, testing, and code generation tools** as AI assistant tools:
 
 - **Configuration Inspection**: Check which providers are configured
 - **Provider Discovery**: List available providers for each service
 - **Testing**: Send test emails, SMS, check storage connectivity
 - **Provider Information**: Get setup instructions and capabilities
+- **Code Generation**: Generate code snippets and usage examples
 
-**Note**: For security, the MCP server does NOT expose full transactional APIs (e.g., creating customers, processing payments). It's focused on configuration and testing. See docs/mcp.md for details.
+**Note**: For security, the MCP server does NOT expose full transactional APIs (e.g., creating customers, processing payments). It's focused on configuration, testing, and helping developers write code. See docs/mcp.md for details.
 
 ## Security
 
@@ -43,6 +44,8 @@ See [docs/mcp.md](../../../docs/mcp.md) for complete documentation.
 - swaplayer_send_test_sms        # Send test SMS
 - swaplayer_check_storage        # Check storage config
 - swaplayer_get_provider_info    # Get provider details
+- swaplayer_generate_code        # Generate code examples
+- swaplayer_get_usage_examples   # Get common patterns
 ```
 
 ## Integration
@@ -59,5 +62,7 @@ AI assistants can help you:
 - Switch providers with guided assistance
 - Test integrations without writing scripts
 - Learn provider capabilities on demand
+- Generate code examples for common operations
+- Get ready-to-use patterns (welcome emails, subscriptions, etc.)
 
 This aligns perfectly with SwapLayer's anti-vendor-lock-in philosophy by making provider switching even easier.

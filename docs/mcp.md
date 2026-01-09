@@ -204,11 +204,66 @@ Get detailed information about a specific provider implementation.
 }
 ```
 
+### 7. `swaplayer_generate_code`
+
+Generate code examples for using SwapLayer with specific operations.
+
+**Parameters:**
+- `service` (string): Service type
+- `operation` (string): Operation to perform (e.g., 'send_email', 'create_customer', 'upload_file')
+- `context` (string, optional): Additional context about the use case
+
+**Example:**
+```json
+{
+  "service": "payments",
+  "operation": "create_subscription"
+}
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "service": "payments",
+  "operation": "create_subscription",
+  "code": "# Create a subscription\nfrom swap_layer import get_provider\n...",
+  "language": "python"
+}
+```
+
+### 8. `swaplayer_get_usage_examples`
+
+Get common usage examples and patterns for a specific service.
+
+**Parameters:**
+- `service` (string): Service type
+- `pattern` (string, optional): Specific pattern (e.g., 'welcome_email', 'subscription_flow')
+
+**Example:**
+```json
+{
+  "service": "email",
+  "pattern": "welcome_email"
+}
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "service": "email",
+  "pattern": "welcome_email",
+  "description": "Send a welcome email when user signs up",
+  "code": "# Welcome email pattern\nfrom swap_layer import get_provider\n..."
+}
+```
+
 ## Coverage
 
 ### What the MCP Server Covers
 
-The MCP server provides **configuration and testing tools** for all SwapLayer services:
+The MCP server provides **configuration, testing, and code generation tools** for all SwapLayer services:
 
 ✅ **Configuration Management**
 - Inspect current configuration (all services)
@@ -224,6 +279,11 @@ The MCP server provides **configuration and testing tools** for all SwapLayer se
 - Provider setup instructions
 - Capability discovery
 - Configuration assistance
+
+✅ **Code Generation & Examples**
+- Generate code snippets for specific operations
+- Get common usage patterns (welcome emails, subscription flows, etc.)
+- Access ready-to-use examples for all services
 
 ### What the MCP Server Does NOT Cover
 
@@ -307,15 +367,27 @@ Quickly test provider integrations:
 
 **AI Assistant:** *calls `swaplayer_send_test_email`*
 
-### 4. Multi-step Workflows
+### 4. Code Generation
+
+AI assistants can generate SwapLayer code for you:
+
+**User:** "Show me how to send a welcome email with SwapLayer"
+
+**AI Assistant:** *calls `swaplayer_generate_code` with service="email", operation="send_email"*
+
+**User:** "How do I create a subscription flow?"
+
+**AI Assistant:** *calls `swaplayer_get_usage_examples` with service="payments", pattern="subscription_flow"*
+
+### 5. Multi-step Workflows
 
 Complex operations with natural language:
 
 **User:** "Set up a welcome flow: send email and SMS when user signs up"
 
-**AI Assistant:** 
-1. *checks configuration with `swaplayer_get_config`*
-2. *generates Django view code using SwapLayer*
+**AI Assistant:**
+1. *calls `swaplayer_generate_code` for email and SMS*
+2. *provides complete code example combining both*
 3. *helps test with `swaplayer_send_test_email` and `swaplayer_send_test_sms`*
 
 ## Security Considerations

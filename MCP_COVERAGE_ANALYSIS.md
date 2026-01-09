@@ -7,14 +7,24 @@ Does the MCP server cover all SwapLayer functionalities?
 
 ### ✅ Covered Services (High-Level)
 
-The MCP server currently provides **configuration and testing tools** for all 6 SwapLayer services:
+The MCP server provides **configuration, testing, and code generation tools** for all 6 SwapLayer services:
 
-1. **Email** - Configuration inspection, provider listing, test sending
-2. **Payments/Billing** - Configuration inspection, provider listing, provider info
-3. **SMS** - Configuration inspection, provider listing, test sending
-4. **Storage** - Configuration inspection, provider listing, connectivity testing
-5. **Identity Platform** - Configuration inspection, provider listing, provider info
-6. **Identity Verification** - Configuration inspection, provider listing, provider info
+1. **Email** - Configuration inspection, provider listing, test sending, code generation
+2. **Payments/Billing** - Configuration inspection, provider listing, provider info, code examples
+3. **SMS** - Configuration inspection, provider listing, test sending, code generation
+4. **Storage** - Configuration inspection, provider listing, connectivity testing, code examples
+5. **Identity Platform** - Configuration inspection, provider listing, provider info, code examples
+6. **Identity Verification** - Configuration inspection, provider listing, provider info, code examples
+
+### ✅ NEW: Code Generation & Developer Assistance
+
+The MCP server now helps developers write SwapLayer code:
+
+- **Generate Code Snippets**: Get ready-to-use code for specific operations
+- **Usage Patterns**: Access common patterns (welcome emails, subscription flows, file uploads)
+- **Examples Library**: Pre-built examples for all services and operations
+
+This addresses the need for AI assistants to help developers add code using SwapLayer.
 
 ### ❌ NOT Covered: Operational/Transactional APIs
 
@@ -47,21 +57,23 @@ The MCP server does **NOT** expose the full operational APIs for each service. S
 
 ## Design Philosophy
 
-### Current Scope: Configuration & Testing Tools
+### Current Scope: Configuration, Testing & Code Generation
 
-The MCP server is intentionally scoped to **developer experience and configuration management**:
+The MCP server is intentionally scoped to **developer experience, configuration management, and code assistance**:
 
 1. **Configuration Inspection** - "What's my current setup?"
 2. **Provider Discovery** - "What providers are available?"
 3. **Quick Testing** - "Does my email/SMS/storage work?"
 4. **Provider Information** - "What does SendGrid support?"
+5. **Code Generation** - "Show me how to send a welcome email"
+6. **Usage Examples** - "How do I create a subscription flow?"
 
 ### Why Not Full API Coverage?
 
 **Good Reasons:**
 1. **Security** - Exposing full transactional APIs to AI assistants poses security risks
 2. **Complexity** - Full API coverage would require hundreds of tools
-3. **Use Case** - AI assistants are best for configuration/exploration, not production transactions
+3. **Use Case** - AI assistants are best for configuration/exploration/code generation, not production transactions
 4. **Maintenance** - Limited scope means lower maintenance burden
 
 **AI Assistants Should NOT:**
@@ -75,6 +87,8 @@ The MCP server is intentionally scoped to **developer experience and configurati
 - Send test emails to verify setup
 - Explain provider capabilities
 - Guide through provider switching
+- Generate code examples for common operations
+- Provide usage patterns and best practices
 
 ## Recommendation
 
