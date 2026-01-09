@@ -24,7 +24,16 @@ def get_sms_provider() -> SMSProviderAdapter:
     settings = get_swaplayer_settings()
 
     if settings.communications and settings.communications.sms:
-        provider = settings.communications.sms.provider.lower()
+        sms_config = settings.communications.sms
+        provider = sms_config.provider.lower()
+
+        # Pass Twilio config from SwapLayerSettings if available
+        if provider == 'twilio' and sms_config.twilio:
+            return TwilioSMSProvider(
+                account_sid=sms_config.twilio.account_sid,
+                auth_token=sms_config.twilio.auth_token,
+                from_number=sms_config.twilio.from_number
+            )
     else:
         # Fallback to legacy Django settings for backward compatibility
         from django.conf import settings as django_settings

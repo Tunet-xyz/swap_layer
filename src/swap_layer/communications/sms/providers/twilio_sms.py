@@ -24,19 +24,31 @@ class TwilioSMSProvider(SMSProviderAdapter):
         TWILIO_FROM_NUMBER = os.environ.get('TWILIO_FROM_NUMBER')  # E.164 format
     """
 
-    def __init__(self):
-        """Initialize Twilio SMS provider."""
+    def __init__(self, account_sid: str | None = None, auth_token: str | None = None, from_number: str | None = None):
+        """
+        Initialize Twilio SMS provider.
+
+        Args:
+            account_sid: Twilio Account SID (falls back to settings.TWILIO_ACCOUNT_SID)
+            auth_token: Twilio Auth Token (falls back to settings.TWILIO_AUTH_TOKEN)
+            from_number: Twilio phone number (falls back to settings.TWILIO_FROM_NUMBER)
+        """
         try:
             from twilio.rest import Client
 
-            account_sid = getattr(settings, 'TWILIO_ACCOUNT_SID', None)
-            auth_token = getattr(settings, 'TWILIO_AUTH_TOKEN', None)
+            # Use provided config or fallback to Django settings for backward compatibility
+            if account_sid is None:
+                account_sid = getattr(settings, 'TWILIO_ACCOUNT_SID', None)
+            if auth_token is None:
+                auth_token = getattr(settings, 'TWILIO_AUTH_TOKEN', None)
+            if from_number is None:
+                from_number = getattr(settings, 'TWILIO_FROM_NUMBER', None)
 
             if not account_sid or not auth_token:
                 raise ValueError("TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN must be configured")
 
             self.client = Client(account_sid, auth_token)
-            self.from_number = getattr(settings, 'TWILIO_FROM_NUMBER', None)
+            self.from_number = from_number
 
         except ImportError:
             raise ImportError("Twilio library not installed. Run: pip install twilio")

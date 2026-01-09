@@ -31,6 +31,15 @@ def get_storage_provider() -> StorageProviderAdapter:
 
     if settings.storage:
         provider = settings.storage.provider.lower()
+        # Pass storage config from SwapLayerSettings if available
+        if provider == 'local':
+            return LocalFileStorageProvider(
+                base_path=settings.storage.media_root,
+                base_url=settings.storage.media_url
+            )
+        elif provider == 'django':
+            from .providers.django_storage import DjangoStorageAdapter
+            return DjangoStorageAdapter()
     else:
         # Fallback to legacy Django settings for backward compatibility
         from django.conf import settings as django_settings

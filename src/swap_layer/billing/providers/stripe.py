@@ -19,10 +19,26 @@ class StripePaymentProvider(PaymentProviderAdapter):
     Stripe implementation of the PaymentProviderAdapter.
     """
 
-    def __init__(self):
-        if not getattr(settings, 'STRIPE_SECRET_KEY', None):
-            raise ValueError("STRIPE_SECRET_KEY setting is required but not configured")
-        stripe.api_key = settings.STRIPE_SECRET_KEY
+    def __init__(self, secret_key: str | None = None, publishable_key: str | None = None, webhook_secret: str | None = None):
+        """
+        Initialize Stripe payment provider.
+
+        Args:
+            secret_key: Stripe secret key (falls back to settings.STRIPE_SECRET_KEY)
+            publishable_key: Stripe publishable key (falls back to settings.STRIPE_PUBLISHABLE_KEY)
+            webhook_secret: Stripe webhook secret (falls back to settings.STRIPE_WEBHOOK_SECRET)
+        """
+        # Use provided config or fallback to Django settings for backward compatibility
+        if secret_key is None:
+            secret_key = getattr(settings, 'STRIPE_SECRET_KEY', None)
+
+        if not secret_key:
+            raise ValueError("STRIPE_SECRET_KEY is required but not configured")
+
+        stripe.api_key = secret_key
+        self.secret_key = secret_key
+        self.publishable_key = publishable_key or getattr(settings, 'STRIPE_PUBLISHABLE_KEY', None)
+        self.webhook_secret = webhook_secret or getattr(settings, 'STRIPE_WEBHOOK_SECRET', None)
 
     def get_vendor_client(self) -> Any:
         """
