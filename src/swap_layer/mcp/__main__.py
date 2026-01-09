@@ -11,18 +11,19 @@ import sys
 def main():
     """Run the SwapLayer MCP server."""
     try:
-        from swap_layer.mcp import create_mcp_server
         import mcp.server.stdio
-    except ImportError as e:
+
+        from swap_layer.mcp import create_mcp_server
+    except ImportError:
         print(
             "Error: MCP dependencies not installed.\n"
             "Install with: pip install 'SwapLayer[mcp]'",
             file=sys.stderr
         )
         sys.exit(1)
-    
+
     server = create_mcp_server()
-    
+
     async def run():
         async with mcp.server.stdio.stdio_server() as (read_stream, write_stream):
             await server.run(
@@ -30,7 +31,7 @@ def main():
                 write_stream,
                 server.create_initialization_options()
             )
-    
+
     asyncio.run(run())
 
 

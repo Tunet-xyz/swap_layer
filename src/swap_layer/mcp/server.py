@@ -7,7 +7,6 @@ import json
 from typing import Any
 
 try:
-    import mcp.server.stdio
     import mcp.types as types
     from mcp.server import Server
     MCP_AVAILABLE = True
@@ -19,10 +18,10 @@ except ImportError:
 def create_mcp_server() -> Any:
     """
     Create and configure the SwapLayer MCP server.
-    
+
     Returns:
         Configured MCP Server instance
-        
+
     Raises:
         ImportError: If mcp package is not installed
     """
@@ -31,9 +30,9 @@ def create_mcp_server() -> Any:
             "MCP server requires 'mcp' package. "
             "Install with: pip install 'SwapLayer[mcp]'"
         )
-    
+
     server = Server("swaplayer")
-    
+
     @server.list_tools()
     async def list_tools() -> list[types.Tool]:
         """List available SwapLayer tools."""
@@ -142,7 +141,7 @@ def create_mcp_server() -> Any:
                 }
             ),
         ]
-    
+
     @server.call_tool()
     async def call_tool(name: str, arguments: Any) -> list[types.TextContent]:
         """Handle tool calls."""
@@ -173,7 +172,7 @@ def create_mcp_server() -> Any:
                 )
             else:
                 raise ValueError(f"Unknown tool: {name}")
-            
+
             return [types.TextContent(type="text", text=json.dumps(result, indent=2))]
         except Exception as e:
             error_result = {
@@ -181,17 +180,17 @@ def create_mcp_server() -> Any:
                 "type": type(e).__name__
             }
             return [types.TextContent(type="text", text=json.dumps(error_result, indent=2))]
-    
+
     return server
 
 
 async def _get_config(service: str) -> dict[str, Any]:
     """Get SwapLayer configuration."""
     from swap_layer.settings import get_swaplayer_settings
-    
+
     try:
         settings = get_swaplayer_settings()
-        
+
         if service == "all":
             # Return all configurations (without sensitive data)
             config = {}
@@ -200,8 +199,8 @@ async def _get_config(service: str) -> dict[str, Any]:
                     svc_config = getattr(settings, svc)
                     if svc_config:
                         # Remove sensitive keys
-                        safe_config = {k: v for k, v in svc_config.items() 
-                                     if k not in ['secret_key', 'api_key', 'password', 'token', 
+                        safe_config = {k: v for k, v in svc_config.items()
+                                     if k not in ['secret_key', 'api_key', 'password', 'token',
                                                 'account_sid', 'auth_token', 'client_secret']}
                         config[svc] = safe_config
             return {"status": "success", "config": config}
@@ -210,7 +209,7 @@ async def _get_config(service: str) -> dict[str, Any]:
             if hasattr(settings, service):
                 svc_config = getattr(settings, service)
                 if svc_config:
-                    safe_config = {k: v for k, v in svc_config.items() 
+                    safe_config = {k: v for k, v in svc_config.items()
                                  if k not in ['secret_key', 'api_key', 'password', 'token',
                                             'account_sid', 'auth_token', 'client_secret']}
                     return {"status": "success", "service": service, "config": safe_config}
@@ -230,10 +229,10 @@ async def _list_providers(service: str) -> dict[str, Any]:
         "identity": ["workos", "auth0"],
         "verification": ["workos", "persona"]
     }
-    
+
     if service not in providers:
         return {"status": "error", "message": f"Unknown service: {service}"}
-    
+
     return {
         "status": "success",
         "service": service,
@@ -245,14 +244,14 @@ async def _send_test_email(to: str, subject: str, body: str) -> dict[str, Any]:
     """Send a test email."""
     try:
         from swap_layer import get_provider
-        
+
         email_provider = get_provider('email')
         result = email_provider.send_email(
             to=[to],
             subject=subject,
             text_body=body
         )
-        
+
         return {
             "status": "success",
             "message": "Test email sent successfully",
@@ -270,13 +269,13 @@ async def _send_test_sms(to: str, message: str) -> dict[str, Any]:
     """Send a test SMS."""
     try:
         from swap_layer import get_provider
-        
+
         sms_provider = get_provider('sms')
         result = sms_provider.send_sms(
             to=to,
             message=message
         )
-        
+
         return {
             "status": "success",
             "message": "Test SMS sent successfully",
@@ -294,20 +293,20 @@ async def _check_storage(test_upload: bool = False) -> dict[str, Any]:
     """Check storage provider configuration."""
     try:
         from swap_layer import get_provider
-        
+
         storage_provider = get_provider('storage')
-        
+
         info = {
             "status": "success",
             "message": "Storage provider configured",
             "provider_type": type(storage_provider).__name__
         }
-        
+
         if test_upload:
             # Perform a test upload
             test_content = b"SwapLayer MCP test file"
             test_filename = "mcp_test.txt"
-            
+
             try:
                 storage_provider.save(test_filename, test_content)
                 storage_provider.delete(test_filename)
@@ -315,7 +314,7 @@ async def _check_storage(test_upload: bool = False) -> dict[str, Any]:
             except Exception as e:
                 info["test_upload"] = "failed"
                 info["test_error"] = str(e)
-        
+
         return info
     except Exception as e:
         return {
@@ -395,16 +394,16 @@ async def _get_provider_info(service: str, provider: str) -> dict[str, Any]:
             }
         }
     }
-    
+
     if service not in provider_info:
         return {"status": "error", "message": f"Unknown service: {service}"}
-    
+
     if provider not in provider_info[service]:
         return {
             "status": "error",
             "message": f"Unknown provider '{provider}' for service '{service}'"
         }
-    
+
     return {
         "status": "success",
         "service": service,
