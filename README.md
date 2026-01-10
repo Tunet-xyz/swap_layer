@@ -78,6 +78,29 @@ get_provider('sms').send(to='+1555555', message='Welcome!')
 | **SMS** | ✅ Production | Twilio, AWS SNS |
 | **Storage** | ✅ Production | S3, Azure, GCS, Local |
 | **Identity** | 🚧 Beta | OAuth/SSO, KYC Verification |
+| **MCP Server** | ✅ Production | AI Assistant Integration |
+
+---
+
+## 🤖 AI Assistant Integration
+
+SwapLayer includes an **MCP (Model Context Protocol) server** that exposes provider management as tools for AI assistants:
+
+```bash
+# Install with MCP support
+pip install 'swaplayer[mcp]'
+
+# Run the MCP server
+swaplayer-mcp
+```
+
+**AI assistants can now help you:**
+- Configure and switch providers through conversation
+- Send test emails/SMS to verify integrations  
+- Get provider setup instructions and capabilities
+- Inspect your current configuration
+
+Perfect for AI-powered development workflows! **[→ MCP Documentation](docs/mcp.md)**
 
 ---
 
@@ -91,6 +114,7 @@ get_provider('sms').send(to='+1555555', message='Welcome!')
 - **[Storage](docs/storage.md)** - File storage
 - **[Identity Platform](docs/identity-platform.md)** - OAuth/SSO
 - **[Identity Verification](docs/identity-verification.md)** - KYC
+- **[MCP Server](docs/mcp.md)** - AI assistant integration
 - **[Architecture](docs/architecture.md)** - Design patterns
 - **[Contributing](docs/development/contributing.md)** - Help improve SwapLayer
 
@@ -103,6 +127,7 @@ get_provider('sms').send(to='+1555555', message='Welcome!')
 ✅ **Type Safe** - Pydantic validation catches errors early  
 ✅ **Battle Tested** - Wraps proven tools (django-storages, django-anymail)  
 ✅ **Zero Rewrites** - Swap providers with configuration changes only  
+✅ **AI-Powered** - Built-in MCP server for AI assistant integration
 
 ---
 

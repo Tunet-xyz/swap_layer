@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "swaplayer": {
+      "command": "swaplayer-mcp",
+      "env": {
+        "DJANGO_SETTINGS_MODULE": "your_project.settings"
+      }
+    }
+  }
+}

@@ -11,6 +11,10 @@ All documentation in one place. Pick your module:
 - **[identity-platform.md](identity-platform.md)** - OAuth/SSO authentication
 - **[identity-verification.md](identity-verification.md)** - KYC verification
 
+## 🤖 AI Integration
+
+- **[mcp.md](mcp.md)** - MCP server for AI assistant integration
+
 ## 🏗️ Architecture
 
 - **[architecture.md](architecture.md)** - Core patterns and design philosophy
