@@ -189,6 +189,31 @@ def create_mcp_server() -> Any:
                     "required": ["service"]
                 }
             ),
+            types.Tool(
+                name="swaplayer_setup_quickstart",
+                description="Generate complete quickstart configuration and setup code for SwapLayer with a specific service and provider. Returns Django settings configuration and installation instructions.",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "service": {
+                            "type": "string",
+                            "description": "Service type to set up",
+                            "enum": ["email", "payments", "sms", "storage", "identity", "verification"]
+                        },
+                        "provider": {
+                            "type": "string",
+                            "description": "Provider to use (e.g., 'stripe', 'sendgrid', 'twilio', 's3')"
+                        },
+                        "project_type": {
+                            "type": "string",
+                            "description": "Type of Django project setup",
+                            "enum": ["new", "existing"],
+                            "default": "existing"
+                        }
+                    },
+                    "required": ["service", "provider"]
+                }
+            ),
         ]
 
     @server.call_tool()
@@ -229,6 +254,12 @@ def create_mcp_server() -> Any:
                 result = await _get_usage_examples(
                     arguments["service"],
                     arguments.get("pattern", "")
+                )
+            elif name == "swaplayer_setup_quickstart":
+                result = await _setup_quickstart(
+                    arguments["service"],
+                    arguments["provider"],
+                    arguments.get("project_type", "existing")
                 )
             else:
                 raise ValueError(f"Unknown tool: {name}")
@@ -823,4 +854,380 @@ def handle_user_upload(uploaded_file: UploadedFile, user_id: int):
             }
             for name, data in examples[service].items()
         ]
+    }
+
+
+async def _setup_quickstart(service: str, provider: str, project_type: str = "existing") -> dict[str, Any]:
+    """Generate complete quickstart configuration for SwapLayer."""
+    quickstart_configs = {
+        "email": {
+            "sendgrid": {
+                "pip_install": "pip install 'SwapLayer[email]'",
+                "settings_config": """# settings.py
+from swap_layer.settings import SwapLayerSettings
+
+SWAPLAYER = SwapLayerSettings(
+    email={
+        'provider': 'sendgrid',
+        'sendgrid': {
+            'api_key': 'YOUR_SENDGRID_API_KEY_HERE'  # Get from SendGrid dashboard
+        }
+    }
+)
+
+# Optional: Configure default from email
+EMAIL_FROM = 'noreply@yourdomain.com'""",
+                "env_vars": """# .env file (recommended for production)
+SENDGRID_API_KEY=your_actual_api_key_here""",
+                "usage_example": """# Example: Send an email
+from swap_layer import get_provider
+
+email = get_provider('email')
+result = email.send_email(
+    to=['user@example.com'],
+    subject='Welcome!',
+    text_body='Thanks for signing up.',
+    html_body='<h1>Thanks for signing up!</h1>'
+)""",
+                "credentials_instructions": "Get your SendGrid API key from: https://app.sendgrid.com/settings/api_keys"
+            },
+            "mailgun": {
+                "pip_install": "pip install 'SwapLayer[email]'",
+                "settings_config": """# settings.py
+from swap_layer.settings import SwapLayerSettings
+
+SWAPLAYER = SwapLayerSettings(
+    email={
+        'provider': 'mailgun',
+        'mailgun': {
+            'api_key': 'YOUR_MAILGUN_API_KEY_HERE',
+            'domain': 'YOUR_MAILGUN_DOMAIN_HERE'  # e.g., 'mg.yourdomain.com'
+        }
+    }
+)""",
+                "env_vars": """# .env file (recommended for production)
+MAILGUN_API_KEY=your_actual_api_key_here
+MAILGUN_DOMAIN=mg.yourdomain.com""",
+                "usage_example": """# Example: Send an email
+from swap_layer import get_provider
+
+email = get_provider('email')
+result = email.send_email(
+    to=['user@example.com'],
+    subject='Welcome!',
+    text_body='Thanks for signing up.'
+)""",
+                "credentials_instructions": "Get your Mailgun credentials from: https://app.mailgun.com/app/account/security/api_keys"
+            },
+            "django": {
+                "pip_install": "pip install SwapLayer",
+                "settings_config": """# settings.py
+from swap_layer.settings import SwapLayerSettings
+
+SWAPLAYER = SwapLayerSettings(
+    email={'provider': 'django'}
+)
+
+# Configure Django's EMAIL_* settings as normal
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'  # Or your SMTP server
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'YOUR_EMAIL_HERE'
+EMAIL_HOST_PASSWORD = 'YOUR_PASSWORD_HERE'""",
+                "env_vars": """# .env file
+EMAIL_HOST_USER=your.email@gmail.com
+EMAIL_HOST_PASSWORD=your_app_password""",
+                "usage_example": """# Example: Send an email
+from swap_layer import get_provider
+
+email = get_provider('email')
+result = email.send_email(
+    to=['user@example.com'],
+    subject='Welcome!',
+    text_body='Thanks for signing up.'
+)""",
+                "credentials_instructions": "Configure your SMTP server credentials (e.g., Gmail App Password)"
+            }
+        },
+        "payments": {
+            "stripe": {
+                "pip_install": "pip install 'SwapLayer[stripe]'",
+                "settings_config": """# settings.py
+from swap_layer.settings import SwapLayerSettings
+
+SWAPLAYER = SwapLayerSettings(
+    payments={
+        'provider': 'stripe',
+        'stripe': {
+            'secret_key': 'YOUR_STRIPE_SECRET_KEY_HERE',  # sk_test_... for testing
+            'publishable_key': 'YOUR_STRIPE_PUBLISHABLE_KEY_HERE'  # pk_test_... for testing
+        }
+    }
+)""",
+                "env_vars": """# .env file (recommended for production)
+STRIPE_SECRET_KEY=sk_test_your_key_here
+STRIPE_PUBLISHABLE_KEY=pk_test_your_key_here""",
+                "usage_example": """# Example: Create a customer
+from swap_layer import get_provider
+
+payments = get_provider('payments')
+customer = payments.create_customer(
+    email='customer@example.com',
+    name='John Doe'
+)
+print(f"Customer ID: {customer['id']}")""",
+                "credentials_instructions": "Get your Stripe keys from: https://dashboard.stripe.com/test/apikeys"
+            }
+        },
+        "sms": {
+            "twilio": {
+                "pip_install": "pip install 'SwapLayer[sms]'",
+                "settings_config": """# settings.py
+from swap_layer.settings import SwapLayerSettings
+
+SWAPLAYER = SwapLayerSettings(
+    sms={
+        'provider': 'twilio',
+        'twilio': {
+            'account_sid': 'YOUR_TWILIO_ACCOUNT_SID_HERE',
+            'auth_token': 'YOUR_TWILIO_AUTH_TOKEN_HERE',
+            'from_number': '+15555551234'  # Your Twilio phone number
+        }
+    }
+)""",
+                "env_vars": """# .env file (recommended for production)
+TWILIO_ACCOUNT_SID=your_account_sid_here
+TWILIO_AUTH_TOKEN=your_auth_token_here
+TWILIO_FROM_NUMBER=+15555551234""",
+                "usage_example": """# Example: Send SMS
+from swap_layer import get_provider
+
+sms = get_provider('sms')
+result = sms.send_sms(
+    to='+15555555555',
+    message='Your verification code is: 123456'
+)""",
+                "credentials_instructions": "Get your Twilio credentials from: https://console.twilio.com/"
+            },
+            "sns": {
+                "pip_install": "pip install 'SwapLayer[aws]'",
+                "settings_config": """# settings.py
+from swap_layer.settings import SwapLayerSettings
+
+SWAPLAYER = SwapLayerSettings(
+    sms={
+        'provider': 'sns',
+        'sns': {
+            'aws_access_key_id': 'YOUR_AWS_ACCESS_KEY_ID',
+            'aws_secret_access_key': 'YOUR_AWS_SECRET_ACCESS_KEY',
+            'region_name': 'us-east-1'  # Your AWS region
+        }
+    }
+)""",
+                "env_vars": """# .env file (recommended for production)
+AWS_ACCESS_KEY_ID=your_access_key_here
+AWS_SECRET_ACCESS_KEY=your_secret_key_here
+AWS_DEFAULT_REGION=us-east-1""",
+                "usage_example": """# Example: Send SMS
+from swap_layer import get_provider
+
+sms = get_provider('sms')
+result = sms.send_sms(
+    to='+15555555555',
+    message='Your verification code is: 123456'
+)""",
+                "credentials_instructions": "Get your AWS credentials from: https://console.aws.amazon.com/iam/"
+            }
+        },
+        "storage": {
+            "s3": {
+                "pip_install": "pip install 'SwapLayer[aws]'",
+                "settings_config": """# settings.py
+from swap_layer.settings import SwapLayerSettings
+
+SWAPLAYER = SwapLayerSettings(
+    storage={
+        'provider': 's3',
+        's3': {
+            'bucket_name': 'YOUR_S3_BUCKET_NAME',
+            'aws_access_key_id': 'YOUR_AWS_ACCESS_KEY_ID',
+            'aws_secret_access_key': 'YOUR_AWS_SECRET_ACCESS_KEY',
+            'region_name': 'us-east-1'  # Your AWS region
+        }
+    }
+)""",
+                "env_vars": """# .env file (recommended for production)
+AWS_S3_BUCKET_NAME=your-bucket-name
+AWS_ACCESS_KEY_ID=your_access_key_here
+AWS_SECRET_ACCESS_KEY=your_secret_key_here
+AWS_DEFAULT_REGION=us-east-1""",
+                "usage_example": """# Example: Upload a file
+from swap_layer import get_provider
+
+storage = get_provider('storage')
+with open('myfile.pdf', 'rb') as f:
+    storage.save('uploads/myfile.pdf', f.read())
+
+url = storage.url('uploads/myfile.pdf')
+print(f"File URL: {url}")""",
+                "credentials_instructions": "Create S3 bucket and IAM credentials at: https://console.aws.amazon.com/s3/"
+            },
+            "azure": {
+                "pip_install": "pip install 'SwapLayer[azure]'",
+                "settings_config": """# settings.py
+from swap_layer.settings import SwapLayerSettings
+
+SWAPLAYER = SwapLayerSettings(
+    storage={
+        'provider': 'azure',
+        'azure': {
+            'account_name': 'YOUR_AZURE_STORAGE_ACCOUNT',
+            'account_key': 'YOUR_AZURE_STORAGE_KEY',
+            'container_name': 'YOUR_CONTAINER_NAME'
+        }
+    }
+)""",
+                "env_vars": """# .env file (recommended for production)
+AZURE_STORAGE_ACCOUNT=your_account_name
+AZURE_STORAGE_KEY=your_storage_key
+AZURE_CONTAINER_NAME=your-container""",
+                "usage_example": """# Example: Upload a file
+from swap_layer import get_provider
+
+storage = get_provider('storage')
+storage.save('uploads/myfile.pdf', file_content)
+url = storage.url('uploads/myfile.pdf')""",
+                "credentials_instructions": "Get Azure Storage credentials from: https://portal.azure.com/"
+            },
+            "django": {
+                "pip_install": "pip install SwapLayer",
+                "settings_config": """# settings.py
+from swap_layer.settings import SwapLayerSettings
+
+SWAPLAYER = SwapLayerSettings(
+    storage={'provider': 'django'}
+)
+
+# Configure Django storage settings
+MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_URL = '/media/'""",
+                "env_vars": "# No environment variables needed for local Django storage",
+                "usage_example": """# Example: Upload a file
+from swap_layer import get_provider
+
+storage = get_provider('storage')
+storage.save('uploads/myfile.pdf', file_content)""",
+                "credentials_instructions": "No credentials needed - uses local filesystem"
+            }
+        },
+        "identity": {
+            "workos": {
+                "pip_install": "pip install 'SwapLayer[identity]'",
+                "settings_config": """# settings.py
+from swap_layer.settings import SwapLayerSettings
+
+SWAPLAYER = SwapLayerSettings(
+    identity={
+        'provider': 'workos',
+        'workos': {
+            'api_key': 'YOUR_WORKOS_API_KEY',
+            'client_id': 'YOUR_WORKOS_CLIENT_ID'
+        }
+    }
+)""",
+                "env_vars": """# .env file (recommended for production)
+WORKOS_API_KEY=your_api_key_here
+WORKOS_CLIENT_ID=your_client_id_here""",
+                "usage_example": """# Example: OAuth login
+from swap_layer import get_provider
+
+identity = get_provider('identity')
+auth_url = identity.get_authorization_url(
+    request=request,
+    redirect_uri='https://yourapp.com/callback',
+    state='random_state'
+)""",
+                "credentials_instructions": "Get WorkOS credentials from: https://dashboard.workos.com/"
+            }
+        },
+        "verification": {
+            "workos": {
+                "pip_install": "pip install 'SwapLayer[identity]'",
+                "settings_config": """# settings.py
+from swap_layer.settings import SwapLayerSettings
+
+SWAPLAYER = SwapLayerSettings(
+    verification={
+        'provider': 'workos',
+        'workos': {
+            'api_key': 'YOUR_WORKOS_API_KEY'
+        }
+    }
+)""",
+                "env_vars": """# .env file (recommended for production)
+WORKOS_API_KEY=your_api_key_here""",
+                "usage_example": """# Example: Create verification session
+from swap_layer import get_provider
+
+verification = get_provider('verification')
+session = verification.create_verification_session(
+    type='identity',
+    metadata={'user_id': '123'}
+)""",
+                "credentials_instructions": "Get WorkOS API key from: https://dashboard.workos.com/"
+            }
+        }
+    }
+
+    if service not in quickstart_configs:
+        return {
+            "status": "error",
+            "message": f"Quickstart not available for service '{service}'"
+        }
+
+    if provider not in quickstart_configs[service]:
+        available_providers = list(quickstart_configs[service].keys())
+        return {
+            "status": "error",
+            "message": f"Quickstart not available for provider '{provider}' in service '{service}'",
+            "available_providers": available_providers
+        }
+
+    config = quickstart_configs[service][provider]
+
+    setup_steps = [
+        f"1. Install SwapLayer with {service} support:",
+        f"   {config['pip_install']}",
+        "",
+        "2. Add configuration to your Django settings.py:",
+        config['settings_config'],
+        "",
+        "3. Set up environment variables (recommended for production):",
+        config['env_vars'],
+        "",
+        "4. Get your credentials:",
+        f"   {config['credentials_instructions']}",
+        "",
+        "5. Start using SwapLayer:",
+        config['usage_example']
+    ]
+
+    if project_type == "new":
+        setup_steps.insert(0, "0. Create a new Django project if you haven't already:")
+        setup_steps.insert(1, "   django-admin startproject myproject")
+        setup_steps.insert(2, "   cd myproject")
+        setup_steps.insert(3, "")
+
+    return {
+        "status": "success",
+        "service": service,
+        "provider": provider,
+        "project_type": project_type,
+        "quickstart": "\n".join(setup_steps),
+        "pip_install": config['pip_install'],
+        "settings_config": config['settings_config'],
+        "env_vars": config['env_vars'],
+        "usage_example": config['usage_example'],
+        "credentials_instructions": config['credentials_instructions']
     }

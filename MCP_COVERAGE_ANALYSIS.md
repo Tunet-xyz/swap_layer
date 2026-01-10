@@ -7,14 +7,14 @@ Does the MCP server cover all SwapLayer functionalities?
 
 ### ✅ Covered Services (High-Level)
 
-The MCP server provides **configuration, testing, and code generation tools** for all 6 SwapLayer services:
+The MCP server provides **configuration, testing, code generation, and auto-setup tools** for all 6 SwapLayer services:
 
-1. **Email** - Configuration inspection, provider listing, test sending, code generation
-2. **Payments/Billing** - Configuration inspection, provider listing, provider info, code examples
-3. **SMS** - Configuration inspection, provider listing, test sending, code generation
-4. **Storage** - Configuration inspection, provider listing, connectivity testing, code examples
-5. **Identity Platform** - Configuration inspection, provider listing, provider info, code examples
-6. **Identity Verification** - Configuration inspection, provider listing, provider info, code examples
+1. **Email** - Configuration inspection, provider listing, test sending, code generation, quickstart setup
+2. **Payments/Billing** - Configuration inspection, provider listing, provider info, code examples, quickstart setup
+3. **SMS** - Configuration inspection, provider listing, test sending, code generation, quickstart setup
+4. **Storage** - Configuration inspection, provider listing, connectivity testing, code examples, quickstart setup
+5. **Identity Platform** - Configuration inspection, provider listing, provider info, code examples, quickstart setup
+6. **Identity Verification** - Configuration inspection, provider listing, provider info, code examples, quickstart setup
 
 ### ✅ NEW: Code Generation & Developer Assistance
 
@@ -24,7 +24,18 @@ The MCP server now helps developers write SwapLayer code:
 - **Usage Patterns**: Access common patterns (welcome emails, subscription flows, file uploads)
 - **Examples Library**: Pre-built examples for all services and operations
 
-This addresses the need for AI assistants to help developers add code using SwapLayer.
+### ✅ NEW: Quickstart & Auto-Configuration
+
+The MCP server can automatically generate complete setup configurations:
+
+- **Complete Setup**: "I want to use Stripe" → get full Django configuration instantly
+- **Installation Commands**: Automatic pip install commands with correct extras
+- **Settings Configuration**: Pre-configured Django settings code
+- **Environment Variables**: Templates for .env files
+- **Credentials Instructions**: Direct links to get API keys from providers
+- **Developers only add credentials manually** - everything else is auto-generated
+
+This addresses the need for AI assistants to help developers add code using SwapLayer and set up services quickly.
 
 ### ❌ NOT Covered: Operational/Transactional APIs
 

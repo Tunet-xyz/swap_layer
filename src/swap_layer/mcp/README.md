@@ -46,6 +46,7 @@ See [docs/mcp.md](../../../docs/mcp.md) for complete documentation.
 - swaplayer_get_provider_info    # Get provider details
 - swaplayer_generate_code        # Generate code examples
 - swaplayer_get_usage_examples   # Get common patterns
+- swaplayer_setup_quickstart     # Auto-generate complete setup
 ```
 
 ## Integration
@@ -58,11 +59,13 @@ Works with any MCP-compatible AI assistant:
 ## Why MCP?
 
 AI assistants can help you:
+- **Auto-configure**: Say "I want to use Stripe" → get complete setup instantly
 - Configure SwapLayer providers through conversation
 - Switch providers with guided assistance
 - Test integrations without writing scripts
 - Learn provider capabilities on demand
 - Generate code examples for common operations
 - Get ready-to-use patterns (welcome emails, subscriptions, etc.)
+- **Contextual assistance**: "Send email after signup" → get integration code
 
 This aligns perfectly with SwapLayer's anti-vendor-lock-in philosophy by making provider switching even easier.

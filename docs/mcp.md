@@ -259,6 +259,39 @@ Get common usage examples and patterns for a specific service.
 }
 ```
 
+### 9. `swaplayer_setup_quickstart`
+
+Generate complete quickstart configuration and setup instructions for SwapLayer with a specific service and provider. Automatically generates all configuration code - developers only need to add their credentials.
+
+**Parameters:**
+- `service` (string): Service type to set up
+- `provider` (string): Provider to use (e.g., 'stripe', 'sendgrid', 'twilio', 's3')
+- `project_type` (string, optional): 'new' or 'existing' Django project (default: 'existing')
+
+**Example:**
+```json
+{
+  "service": "payments",
+  "provider": "stripe",
+  "project_type": "existing"
+}
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "service": "payments",
+  "provider": "stripe",
+  "quickstart": "Step-by-step setup instructions...",
+  "pip_install": "pip install 'SwapLayer[stripe]'",
+  "settings_config": "# Complete Django settings configuration",
+  "env_vars": "# Environment variables template",
+  "usage_example": "# Ready-to-use code example",
+  "credentials_instructions": "Get your Stripe keys from: https://dashboard.stripe.com/..."
+}
+```
+
 ## Coverage
 
 ### What the MCP Server Covers
@@ -284,6 +317,13 @@ The MCP server provides **configuration, testing, and code generation tools** fo
 - Generate code snippets for specific operations
 - Get common usage patterns (welcome emails, subscription flows, etc.)
 - Access ready-to-use examples for all services
+
+✅ **Quickstart & Auto-Configuration**
+- Complete setup instructions for any service/provider combination
+- Auto-generated Django settings configuration
+- Environment variables templates
+- Step-by-step installation guides
+- Developers only need to add their credentials manually
 
 ### What the MCP Server Does NOT Cover
 
@@ -359,7 +399,24 @@ AI can guide developers through switching providers:
 3. *helps update settings.py*
 4. *calls `swaplayer_send_test_email` to verify*
 
-### 3. Testing and Validation
+### 3. Quickstart Setup
+
+AI assistants automatically configure SwapLayer:
+
+**User:** "I want to use SwapLayer with Stripe for payments"
+
+**AI Assistant:** *calls `swaplayer_setup_quickstart` with service="payments", provider="stripe"*
+
+Returns complete setup with:
+- Installation command
+- Django settings configuration
+- Environment variables template
+- Usage examples
+- Credentials instructions
+
+**User only needs to:** Add their Stripe API keys
+
+### 4. Testing and Validation
 
 Quickly test provider integrations:
 
@@ -367,7 +424,7 @@ Quickly test provider integrations:
 
 **AI Assistant:** *calls `swaplayer_send_test_email`*
 
-### 4. Code Generation
+### 5. Code Generation
 
 AI assistants can generate SwapLayer code for you:
 
@@ -379,7 +436,18 @@ AI assistants can generate SwapLayer code for you:
 
 **AI Assistant:** *calls `swaplayer_get_usage_examples` with service="payments", pattern="subscription_flow"*
 
-### 5. Multi-step Workflows
+### 6. Contextual Code Assistance
+
+AI helps with business logic integration:
+
+**User:** "I'm building a signup flow and need to send an email after registration"
+
+**AI Assistant:** 
+1. *calls `swaplayer_generate_code` for email sending*
+2. *provides contextual integration code*
+3. *shows how to handle errors and responses*
+
+### 7. Multi-step Workflows
 
 Complex operations with natural language:
 
