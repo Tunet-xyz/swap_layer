@@ -25,7 +25,7 @@ class WorkOSLogManagement(LogManagementAdapter):
         organization_id: str | None = None,
         events: list[str] | None = None,
         limit: int = 50,
-        **kwargs
+        **kwargs,
     ) -> dict[str, Any]:
         """List audit log events.
 
@@ -59,12 +59,7 @@ class WorkOSLogManagement(LogManagementAdapter):
         """
         raise NotImplementedError("WorkOS does not support getting individual events by ID")
 
-    def get_user_logs(
-        self,
-        user_id: str,
-        limit: int = 50,
-        **kwargs
-    ) -> dict[str, Any]:
+    def get_user_logs(self, user_id: str, limit: int = 50, **kwargs) -> dict[str, Any]:
         """Get logs for a specific user.
 
         Args:
@@ -92,7 +87,7 @@ class WorkOSLogManagement(LogManagementAdapter):
         start_date: str | None = None,
         end_date: str | None = None,
         action: str | None = None,
-        **kwargs
+        **kwargs,
     ) -> dict[str, Any]:
         """Filter logs by action.
 

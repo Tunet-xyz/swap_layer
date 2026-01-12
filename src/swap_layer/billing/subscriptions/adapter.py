@@ -14,7 +14,7 @@ class SubscriptionAdapter:
         customer_id: str,
         price_id: str,
         metadata: dict[str, Any] | None = None,
-        trial_period_days: int | None = None
+        trial_period_days: int | None = None,
     ) -> dict[str, Any]:
         """
         Create a subscription for a customer.
@@ -41,7 +41,7 @@ class SubscriptionAdapter:
         self,
         subscription_id: str,
         price_id: str | None = None,
-        metadata: dict[str, Any] | None = None
+        metadata: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """
         Update a subscription (e.g., change plan).
@@ -53,9 +53,7 @@ class SubscriptionAdapter:
 
     @abstractmethod
     def cancel_subscription(
-        self,
-        subscription_id: str,
-        at_period_end: bool = True
+        self, subscription_id: str, at_period_end: bool = True
     ) -> dict[str, Any]:
         """
         Cancel a subscription.
@@ -71,10 +69,7 @@ class SubscriptionAdapter:
 
     @abstractmethod
     def list_subscriptions(
-        self,
-        customer_id: str,
-        status: str | None = None,
-        limit: int = 10
+        self, customer_id: str, status: str | None = None, limit: int = 10
     ) -> list[dict[str, Any]]:
         """
         List subscriptions for a customer.

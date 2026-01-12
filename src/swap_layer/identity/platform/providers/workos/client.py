@@ -26,7 +26,7 @@ class WorkOSClient(AuthProviderAdapter):
     usage where different apps may have different credentials.
     """
 
-    def __init__(self, app_name: str = 'default'):
+    def __init__(self, app_name: str = "default"):
         """
         Initialize WorkOS client with app-specific configuration.
 
@@ -39,12 +39,14 @@ class WorkOSClient(AuthProviderAdapter):
         self.app_name = app_name
         self.config = settings.WORKOS_APPS.get(app_name)
         if not self.config:
-            raise ValueError(f"WorkOS configuration for '{app_name}' not found in settings.WORKOS_APPS")
+            raise ValueError(
+                f"WorkOS configuration for '{app_name}' not found in settings.WORKOS_APPS"
+            )
 
         # Store credentials
-        self._api_key = self.config['api_key']
-        self._client_id = self.config['client_id']
-        self._cookie_password = self.config['cookie_password']
+        self._api_key = self.config["api_key"]
+        self._client_id = self.config["client_id"]
+        self._cookie_password = self.config["cookie_password"]
 
     def _configure_workos(self):
         """Thread-safe configuration of WorkOS SDK."""
@@ -72,9 +74,7 @@ class WorkOSClient(AuthProviderAdapter):
         """
         self._configure_workos()
         return workos.client.user_management.get_authorization_url(
-            provider=UserManagementProviderType.AuthKit,
-            redirect_uri=redirect_uri,
-            state=state
+            provider=UserManagementProviderType.AuthKit, redirect_uri=redirect_uri, state=state
         )
 
     def exchange_code_for_user(self, request, code: str) -> dict[str, Any]:
@@ -92,22 +92,19 @@ class WorkOSClient(AuthProviderAdapter):
         response = workos.client.user_management.authenticate_with_code(
             code=code,
             client_id=self._client_id,
-            session={
-                "seal_session": True,
-                "cookie_password": self._cookie_password
-            }
+            session={"seal_session": True, "cookie_password": self._cookie_password},
         )
 
         user = response.user
 
         return {
-            'id': user.id,
-            'email': user.email,
-            'first_name': user.first_name,
-            'last_name': user.last_name,
-            'email_verified': user.email_verified,
-            'raw_user': user.to_dict(),
-            'sealed_session': response.sealed_session
+            "id": user.id,
+            "email": user.email,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "email_verified": user.email_verified,
+            "raw_user": user.to_dict(),
+            "sealed_session": response.sealed_session,
         }
 
     def get_logout_url(self, request, return_to: str) -> str:
@@ -121,7 +118,7 @@ class WorkOSClient(AuthProviderAdapter):
         Returns:
             Logout URL or return_to if session not found
         """
-        sealed_session = request.session.get('workos_sealed_session')
+        sealed_session = request.session.get("workos_sealed_session")
 
         if sealed_session:
             try:

@@ -17,9 +17,9 @@ from .factory import get_identity_client
 get_provider = get_identity_client
 
 __all__ = [
-    'get_provider',
-    'get_identity_client',
-    'AuthProviderAdapter',
+    "get_provider",
+    "get_identity_client",
+    "AuthProviderAdapter",
     # Models available via: from swap_layer.identity.platform.models import ...
     # 'UserIdentity',
     # 'AbstractUserIdentity',

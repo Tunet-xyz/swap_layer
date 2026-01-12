@@ -22,10 +22,12 @@ def get_identity_verification_provider() -> IdentityVerificationProviderAdapter:
     else:
         # Fallback to legacy Django settings for backward compatibility
         from django.conf import settings as django_settings
-        provider = getattr(django_settings, 'IDENTITY_VERIFICATION_PROVIDER', 'stripe')
 
-    if provider == 'stripe':
+        provider = getattr(django_settings, "IDENTITY_VERIFICATION_PROVIDER", "stripe")
+
+    if provider == "stripe":
         from .providers.stripe import StripeIdentityVerificationProvider
+
         return StripeIdentityVerificationProvider()
     # Add other providers here as they are implemented
     # elif provider == 'onfido':

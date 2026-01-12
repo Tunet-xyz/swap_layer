@@ -1,6 +1,7 @@
 """
 SwapLayer - Swap Providers with Zero Vendor Lock-in. For Django SaaS.
 """
+
 from typing import Any
 
 from .billing.factory import get_payment_provider
@@ -34,6 +35,7 @@ from .storage.factory import get_storage_provider
 
 __version__ = "0.1.0"
 
+
 def get_provider(service_type: str, **kwargs) -> Any:
     """
     Unified entry point for getting a provider.
@@ -62,17 +64,17 @@ def get_provider(service_type: str, **kwargs) -> Any:
     """
     service = service_type.lower()
 
-    if service == 'email':
+    if service == "email":
         return get_email_provider()
-    elif service in ('billing', 'payment', 'payments'):
+    elif service in ("billing", "payment", "payments"):
         return get_payment_provider()
-    elif service == 'storage':
+    elif service == "storage":
         return get_storage_provider()
-    elif service == 'sms':
+    elif service == "sms":
         return get_sms_provider()
-    elif service in ('identity', 'auth', 'oauth'):
+    elif service in ("identity", "auth", "oauth"):
         return get_identity_client(**kwargs)
-    elif service in ('verification', 'kyc'):
+    elif service in ("verification", "kyc"):
         return get_identity_verification_provider()
     else:
         raise ValueError(
@@ -80,28 +82,29 @@ def get_provider(service_type: str, **kwargs) -> Any:
             f"Valid options: email, billing, storage, sms, identity, verification"
         )
 
+
 __all__ = [
-    'get_provider',
-    'get_email_provider',
-    'get_payment_provider',
-    'get_storage_provider',
-    'get_sms_provider',
-    'get_identity_client',
-    'get_identity_verification_provider',
+    "get_provider",
+    "get_email_provider",
+    "get_payment_provider",
+    "get_storage_provider",
+    "get_sms_provider",
+    "get_identity_client",
+    "get_identity_verification_provider",
     # Settings management
-    'SwapLayerSettings',
-    'get_swaplayer_settings',
-    'validate_swaplayer_config',
+    "SwapLayerSettings",
+    "get_swaplayer_settings",
+    "validate_swaplayer_config",
     # Exceptions
-    'SwapLayerError',
-    'ConfigurationError',
-    'ValidationError',
-    'ProviderError',
-    'StripeKeyError',
-    'TwilioConfigError',
-    'WorkOSConfigError',
-    'ProviderConfigMismatchError',
-    'ModuleNotConfiguredError',
-    'EnvironmentVariableError',
-    'MultiTenantConfigError',
+    "SwapLayerError",
+    "ConfigurationError",
+    "ValidationError",
+    "ProviderError",
+    "StripeKeyError",
+    "TwilioConfigError",
+    "WorkOSConfigError",
+    "ProviderConfigMismatchError",
+    "ModuleNotConfiguredError",
+    "EnvironmentVariableError",
+    "MultiTenantConfigError",
 ]

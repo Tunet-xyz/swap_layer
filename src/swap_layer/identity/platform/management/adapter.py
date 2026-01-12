@@ -18,11 +18,7 @@ class UserManagementAdapter(ABC):
 
     @abstractmethod
     def list_users(
-        self,
-        page: int = 0,
-        per_page: int = 50,
-        search_query: str | None = None,
-        **kwargs
+        self, page: int = 0, per_page: int = 50, search_query: str | None = None, **kwargs
     ) -> list[dict[str, Any]]:
         """
         List users with pagination and optional search.
@@ -58,7 +54,7 @@ class UserManagementAdapter(ABC):
         password: str | None = None,
         email_verified: bool = False,
         metadata: dict | None = None,
-        **kwargs
+        **kwargs,
     ) -> dict[str, Any]:
         """
         Create a new user.
@@ -77,11 +73,7 @@ class UserManagementAdapter(ABC):
 
     @abstractmethod
     def update_user(
-        self,
-        user_id: str,
-        email: str | None = None,
-        metadata: dict | None = None,
-        **kwargs
+        self, user_id: str, email: str | None = None, metadata: dict | None = None, **kwargs
     ) -> dict[str, Any]:
         """
         Update an existing user.
@@ -108,12 +100,7 @@ class UserManagementAdapter(ABC):
         pass
 
     @abstractmethod
-    def search_users(
-        self,
-        query: str,
-        per_page: int = 50,
-        **kwargs
-    ) -> list[dict[str, Any]]:
+    def search_users(self, query: str, per_page: int = 50, **kwargs) -> list[dict[str, Any]]:
         """
         Search users using provider-specific query syntax.
 
@@ -137,10 +124,7 @@ class OrganizationManagementAdapter(ABC):
 
     @abstractmethod
     def list_organizations(
-        self,
-        page: int = 0,
-        per_page: int = 50,
-        **kwargs
+        self, page: int = 0, per_page: int = 50, **kwargs
     ) -> list[dict[str, Any]]:
         """
         List organizations with pagination.
@@ -170,11 +154,7 @@ class OrganizationManagementAdapter(ABC):
 
     @abstractmethod
     def create_organization(
-        self,
-        name: str,
-        display_name: str | None = None,
-        metadata: dict | None = None,
-        **kwargs
+        self, name: str, display_name: str | None = None, metadata: dict | None = None, **kwargs
     ) -> dict[str, Any]:
         """
         Create a new organization.
@@ -197,7 +177,7 @@ class OrganizationManagementAdapter(ABC):
         name: str | None = None,
         display_name: str | None = None,
         metadata: dict | None = None,
-        **kwargs
+        **kwargs,
     ) -> dict[str, Any]:
         """
         Update an organization.
@@ -226,11 +206,7 @@ class OrganizationManagementAdapter(ABC):
 
     @abstractmethod
     def list_organization_members(
-        self,
-        org_id: str,
-        page: int = 0,
-        per_page: int = 50,
-        **kwargs
+        self, org_id: str, page: int = 0, per_page: int = 50, **kwargs
     ) -> list[dict[str, Any]]:
         """
         List members of an organization.
@@ -247,12 +223,7 @@ class OrganizationManagementAdapter(ABC):
         pass
 
     @abstractmethod
-    def add_organization_members(
-        self,
-        org_id: str,
-        user_ids: list[str],
-        **kwargs
-    ) -> None:
+    def add_organization_members(self, org_id: str, user_ids: list[str], **kwargs) -> None:
         """
         Add members to an organization.
 
@@ -264,12 +235,7 @@ class OrganizationManagementAdapter(ABC):
         pass
 
     @abstractmethod
-    def remove_organization_members(
-        self,
-        org_id: str,
-        user_ids: list[str],
-        **kwargs
-    ) -> None:
+    def remove_organization_members(self, org_id: str, user_ids: list[str], **kwargs) -> None:
         """
         Remove members from an organization.
 
@@ -289,12 +255,7 @@ class RoleManagementAdapter(ABC):
     """
 
     @abstractmethod
-    def list_roles(
-        self,
-        page: int = 0,
-        per_page: int = 50,
-        **kwargs
-    ) -> list[dict[str, Any]]:
+    def list_roles(self, page: int = 0, per_page: int = 50, **kwargs) -> list[dict[str, Any]]:
         """
         List all available roles.
 
@@ -335,12 +296,7 @@ class RoleManagementAdapter(ABC):
         pass
 
     @abstractmethod
-    def assign_user_roles(
-        self,
-        user_id: str,
-        role_ids: list[str],
-        **kwargs
-    ) -> None:
+    def assign_user_roles(self, user_id: str, role_ids: list[str], **kwargs) -> None:
         """
         Assign roles to a user.
 
@@ -352,12 +308,7 @@ class RoleManagementAdapter(ABC):
         pass
 
     @abstractmethod
-    def remove_user_roles(
-        self,
-        user_id: str,
-        role_ids: list[str],
-        **kwargs
-    ) -> None:
+    def remove_user_roles(self, user_id: str, role_ids: list[str], **kwargs) -> None:
         """
         Remove roles from a user.
 
@@ -391,11 +342,7 @@ class LogManagementAdapter(ABC):
 
     @abstractmethod
     def list_logs(
-        self,
-        page: int = 0,
-        per_page: int = 50,
-        query: str | None = None,
-        **kwargs
+        self, page: int = 0, per_page: int = 50, query: str | None = None, **kwargs
     ) -> list[dict[str, Any]]:
         """
         List audit logs with pagination and optional filtering.
@@ -426,11 +373,7 @@ class LogManagementAdapter(ABC):
 
     @abstractmethod
     def get_user_logs(
-        self,
-        user_id: str,
-        page: int = 0,
-        per_page: int = 50,
-        **kwargs
+        self, user_id: str, page: int = 0, per_page: int = 50, **kwargs
     ) -> list[dict[str, Any]]:
         """
         Get logs for a specific user.

@@ -9,12 +9,14 @@ Django settings to be configured just to import it.
 def test_import_main_package():
     """Test that swap_layer can be imported without Django configured."""
     import swap_layer
+
     assert swap_layer.__version__ == "0.1.0"
 
 
 def test_import_get_provider():
     """Test that get_provider can be imported."""
     from swap_layer import get_provider
+
     assert callable(get_provider)
 
 
@@ -66,8 +68,8 @@ def test_cannot_import_django_models_from_module():
     from swap_layer.identity import platform
 
     # Models should NOT be available directly
-    assert not hasattr(platform, 'UserIdentity')
-    assert not hasattr(platform, 'OAuthIdentityMixin')
+    assert not hasattr(platform, "UserIdentity")
+    assert not hasattr(platform, "OAuthIdentityMixin")
 
 
 def test_can_import_django_models_directly():

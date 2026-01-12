@@ -31,5 +31,6 @@ def get_setting(key: str, default=None):
 
     return getattr(django_settings, key, default)
 
+
 # Re-export django settings for direct access
 settings = django_settings

@@ -12,11 +12,7 @@ class PaymentAdapter:
 
     # Payment Methods
     @abstractmethod
-    def attach_payment_method(
-        self,
-        customer_id: str,
-        payment_method_id: str
-    ) -> dict[str, Any]:
+    def attach_payment_method(self, customer_id: str, payment_method_id: str) -> dict[str, Any]:
         """
         Attach a payment method to a customer.
 
@@ -37,9 +33,7 @@ class PaymentAdapter:
 
     @abstractmethod
     def list_payment_methods(
-        self,
-        customer_id: str,
-        method_type: str | None = None
+        self, customer_id: str, method_type: str | None = None
     ) -> list[dict[str, Any]]:
         """
         List payment methods for a customer.
@@ -55,9 +49,7 @@ class PaymentAdapter:
 
     @abstractmethod
     def set_default_payment_method(
-        self,
-        customer_id: str,
-        payment_method_id: str
+        self, customer_id: str, payment_method_id: str
     ) -> dict[str, Any]:
         """
         Set the default payment method for a customer.
@@ -75,7 +67,7 @@ class PaymentAdapter:
         currency: str,
         customer_id: str | None = None,
         payment_method_id: str | None = None,
-        metadata: dict[str, Any] | None = None
+        metadata: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """
         Create a payment intent for a one-time payment.
@@ -91,9 +83,7 @@ class PaymentAdapter:
 
     @abstractmethod
     def confirm_payment_intent(
-        self,
-        payment_intent_id: str,
-        payment_method_id: str | None = None
+        self, payment_intent_id: str, payment_method_id: str | None = None
     ) -> dict[str, Any]:
         """
         Confirm a payment intent.
@@ -121,8 +111,8 @@ class PaymentAdapter:
         price_id: str | None = None,
         success_url: str | None = None,
         cancel_url: str | None = None,
-        mode: str = 'subscription',
-        metadata: dict[str, Any] | None = None
+        mode: str = "subscription",
+        metadata: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """
         Create a checkout session for hosted payment page.
@@ -157,11 +147,7 @@ class PaymentAdapter:
         pass
 
     @abstractmethod
-    def list_invoices(
-        self,
-        customer_id: str,
-        limit: int = 10
-    ) -> list[dict[str, Any]]:
+    def list_invoices(self, customer_id: str, limit: int = 10) -> list[dict[str, Any]]:
         """
         List invoices for a customer.
 
@@ -173,10 +159,7 @@ class PaymentAdapter:
     # Webhooks
     @abstractmethod
     def verify_webhook_signature(
-        self,
-        payload: bytes,
-        signature: str,
-        webhook_secret: str
+        self, payload: bytes, signature: str, webhook_secret: str
     ) -> dict[str, Any]:
         """
         Verify and parse a webhook payload.

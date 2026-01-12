@@ -10,7 +10,7 @@ from .factory import get_payment_provider
 get_provider = get_payment_provider
 
 __all__ = [
-    'get_provider',
-    'get_payment_provider',
-    'PaymentProviderAdapter',
+    "get_provider",
+    "get_payment_provider",
+    "PaymentProviderAdapter",
 ]

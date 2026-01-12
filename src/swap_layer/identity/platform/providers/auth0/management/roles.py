@@ -21,12 +21,7 @@ class Auth0RoleManagement(RoleManagementAdapter):
         """
         self.base_client = base_client
 
-    def list_roles(
-        self,
-        page: int = 0,
-        per_page: int = 50,
-        **kwargs
-    ) -> list[dict[str, Any]]:
+    def list_roles(self, page: int = 0, per_page: int = 50, **kwargs) -> list[dict[str, Any]]:
         """
         List all available roles.
 
@@ -38,12 +33,8 @@ class Auth0RoleManagement(RoleManagementAdapter):
         Returns:
             List of role objects
         """
-        params = {
-            'page': page,
-            'per_page': per_page,
-            **kwargs
-        }
-        return self.base_client._make_request('GET', '/roles', params=params)
+        params = {"page": page, "per_page": per_page, **kwargs}
+        return self.base_client._make_request("GET", "/roles", params=params)
 
     def get_role(self, role_id: str) -> dict[str, Any]:
         """
@@ -55,14 +46,9 @@ class Auth0RoleManagement(RoleManagementAdapter):
         Returns:
             Role object
         """
-        return self.base_client._make_request('GET', f'/roles/{role_id}')
+        return self.base_client._make_request("GET", f"/roles/{role_id}")
 
-    def create_role(
-        self,
-        name: str,
-        description: str | None = None,
-        **kwargs
-    ) -> dict[str, Any]:
+    def create_role(self, name: str, description: str | None = None, **kwargs) -> dict[str, Any]:
         """
         Create a new role.
 
@@ -74,22 +60,15 @@ class Auth0RoleManagement(RoleManagementAdapter):
         Returns:
             Created role object
         """
-        payload = {
-            'name': name,
-            **kwargs
-        }
+        payload = {"name": name, **kwargs}
 
         if description:
-            payload['description'] = description
+            payload["description"] = description
 
-        return self.base_client._make_request('POST', '/roles', json=payload)
+        return self.base_client._make_request("POST", "/roles", json=payload)
 
     def update_role(
-        self,
-        role_id: str,
-        name: str | None = None,
-        description: str | None = None,
-        **kwargs
+        self, role_id: str, name: str | None = None, description: str | None = None, **kwargs
     ) -> dict[str, Any]:
         """
         Update a role.
@@ -106,14 +85,14 @@ class Auth0RoleManagement(RoleManagementAdapter):
         payload = {}
 
         if name:
-            payload['name'] = name
+            payload["name"] = name
 
         if description:
-            payload['description'] = description
+            payload["description"] = description
 
         payload.update(kwargs)
 
-        return self.base_client._make_request('PATCH', f'/roles/{role_id}', json=payload)
+        return self.base_client._make_request("PATCH", f"/roles/{role_id}", json=payload)
 
     def delete_role(self, role_id: str) -> None:
         """
@@ -122,7 +101,7 @@ class Auth0RoleManagement(RoleManagementAdapter):
         Args:
             role_id: Role ID
         """
-        self.base_client._make_request('DELETE', f'/roles/{role_id}')
+        self.base_client._make_request("DELETE", f"/roles/{role_id}")
 
     def get_user_roles(self, user_id: str) -> list[dict[str, Any]]:
         """
@@ -134,14 +113,9 @@ class Auth0RoleManagement(RoleManagementAdapter):
         Returns:
             List of role objects
         """
-        return self.base_client._make_request('GET', f'/users/{user_id}/roles')
+        return self.base_client._make_request("GET", f"/users/{user_id}/roles")
 
-    def assign_user_roles(
-        self,
-        user_id: str,
-        role_ids: list[str],
-        **kwargs
-    ) -> None:
+    def assign_user_roles(self, user_id: str, role_ids: list[str], **kwargs) -> None:
         """
         Assign roles to a user.
 
@@ -150,18 +124,10 @@ class Auth0RoleManagement(RoleManagementAdapter):
             role_ids: List of role IDs to assign
             **kwargs: Additional Auth0-specific parameters
         """
-        payload = {
-            'roles': role_ids,
-            **kwargs
-        }
-        self.base_client._make_request('POST', f'/users/{user_id}/roles', json=payload)
+        payload = {"roles": role_ids, **kwargs}
+        self.base_client._make_request("POST", f"/users/{user_id}/roles", json=payload)
 
-    def remove_user_roles(
-        self,
-        user_id: str,
-        role_ids: list[str],
-        **kwargs
-    ) -> None:
+    def remove_user_roles(self, user_id: str, role_ids: list[str], **kwargs) -> None:
         """
         Remove roles from a user.
 
@@ -170,11 +136,8 @@ class Auth0RoleManagement(RoleManagementAdapter):
             role_ids: List of role IDs to remove
             **kwargs: Additional Auth0-specific parameters
         """
-        payload = {
-            'roles': role_ids,
-            **kwargs
-        }
-        self.base_client._make_request('DELETE', f'/users/{user_id}/roles', json=payload)
+        payload = {"roles": role_ids, **kwargs}
+        self.base_client._make_request("DELETE", f"/users/{user_id}/roles", json=payload)
 
     def get_role_permissions(self, role_id: str) -> list[dict[str, Any]]:
         """
@@ -186,13 +149,10 @@ class Auth0RoleManagement(RoleManagementAdapter):
         Returns:
             List of permission objects
         """
-        return self.base_client._make_request('GET', f'/roles/{role_id}/permissions')
+        return self.base_client._make_request("GET", f"/roles/{role_id}/permissions")
 
     def add_role_permissions(
-        self,
-        role_id: str,
-        permissions: list[dict[str, str]],
-        **kwargs
+        self, role_id: str, permissions: list[dict[str, str]], **kwargs
     ) -> None:
         """
         Add permissions to a role.
@@ -207,17 +167,11 @@ class Auth0RoleManagement(RoleManagementAdapter):
             ...     {'resource_server_identifier': 'api.example.com', 'permission_name': 'read:users'}
             ... ])
         """
-        payload = {
-            'permissions': permissions,
-            **kwargs
-        }
-        self.base_client._make_request('POST', f'/roles/{role_id}/permissions', json=payload)
+        payload = {"permissions": permissions, **kwargs}
+        self.base_client._make_request("POST", f"/roles/{role_id}/permissions", json=payload)
 
     def remove_role_permissions(
-        self,
-        role_id: str,
-        permissions: list[dict[str, str]],
-        **kwargs
+        self, role_id: str, permissions: list[dict[str, str]], **kwargs
     ) -> None:
         """
         Remove permissions from a role.
@@ -227,11 +181,8 @@ class Auth0RoleManagement(RoleManagementAdapter):
             permissions: List of permission objects with 'resource_server_identifier' and 'permission_name'
             **kwargs: Additional Auth0-specific parameters
         """
-        payload = {
-            'permissions': permissions,
-            **kwargs
-        }
-        self.base_client._make_request('DELETE', f'/roles/{role_id}/permissions', json=payload)
+        payload = {"permissions": permissions, **kwargs}
+        self.base_client._make_request("DELETE", f"/roles/{role_id}/permissions", json=payload)
 
     def get_user_permissions(self, user_id: str) -> list[dict[str, Any]]:
         """
@@ -243,4 +194,4 @@ class Auth0RoleManagement(RoleManagementAdapter):
         Returns:
             List of permission objects
         """
-        return self.base_client._make_request('GET', f'/users/{user_id}/permissions')
+        return self.base_client._make_request("GET", f"/users/{user_id}/permissions")

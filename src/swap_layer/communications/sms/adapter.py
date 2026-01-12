@@ -100,7 +100,7 @@ class SMSProviderAdapter(ABC):
         start_date: str | None = None,
         end_date: str | None = None,
         status: str | None = None,
-        limit: int = 50
+        limit: int = 50,
     ) -> list[dict[str, Any]]:
         """
         List sent messages.
@@ -146,19 +146,23 @@ class SMSProviderAdapter(ABC):
 # Custom Exceptions
 class SMSError(Exception):
     """Base exception for SMS operations."""
+
     pass
 
 
 class SMSSendError(SMSError):
     """Raised when SMS sending fails."""
+
     pass
 
 
 class SMSMessageNotFoundError(SMSError):
     """Raised when a message is not found."""
+
     pass
 
 
 class SMSInvalidPhoneNumberError(SMSError):
     """Raised when a phone number is invalid."""
+
     pass

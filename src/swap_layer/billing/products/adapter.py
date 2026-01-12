@@ -13,10 +13,7 @@ class ProductAdapter:
 
     @abstractmethod
     def create_product(
-        self,
-        name: str,
-        description: str | None = None,
-        metadata: dict[str, Any] | None = None
+        self, name: str, description: str | None = None, metadata: dict[str, Any] | None = None
     ) -> dict[str, Any]:
         """
         Create a product.
@@ -42,7 +39,7 @@ class ProductAdapter:
         product_id: str,
         name: str | None = None,
         description: str | None = None,
-        metadata: dict[str, Any] | None = None
+        metadata: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """
         Update a product.
@@ -53,11 +50,7 @@ class ProductAdapter:
         pass
 
     @abstractmethod
-    def list_products(
-        self,
-        limit: int = 10,
-        active: bool | None = None
-    ) -> list[dict[str, Any]]:
+    def list_products(self, limit: int = 10, active: bool | None = None) -> list[dict[str, Any]]:
         """
         List products.
 
@@ -77,7 +70,7 @@ class ProductAdapter:
         amount: Decimal,
         currency: str,
         recurring: dict[str, Any] | None = None,
-        metadata: dict[str, Any] | None = None
+        metadata: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """
         Create a price for a product.
@@ -104,11 +97,7 @@ class ProductAdapter:
         pass
 
     @abstractmethod
-    def list_prices(
-        self,
-        product_id: str | None = None,
-        limit: int = 10
-    ) -> list[dict[str, Any]]:
+    def list_prices(self, product_id: str | None = None, limit: int = 10) -> list[dict[str, Any]]:
         """
         List prices.
 

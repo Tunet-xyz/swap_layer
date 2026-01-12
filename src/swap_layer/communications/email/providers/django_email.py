@@ -59,9 +59,9 @@ class DjangoEmailAdapter(EmailProviderAdapter):
                 for attachment in attachments:
                     # Expecting dict with 'filename', 'content', 'mimetype'
                     msg.attach(
-                        attachment.get('filename'),
-                        attachment.get('content'),
-                        attachment.get('mimetype')
+                        attachment.get("filename"),
+                        attachment.get("content"),
+                        attachment.get("mimetype"),
                     )
 
             # Support for Anymail-specific features via esp_extra if available
@@ -70,16 +70,17 @@ class DjangoEmailAdapter(EmailProviderAdapter):
                 msg.extra_headers = metadata
                 # Anymail uses 'tags' or 'metadata' attribute on the message object
                 # We can try to set it if the attribute exists (duck typing)
-                if hasattr(msg, 'metadata'):
+                if hasattr(msg, "metadata"):
                     msg.metadata = metadata
-                if hasattr(msg, 'tags') and 'tags' in metadata:
-                    msg.tags = metadata['tags']
+                if hasattr(msg, "tags") and "tags" in metadata:
+                    msg.tags = metadata["tags"]
 
             msg.send()
 
             return {
                 "status": "sent",
-                "message_id": getattr(msg, 'anymail_status', {}).get('message_id') or "sent-via-django",
+                "message_id": getattr(msg, "anymail_status", {}).get("message_id")
+                or "sent-via-django",
             }
 
         except Exception as e:
@@ -111,14 +112,14 @@ class DjangoEmailAdapter(EmailProviderAdapter):
 
         return self.send_email(
             to=to,
-            subject=template_data.get('subject', ''),
+            subject=template_data.get("subject", ""),
             template_id=template_id,
             template_data=template_data,
             from_email=from_email,
             cc=cc,
             bcc=bcc,
-            reply_to=reply_to_str, # type: ignore
-            metadata=metadata
+            reply_to=reply_to_str,  # type: ignore
+            metadata=metadata,
         )
 
     def send_bulk_email(
@@ -138,31 +139,35 @@ class DjangoEmailAdapter(EmailProviderAdapter):
         for r in recipients:
             try:
                 self.send_email(
-                    to=[r['to']],
+                    to=[r["to"]],
                     subject=subject,
                     text_body=text_body,
                     html_body=html_body,
                     from_email=from_email,
-                    metadata=metadata
+                    metadata=metadata,
                 )
                 sent += 1
             except Exception:
                 failed += 1
-                failed_list.append(r['to'])
+                failed_list.append(r["to"])
 
-        return {'total_sent': sent, 'total_failed': failed, 'failed_recipients': failed_list}
+        return {"total_sent": sent, "total_failed": failed, "failed_recipients": failed_list}
 
     def verify_email(self, email: str) -> dict[str, Any]:
         raise NotImplementedError("Not supported by generic Django backend")
 
-    def get_send_statistics(self, start_date: str | None = None, end_date: str | None = None) -> dict[str, Any]:
+    def get_send_statistics(
+        self, start_date: str | None = None, end_date: str | None = None
+    ) -> dict[str, Any]:
         raise NotImplementedError("Not supported by generic Django backend")
 
-    def add_to_suppression_list(self, email: str, reason: str = 'manual') -> dict[str, Any]:
+    def add_to_suppression_list(self, email: str, reason: str = "manual") -> dict[str, Any]:
         raise NotImplementedError("Not supported by generic Django backend")
 
     def remove_from_suppression_list(self, email: str) -> dict[str, Any]:
         raise NotImplementedError("Not supported by generic Django backend")
 
-    def validate_webhook_signature(self, payload: bytes, signature: str, timestamp: str | None = None) -> bool:
+    def validate_webhook_signature(
+        self, payload: bytes, signature: str, timestamp: str | None = None
+    ) -> bool:
         return False

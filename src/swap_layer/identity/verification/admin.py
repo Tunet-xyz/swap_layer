@@ -26,21 +26,21 @@ class IdentityVerificationAdminMixin:
             return format_html('<span style="color: #999;">—</span>')
 
         colors = {
-            'requires_input': '#6c757d',
-            'processing': '#ffc107',
-            'verified': '#28a745',
-            'canceled': '#dc3545',
+            "requires_input": "#6c757d",
+            "processing": "#ffc107",
+            "verified": "#28a745",
+            "canceled": "#dc3545",
         }
 
-        color = colors.get(obj.verification_status, '#6c757d')
+        color = colors.get(obj.verification_status, "#6c757d")
         return format_html(
             '<span style="background: {}; color: white; padding: 2px 8px; border-radius: 3px; font-size: 11px;">{}</span>',
             color,
-            obj.verification_status.upper().replace('_', ' ')
+            obj.verification_status.upper().replace("_", " "),
         )
 
-    verification_status_badge.short_description = 'Status'
-    verification_status_badge.admin_order_field = 'verification_status'
+    verification_status_badge.short_description = "Status"
+    verification_status_badge.admin_order_field = "verification_status"
 
     def provider_link(self, obj):
         """Display provider with link to dashboard."""
@@ -48,7 +48,7 @@ class IdentityVerificationAdminMixin:
             return format_html('<span style="color: #999;">—</span>')
 
         dashboard_urls = {
-            'stripe': f'https://dashboard.stripe.com/identity/verification_sessions/{obj.verification_session_id}',
+            "stripe": f"https://dashboard.stripe.com/identity/verification_sessions/{obj.verification_session_id}",
         }
 
         url = dashboard_urls.get(obj.verification_provider)
@@ -56,22 +56,22 @@ class IdentityVerificationAdminMixin:
             return format_html(
                 '<a href="{}" target="_blank">{} <span style="color: #999;">↗</span></a>',
                 url,
-                obj.verification_provider.upper()
+                obj.verification_provider.upper(),
             )
-        return obj.verification_provider.upper() if obj.verification_provider else '—'
+        return obj.verification_provider.upper() if obj.verification_provider else "—"
 
-    provider_link.short_description = 'Provider'
-    provider_link.admin_order_field = 'verification_provider'
+    provider_link.short_description = "Provider"
+    provider_link.admin_order_field = "verification_provider"
 
     def verified_name(self, obj):
         """Display verified name if available."""
         if obj.verified_first_name or obj.verified_last_name:
-            first = obj.verified_first_name or ''
-            last = obj.verified_last_name or ''
-            return f'{first} {last}'.strip()
+            first = obj.verified_first_name or ""
+            last = obj.verified_last_name or ""
+            return f"{first} {last}".strip()
         return format_html('<span style="color: #999;">—</span>')
 
-    verified_name.short_description = 'Verified Name'
+    verified_name.short_description = "Verified Name"
 
 
 class KYCStatusAdminMixin:
@@ -87,21 +87,21 @@ class KYCStatusAdminMixin:
             return format_html('<span style="color: #999;">—</span>')
 
         colors = {
-            'not_started': '#6c757d',
-            'pending': '#ffc107',
-            'verified': '#28a745',
-            'failed': '#dc3545',
+            "not_started": "#6c757d",
+            "pending": "#ffc107",
+            "verified": "#28a745",
+            "failed": "#dc3545",
         }
 
-        color = colors.get(obj.kyc_status, '#6c757d')
+        color = colors.get(obj.kyc_status, "#6c757d")
         return format_html(
             '<span style="background: {}; color: white; padding: 2px 8px; border-radius: 3px; font-size: 11px;">{}</span>',
             color,
-            obj.kyc_status.upper().replace('_', ' ')
+            obj.kyc_status.upper().replace("_", " "),
         )
 
-    kyc_status_badge.short_description = 'KYC Status'
-    kyc_status_badge.admin_order_field = 'kyc_status'
+    kyc_status_badge.short_description = "KYC Status"
+    kyc_status_badge.admin_order_field = "kyc_status"
 
     def kyc_required_icon(self, obj):
         """Display KYC required icon."""
@@ -109,5 +109,5 @@ class KYCStatusAdminMixin:
             return format_html('<span style="color: #dc3545;">✓ Required</span>')
         return format_html('<span style="color: #999;">Not Required</span>')
 
-    kyc_required_icon.short_description = 'KYC Required'
-    kyc_required_icon.admin_order_field = 'kyc_required'
+    kyc_required_icon.short_description = "KYC Required"
+    kyc_required_icon.admin_order_field = "kyc_required"

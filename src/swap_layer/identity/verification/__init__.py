@@ -23,9 +23,9 @@ from .factory import get_identity_verification_provider
 get_provider = get_identity_verification_provider
 
 __all__ = [
-    'get_provider',
-    'get_identity_verification_provider',
-    'IdentityVerificationProviderAdapter',
+    "get_provider",
+    "get_identity_verification_provider",
+    "IdentityVerificationProviderAdapter",
     # Models available via: from swap_layer.identity.verification.models import ...
     # 'VerificationSessionCreate',
     # 'WebhookPayload',
