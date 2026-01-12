@@ -481,9 +481,50 @@ The MCP server runs with the same permissions as your Django application. Ensure
 
 ## Integration with AI Development Tools
 
+### VS Code with GitHub Copilot
+
+Create a `.vscode/mcp.json` file in your project root:
+
+```json
+{
+  "mcpServers": {
+    "swaplayer": {
+      "command": "swaplayer-mcp",
+      "args": [],
+      "env": {
+        "DJANGO_SETTINGS_MODULE": "your_project.settings",
+        "PYTHONPATH": "${workspaceFolder}"
+      }
+    }
+  }
+}
+```
+
+Or add to your **User Settings** (`settings.json`) for global access across all projects:
+
+```json
+{
+  "mcp": {
+    "servers": {
+      "swaplayer": {
+        "command": "swaplayer-mcp",
+        "env": {
+          "DJANGO_SETTINGS_MODULE": "your_project.settings"
+        }
+      }
+    }
+  }
+}
+```
+
+After configuration, restart VS Code. SwapLayer tools will appear in GitHub Copilot's available tools list.
+
 ### Claude Desktop
 
-Add to your Claude Desktop configuration (`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS):
+Add to your Claude Desktop configuration:
+
+**macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`  
+**Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
 
 ```json
 {
@@ -497,10 +538,6 @@ Add to your Claude Desktop configuration (`~/Library/Application Support/Claude/
   }
 }
 ```
-
-### VS Code with Copilot
-
-Configure the MCP server in your VS Code settings to make SwapLayer tools available to GitHub Copilot.
 
 ### Other AI Assistants
 

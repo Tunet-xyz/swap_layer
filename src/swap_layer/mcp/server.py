@@ -323,7 +323,6 @@ async def _get_config(service: str) -> dict[str, Any]:
                 if svc_config:
                     safe_config = {k: v for k, v in svc_config.items() if k not in SENSITIVE_KEYS}
                     return {"status": "success", "service": service, "config": safe_config}
-                    return {"status": "success", "service": service, "config": safe_config}
             return {"status": "not_configured", "service": service}
     except Exception as e:
         return {"status": "error", "message": str(e)}
