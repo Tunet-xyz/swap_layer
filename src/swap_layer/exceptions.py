@@ -182,7 +182,7 @@ class ProviderConfigMismatchError(ConfigurationError):
             f"❌ {module.title()} provider '{provider}' selected but {missing_config} not configured",
             hint=f"When you set provider='{provider}', you must also provide the {missing_config} configuration.",
             examples=examples_map.get(provider, [f"{module}={{'provider': '{provider}', '{provider}': {{...}}}}"]),
-            docs_url=f"https://github.com/yourusername/swap_layer/blob/main/src/swap_layer/{module}/README.md",
+            docs_url=f"https://github.com/Tunet-xyz/swap_layer/blob/main/src/swap_layer/{module}/README.md",
             related_settings=[
                 f"SWAPLAYER.{module}.provider",
                 f"SWAPLAYER.{module}.{provider}",
@@ -212,7 +212,7 @@ class ModuleNotConfiguredError(ConfigurationError):
                 f"    {module_examples.get(module, f'{module}={{...}}')}",
                 ")",
             ],
-            docs_url="https://github.com/yourusername/swap_layer/blob/main/SETTINGS_MANAGEMENT.md",
+            docs_url="https://github.com/Tunet-xyz/swap_layer/blob/main/docs/README.md",
             related_settings=[
                 f"SWAPLAYER.{module}",
             ]
@@ -301,8 +301,8 @@ class ErrorContext:
         lines.extend([
             "=" * 80,
             "Need help? Check the documentation or file an issue:",
-            "  📚 https://github.com/yourusername/swap_layer/blob/main/SETTINGS_MANAGEMENT.md",
-            "  🐛 https://github.com/yourusername/swap_layer/issues",
+            "  📚 https://github.com/Tunet-xyz/swap_layer/blob/main/docs/README.md",
+            "  🐛 https://github.com/Tunet-xyz/swap_layer/issues",
             "=" * 80,
         ])
 
@@ -373,7 +373,7 @@ def enhance_validation_error(error: Exception, context: dict[str, Any]) -> Excep
     return SwapLayerError(
         str(error),
         hint="Check your configuration values and types",
-        docs_url="https://github.com/yourusername/swap_layer/blob/main/SETTINGS_MANAGEMENT.md",
+        docs_url="https://github.com/Tunet-xyz/swap_layer/blob/main/docs/README.md",
     )
 
 
@@ -412,8 +412,8 @@ def format_startup_validation_errors(errors: list[dict[str, Any]]) -> str:
     lines.extend([
         "💡 Tips:",
         "  • Run: python manage.py swaplayer_check --verbose",
-        "  • Check: SETTINGS_MANAGEMENT.md for configuration guide",
-        "  • See: CONFIGURATION_EXAMPLES.md for examples",
+        "  • Check: docs/README.md for configuration guide",
+        "  • See: docs/architecture.md for patterns and examples",
         "",
         "=" * 80,
     ])
