@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-01-12
+
 ### Added
 - Initial release of SwapLayer
 - Email module with Django/SMTP providers
@@ -38,5 +40,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial beta release
 
-[Unreleased]: https://github.com/Tunet-xyz/swap_layer/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/Tunet-xyz/swap_layer/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/Tunet-xyz/swap_layer/releases/tag/v0.2.0
 [0.1.0]: https://github.com/Tunet-xyz/swap_layer/releases/tag/v0.1.0
