@@ -28,6 +28,12 @@ classifiers = [
   "Topic :: Software Development :: Libraries :: Python Modules",
   "Intended Audience :: Developers",
 ]
+dependencies = [
+  "Django>=4.2",
+  "pydantic>=2.0.0",
+  "requests>=2.28.0",
+  "tenacity>=8.0.0",
+]
 
 [project.urls]
 Homepage = "https://github.com/Tunet-xyz/swap_layer"
@@ -35,12 +41,6 @@ Documentation = "https://github.com/Tunet-xyz/swap_layer/blob/main/docs/README.m
 Repository = "https://github.com/Tunet-xyz/swap_layer"
 Issues = "https://github.com/Tunet-xyz/swap_layer/issues"
 Changelog = "https://github.com/Tunet-xyz/swap_layer/blob/main/CHANGELOG.md"
-dependencies = [
-  "Django>=4.2",
-  "pydantic>=2.0.0",
-  "requests>=2.28.0",
-  "tenacity>=8.0.0",
-]
 
 [project.optional-dependencies]
 stripe = ["stripe>=5.0.0"]
