@@ -1,7 +1,6 @@
 from swap_layer.settings import get_swaplayer_settings
 
 from .adapter import PaymentProviderAdapter
-from .providers.stripe import StripePaymentProvider
 
 
 def get_payment_provider() -> PaymentProviderAdapter:
@@ -22,6 +21,8 @@ def get_payment_provider() -> PaymentProviderAdapter:
         provider = settings.billing.provider
         # Pass Stripe config from SwapLayerSettings if available
         if provider == "stripe" and settings.billing.stripe:
+            from .providers.stripe import StripePaymentProvider
+
             return StripePaymentProvider(
                 secret_key=settings.billing.stripe.secret_key,
                 publishable_key=settings.billing.stripe.publishable_key,
@@ -34,6 +35,8 @@ def get_payment_provider() -> PaymentProviderAdapter:
         provider = getattr(django_settings, "PAYMENT_PROVIDER", "stripe")
 
     if provider == "stripe":
+        from .providers.stripe import StripePaymentProvider
+
         return StripePaymentProvider()
     # Add other providers here as they are implemented
     # elif provider == 'paypal':

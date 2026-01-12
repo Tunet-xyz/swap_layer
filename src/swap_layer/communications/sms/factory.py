@@ -5,7 +5,6 @@ Factory function for creating SMS provider instances.
 from swap_layer.settings import get_swaplayer_settings
 
 from .adapter import SMSProviderAdapter
-from .providers.twilio_sms import TwilioSMSProvider
 
 
 def get_sms_provider() -> SMSProviderAdapter:
@@ -30,6 +29,8 @@ def get_sms_provider() -> SMSProviderAdapter:
 
         # Pass Twilio config from SwapLayerSettings if available
         if provider == "twilio" and sms_config.twilio:
+            from .providers.twilio_sms import TwilioSMSProvider
+
             return TwilioSMSProvider(
                 account_sid=sms_config.twilio.account_sid,
                 auth_token=sms_config.twilio.auth_token,
@@ -42,6 +43,8 @@ def get_sms_provider() -> SMSProviderAdapter:
         provider = getattr(django_settings, "SMS_PROVIDER", "twilio").lower()
 
     if provider == "twilio":
+        from .providers.twilio_sms import TwilioSMSProvider
+
         return TwilioSMSProvider()
     elif provider == "sns":
         from .providers.sns import SNSSMSProvider

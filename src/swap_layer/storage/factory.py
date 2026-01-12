@@ -5,7 +5,6 @@ Factory function for creating storage provider instances.
 from swap_layer.settings import get_swaplayer_settings
 
 from .adapter import StorageProviderAdapter
-from .providers.local import LocalFileStorageProvider
 
 
 def get_storage_provider() -> StorageProviderAdapter:
@@ -34,6 +33,8 @@ def get_storage_provider() -> StorageProviderAdapter:
         provider = settings.storage.provider.lower()
         # Pass storage config from SwapLayerSettings if available
         if provider == "local":
+            from .providers.local import LocalFileStorageProvider
+
             return LocalFileStorageProvider(
                 base_path=settings.storage.media_root, base_url=settings.storage.media_url
             )
@@ -52,6 +53,8 @@ def get_storage_provider() -> StorageProviderAdapter:
 
         return DjangoStorageAdapter()
     elif provider == "local":
+        from .providers.local import LocalFileStorageProvider
+
         return LocalFileStorageProvider()
     else:
         raise ValueError(
