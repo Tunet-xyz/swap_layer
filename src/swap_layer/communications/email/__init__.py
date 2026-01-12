@@ -13,7 +13,7 @@ from .factory import get_email_provider
 get_provider = get_email_provider
 
 __all__ = [
-    'get_provider',
-    'get_email_provider',
-    'EmailProviderAdapter',
+    "get_provider",
+    "get_email_provider",
+    "EmailProviderAdapter",
 ]

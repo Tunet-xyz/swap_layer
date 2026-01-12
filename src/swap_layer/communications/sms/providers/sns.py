@@ -25,20 +25,20 @@ class SNSSMSProvider(SMSProviderAdapter):
             import boto3
             from django.conf import settings
 
-            aws_access_key_id = getattr(settings, 'AWS_ACCESS_KEY_ID', None)
-            aws_secret_access_key = getattr(settings, 'AWS_SECRET_ACCESS_KEY', None)
-            aws_region_name = getattr(settings, 'AWS_REGION_NAME', 'us-east-1')
+            aws_access_key_id = getattr(settings, "AWS_ACCESS_KEY_ID", None)
+            aws_secret_access_key = getattr(settings, "AWS_SECRET_ACCESS_KEY", None)
+            aws_region_name = getattr(settings, "AWS_REGION_NAME", "us-east-1")
 
             if not aws_access_key_id or not aws_secret_access_key:
                 raise ValueError("AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY must be configured")
 
             self.sns_client = boto3.client(
-                'sns',
+                "sns",
                 aws_access_key_id=aws_access_key_id,
                 aws_secret_access_key=aws_secret_access_key,
-                region_name=aws_region_name
+                region_name=aws_region_name,
             )
-            self.sender_id = getattr(settings, 'AWS_SNS_DEFAULT_SENDER_ID', None)
+            self.sender_id = getattr(settings, "AWS_SNS_DEFAULT_SENDER_ID", None)
 
         except ImportError:
             raise ImportError("boto3 library not installed. Run: pip install boto3")
@@ -56,32 +56,30 @@ class SNSSMSProvider(SMSProviderAdapter):
         try:
             # Set message attributes
             message_attributes = {
-                'AWS.SNS.SMS.SMSType': {
-                    'DataType': 'String',
-                    'StringValue': 'Transactional'  # or 'Promotional'
+                "AWS.SNS.SMS.SMSType": {
+                    "DataType": "String",
+                    "StringValue": "Transactional",  # or 'Promotional'
                 }
             }
 
             # Add sender ID if available
             if self.sender_id or from_number:
-                message_attributes['AWS.SNS.SMS.SenderID'] = {
-                    'DataType': 'String',
-                    'StringValue': from_number or self.sender_id
+                message_attributes["AWS.SNS.SMS.SenderID"] = {
+                    "DataType": "String",
+                    "StringValue": from_number or self.sender_id,
                 }
 
             # Send message
             response = self.sns_client.publish(
-                PhoneNumber=to,
-                Message=message,
-                MessageAttributes=message_attributes
+                PhoneNumber=to, Message=message, MessageAttributes=message_attributes
             )
 
             return {
-                'message_id': response['MessageId'],
-                'status': 'sent',  # SNS doesn't provide immediate status
-                'to': to,
-                'from_number': from_number or self.sender_id,
-                'segments': 1,  # SNS doesn't provide segment count
+                "message_id": response["MessageId"],
+                "status": "sent",  # SNS doesn't provide immediate status
+                "to": to,
+                "from_number": from_number or self.sender_id,
+                "segments": 1,  # SNS doesn't provide segment count
             }
         except Exception as e:
             raise SMSSendError(f"Failed to send SMS via SNS: {str(e)}")
@@ -100,21 +98,23 @@ class SNSSMSProvider(SMSProviderAdapter):
 
         for recipient in recipients:
             try:
-                to = recipient['to']
-                msg = recipient.get('message', message)
+                to = recipient["to"]
+                msg = recipient.get("message", message)
                 self.send_sms(to, msg, from_number, metadata)
                 total_sent += 1
             except Exception as e:
                 total_failed += 1
-                failed_recipients.append({
-                    'to': recipient['to'],
-                    'error': str(e),
-                })
+                failed_recipients.append(
+                    {
+                        "to": recipient["to"],
+                        "error": str(e),
+                    }
+                )
 
         return {
-            'total_sent': total_sent,
-            'total_failed': total_failed,
-            'failed_recipients': failed_recipients,
+            "total_sent": total_sent,
+            "total_failed": total_failed,
+            "failed_recipients": failed_recipients,
         }
 
     def get_message_status(self, message_id: str) -> dict[str, Any]:
@@ -134,11 +134,11 @@ class SNSSMSProvider(SMSProviderAdapter):
         # This is a placeholder implementation
         # In production, you would query CloudWatch Logs or use SNS delivery status topics
         return {
-            'message_id': message_id,
-            'status': 'unknown',  # SNS doesn't provide direct status lookup
-            'to': None,
-            'from_number': None,
-            'error': 'AWS SNS requires CloudWatch Logs integration for status tracking',
+            "message_id": message_id,
+            "status": "unknown",  # SNS doesn't provide direct status lookup
+            "to": None,
+            "from_number": None,
+            "error": "AWS SNS requires CloudWatch Logs integration for status tracking",
         }
 
     def validate_phone_number(self, phone_number: str) -> dict[str, Any]:
@@ -155,32 +155,30 @@ class SNSSMSProvider(SMSProviderAdapter):
             from django.conf import settings
 
             # Initialize Pinpoint client for phone validation
-            aws_access_key_id = getattr(settings, 'AWS_ACCESS_KEY_ID', None)
-            aws_secret_access_key = getattr(settings, 'AWS_SECRET_ACCESS_KEY', None)
-            aws_region_name = getattr(settings, 'AWS_REGION_NAME', 'us-east-1')
+            aws_access_key_id = getattr(settings, "AWS_ACCESS_KEY_ID", None)
+            aws_secret_access_key = getattr(settings, "AWS_SECRET_ACCESS_KEY", None)
+            aws_region_name = getattr(settings, "AWS_REGION_NAME", "us-east-1")
 
             pinpoint_client = boto3.client(
-                'pinpoint',
+                "pinpoint",
                 aws_access_key_id=aws_access_key_id,
                 aws_secret_access_key=aws_secret_access_key,
-                region_name=aws_region_name
+                region_name=aws_region_name,
             )
 
             # Validate phone number
             response = pinpoint_client.phone_number_validate(
-                NumberValidateRequest={
-                    'PhoneNumber': phone_number
-                }
+                NumberValidateRequest={"PhoneNumber": phone_number}
             )
 
-            result = response.get('NumberValidateResponse', {})
+            result = response.get("NumberValidateResponse", {})
 
             return {
-                'is_valid': result.get('PhoneType') != 'INVALID',
-                'phone_number': result.get('CleansedPhoneNumberE164', phone_number),
-                'country_code': result.get('CountryCodeIso2'),
-                'carrier': result.get('Carrier'),
-                'line_type': result.get('PhoneType'),
+                "is_valid": result.get("PhoneType") != "INVALID",
+                "phone_number": result.get("CleansedPhoneNumberE164", phone_number),
+                "country_code": result.get("CountryCodeIso2"),
+                "carrier": result.get("Carrier"),
+                "line_type": result.get("PhoneType"),
             }
         except Exception as e:
             raise SMSInvalidPhoneNumberError(f"Failed to validate phone number: {str(e)}")
@@ -201,9 +199,9 @@ class SNSSMSProvider(SMSProviderAdapter):
         # Placeholder implementation
         # In production, you would use AWS Cost Explorer or Budgets API
         return {
-            'balance': None,  # SNS is pay-as-you-go, no balance concept
-            'currency': 'USD',
-            'account_status': 'active',
+            "balance": None,  # SNS is pay-as-you-go, no balance concept
+            "currency": "USD",
+            "account_status": "active",
         }
 
     def list_messages(
@@ -211,7 +209,7 @@ class SNSSMSProvider(SMSProviderAdapter):
         start_date: str | None = None,
         end_date: str | None = None,
         status: str | None = None,
-        limit: int = 50
+        limit: int = 50,
     ) -> list[dict[str, Any]]:
         """
         List sent messages.
@@ -239,15 +237,13 @@ class SNSSMSProvider(SMSProviderAdapter):
         from sms.adapter import SMSError
 
         try:
-            response = self.sns_client.check_if_phone_number_is_opted_out(
-                phoneNumber=phone_number
-            )
+            response = self.sns_client.check_if_phone_number_is_opted_out(phoneNumber=phone_number)
 
-            is_opted_out = response.get('isOptedOut', False)
+            is_opted_out = response.get("isOptedOut", False)
 
             return {
-                'phone_number': phone_number,
-                'status': 'opted_out' if is_opted_out else 'active',
+                "phone_number": phone_number,
+                "status": "opted_out" if is_opted_out else "active",
             }
         except Exception as e:
             raise SMSError(f"Failed to check opt-out status: {str(e)}")
@@ -261,13 +257,11 @@ class SNSSMSProvider(SMSProviderAdapter):
         from sms.adapter import SMSError
 
         try:
-            self.sns_client.opt_in_phone_number(
-                phoneNumber=phone_number
-            )
+            self.sns_client.opt_in_phone_number(phoneNumber=phone_number)
 
             return {
-                'phone_number': phone_number,
-                'status': 'opted_in',
+                "phone_number": phone_number,
+                "status": "opted_in",
             }
         except Exception as e:
             raise SMSError(f"Failed to opt in phone number: {str(e)}")

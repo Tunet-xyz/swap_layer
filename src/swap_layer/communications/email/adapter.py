@@ -142,7 +142,7 @@ class EmailProviderAdapter(ABC):
     def add_to_suppression_list(
         self,
         email: str,
-        reason: str = 'manual',
+        reason: str = "manual",
     ) -> dict[str, Any]:
         """
         Add an email to the suppression list (bounce/complaint list).
@@ -192,9 +192,11 @@ class EmailProviderAdapter(ABC):
 
 class EmailSendError(Exception):
     """Raised when email sending fails."""
+
     pass
 
 
 class TemplateNotFoundError(Exception):
     """Raised when a template is not found."""
+
     pass

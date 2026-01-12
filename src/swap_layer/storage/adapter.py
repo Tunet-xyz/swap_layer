@@ -17,7 +17,7 @@ class StorageProviderAdapter(ABC):
         file_data: BinaryIO,
         content_type: str | None = None,
         metadata: dict[str, str] | None = None,
-        public: bool = False
+        public: bool = False,
     ) -> dict[str, Any]:
         """
         Upload a file to storage.
@@ -38,11 +38,7 @@ class StorageProviderAdapter(ABC):
         pass
 
     @abstractmethod
-    def download_file(
-        self,
-        file_path: str,
-        destination: str | None = None
-    ) -> bytes:
+    def download_file(self, file_path: str, destination: str | None = None) -> bytes:
         """
         Download a file from storage.
 
@@ -107,9 +103,7 @@ class StorageProviderAdapter(ABC):
 
     @abstractmethod
     def list_files(
-        self,
-        prefix: str | None = None,
-        max_results: int = 1000
+        self, prefix: str | None = None, max_results: int = 1000
     ) -> list[dict[str, Any]]:
         """
         List files in storage.
@@ -125,11 +119,7 @@ class StorageProviderAdapter(ABC):
 
     # URL Generation
     @abstractmethod
-    def get_file_url(
-        self,
-        file_path: str,
-        expiration: timedelta | None = None
-    ) -> str:
+    def get_file_url(self, file_path: str, expiration: timedelta | None = None) -> str:
         """
         Get a URL to access a file.
 
@@ -150,7 +140,7 @@ class StorageProviderAdapter(ABC):
         self,
         file_path: str,
         content_type: str | None = None,
-        expiration: timedelta = timedelta(hours=1)
+        expiration: timedelta = timedelta(hours=1),
     ) -> dict[str, Any]:
         """
         Generate a presigned URL for direct upload from client.
@@ -167,11 +157,7 @@ class StorageProviderAdapter(ABC):
 
     # Bulk Operations
     @abstractmethod
-    def copy_file(
-        self,
-        source_path: str,
-        destination_path: str
-    ) -> dict[str, Any]:
+    def copy_file(self, source_path: str, destination_path: str) -> dict[str, Any]:
         """
         Copy a file within storage.
 
@@ -189,11 +175,7 @@ class StorageProviderAdapter(ABC):
         pass
 
     @abstractmethod
-    def move_file(
-        self,
-        source_path: str,
-        destination_path: str
-    ) -> dict[str, Any]:
+    def move_file(self, source_path: str, destination_path: str) -> dict[str, Any]:
         """
         Move/rename a file within storage.
 
@@ -227,34 +209,41 @@ class StorageProviderAdapter(ABC):
 # Custom Exceptions
 class StorageError(Exception):
     """Base exception for storage operations."""
+
     pass
 
 
 class StorageUploadError(StorageError):
     """Raised when file upload fails."""
+
     pass
 
 
 class StorageDownloadError(StorageError):
     """Raised when file download fails."""
+
     pass
 
 
 class StorageFileNotFoundError(StorageError):
     """Raised when a file is not found."""
+
     pass
 
 
 class StorageDeleteError(StorageError):
     """Raised when file deletion fails."""
+
     pass
 
 
 class StorageCopyError(StorageError):
     """Raised when file copy fails."""
+
     pass
 
 
 class StorageMoveError(StorageError):
     """Raised when file move fails."""
+
     pass

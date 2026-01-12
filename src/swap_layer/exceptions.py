@@ -60,22 +60,26 @@ class SwapLayerError(Exception):
 
 class ConfigurationError(SwapLayerError, ImproperlyConfigured):
     """Configuration is missing or invalid."""
+
     pass
 
 
 class ValidationError(SwapLayerError):
     """Value failed validation."""
+
     pass
 
 
 class ProviderError(SwapLayerError):
     """Error from external provider (Stripe, Twilio, etc.)."""
+
     pass
 
 
 # ============================================================================
 # Specific Configuration Errors
 # ============================================================================
+
 
 class StripeKeyError(ConfigurationError):
     """Stripe API key is invalid or incorrectly formatted."""
@@ -84,11 +88,13 @@ class StripeKeyError(ConfigurationError):
         super().__init__(
             f"❌ Invalid Stripe {key_type}",
             hint=f"Stripe {key_type}s have a specific format. "
-                 f"You provided: '{provided_value[:15]}...'",
+            f"You provided: '{provided_value[:15]}...'",
             examples=[
                 f"sk_test_51A... (test mode {key_type})",
                 f"sk_live_51A... (live mode {key_type})",
-            ] if key_type == "secret key" else [
+            ]
+            if key_type == "secret key"
+            else [
                 "pk_test_51A... (test mode publishable key)",
                 "pk_live_51A... (live mode publishable key)",
             ],
@@ -96,7 +102,7 @@ class StripeKeyError(ConfigurationError):
             related_settings=[
                 "SWAPLAYER.billing.stripe.secret_key",
                 "SWAPLAYER.billing.stripe.publishable_key",
-            ]
+            ],
         )
 
 
@@ -104,26 +110,26 @@ class TwilioConfigError(ConfigurationError):
     """Twilio configuration is invalid."""
 
     @classmethod
-    def invalid_account_sid(cls, provided_value: str) -> 'TwilioConfigError':
+    def invalid_account_sid(cls, provided_value: str) -> "TwilioConfigError":
         return cls(
             "❌ Invalid Twilio Account SID",
             hint=f"Twilio Account SIDs always start with 'AC'. "
-                 f"You provided: '{provided_value[:10]}...'",
+            f"You provided: '{provided_value[:10]}...'",
             examples=[
                 "AC1234567890abcdef1234567890abcd (34 characters)",
             ],
             docs_url="https://www.twilio.com/docs/iam/keys/api-key",
             related_settings=[
                 "SWAPLAYER.sms.twilio.account_sid",
-            ]
+            ],
         )
 
     @classmethod
-    def invalid_phone_number(cls, provided_value: str) -> 'TwilioConfigError':
+    def invalid_phone_number(cls, provided_value: str) -> "TwilioConfigError":
         return cls(
             "❌ Invalid phone number format",
             hint=f"Phone numbers must be in E.164 format (starts with '+' and country code). "
-                 f"You provided: '{provided_value}'",
+            f"You provided: '{provided_value}'",
             examples=[
                 "+15555551234 (US number)",
                 "+442071838750 (UK number)",
@@ -132,7 +138,7 @@ class TwilioConfigError(ConfigurationError):
             docs_url="https://www.twilio.com/docs/glossary/what-e164",
             related_settings=[
                 "SWAPLAYER.sms.twilio.from_number",
-            ]
+            ],
         )
 
 
@@ -140,11 +146,11 @@ class WorkOSConfigError(ConfigurationError):
     """WorkOS configuration is invalid."""
 
     @classmethod
-    def short_cookie_password(cls, provided_length: int) -> 'WorkOSConfigError':
+    def short_cookie_password(cls, provided_length: int) -> "WorkOSConfigError":
         return cls(
             "❌ Cookie password too short",
             hint=f"Cookie password must be at least 32 characters for security. "
-                 f"You provided {provided_length} characters.",
+            f"You provided {provided_length} characters.",
             examples=[
                 "Generate secure password: python -c 'import secrets; print(secrets.token_urlsafe(32))'",
                 "Or use: openssl rand -base64 32",
@@ -152,7 +158,7 @@ class WorkOSConfigError(ConfigurationError):
             docs_url="https://workos.com/docs/user-management/configuration",
             related_settings=[
                 "SWAPLAYER.identity.workos_apps.<app_name>.cookie_password",
-            ]
+            ],
         )
 
 
@@ -161,19 +167,19 @@ class ProviderConfigMismatchError(ConfigurationError):
 
     def __init__(self, module: str, provider: str, missing_config: str):
         examples_map = {
-            'stripe': [
+            "stripe": [
                 "billing={'provider': 'stripe', 'stripe': {'secret_key': 'sk_test_...', 'publishable_key': 'pk_test_...'}}",
             ],
-            'twilio': [
+            "twilio": [
                 "sms={'provider': 'twilio', 'twilio': {'account_sid': 'AC...', 'auth_token': '...', 'from_number': '+1555...'}}",
             ],
-            'sns': [
+            "sns": [
                 "sms={'provider': 'sns', 'sns': {'region_name': 'us-east-1', 'sender_id': 'MyApp'}}",
             ],
-            'workos': [
+            "workos": [
                 "identity={'provider': 'workos', 'workos_apps': {'default': {'api_key': '...', 'client_id': '...', 'cookie_password': '...'}}}",
             ],
-            'auth0': [
+            "auth0": [
                 "identity={'provider': 'auth0', 'auth0_apps': {'default': {'client_id': '...', 'client_secret': '...'}}, 'auth0_domain': 'myapp.auth0.com'}",
             ],
         }
@@ -181,12 +187,14 @@ class ProviderConfigMismatchError(ConfigurationError):
         super().__init__(
             f"❌ {module.title()} provider '{provider}' selected but {missing_config} not configured",
             hint=f"When you set provider='{provider}', you must also provide the {missing_config} configuration.",
-            examples=examples_map.get(provider, [f"{module}={{'provider': '{provider}', '{provider}': {{...}}}}"]),
-            docs_url=f"https://github.com/yourusername/swap_layer/blob/main/src/swap_layer/{module}/README.md",
+            examples=examples_map.get(
+                provider, [f"{module}={{'provider': '{provider}', '{provider}': {{...}}}}"]
+            ),
+            docs_url=f"https://github.com/Tunet-xyz/swap_layer/blob/main/src/swap_layer/{module}/README.md",
             related_settings=[
                 f"SWAPLAYER.{module}.provider",
                 f"SWAPLAYER.{module}.{provider}",
-            ]
+            ],
         )
 
 
@@ -195,27 +203,27 @@ class ModuleNotConfiguredError(ConfigurationError):
 
     def __init__(self, module: str):
         module_examples = {
-            'billing': "billing={'provider': 'stripe', 'stripe': {'secret_key': 'sk_test_...'}}",
-            'communications': "communications={'email': {'provider': 'django'}, 'sms': {'provider': 'twilio', 'twilio': {...}}}",
-            'storage': "storage={'provider': 'local', 'media_root': '/path/to/media'}",
-            'identity': "identity={'provider': 'workos', 'workos_apps': {...}}",
-            'verification': "verification={'provider': 'stripe', 'stripe_secret_key': 'sk_test_...'}",
+            "billing": "billing={'provider': 'stripe', 'stripe': {'secret_key': 'sk_test_...'}}",
+            "communications": "communications={'email': {'provider': 'django'}, 'sms': {'provider': 'twilio', 'twilio': {...}}}",
+            "storage": "storage={'provider': 'local', 'media_root': '/path/to/media'}",
+            "identity": "identity={'provider': 'workos', 'workos_apps': {...}}",
+            "verification": "verification={'provider': 'stripe', 'stripe_secret_key': 'sk_test_...'}",
         }
 
         super().__init__(
             f"❌ SwapLayer '{module}' module is not configured",
             hint=f"You tried to use the {module} module, but it's not configured in your settings. "
-                 f"Add it to SWAPLAYER settings.",
+            f"Add it to SWAPLAYER settings.",
             examples=[
                 "# In settings.py",
                 "SWAPLAYER = SwapLayerSettings(",
                 f"    {module_examples.get(module, f'{module}={{...}}')}",
                 ")",
             ],
-            docs_url="https://github.com/yourusername/swap_layer/blob/main/SETTINGS_MANAGEMENT.md",
+            docs_url="https://github.com/Tunet-xyz/swap_layer/blob/main/docs/README.md",
             related_settings=[
                 f"SWAPLAYER.{module}",
-            ]
+            ],
         )
 
 
@@ -235,7 +243,7 @@ class EnvironmentVariableError(ConfigurationError):
                 "# Or in .env file:",
                 f"{var_name}=your_value_here",
             ],
-            related_settings=[f"Environment variable: {var_name}"]
+            related_settings=[f"Environment variable: {var_name}"],
         )
 
 
@@ -246,7 +254,7 @@ class MultiTenantConfigError(ConfigurationError):
         super().__init__(
             f"❌ App '{app_name}' not found in {provider} configuration",
             hint=f"You requested app '{app_name}', but it's not configured. "
-                 f"Available apps: {', '.join(available_apps) if available_apps else 'none'}",
+            f"Available apps: {', '.join(available_apps) if available_apps else 'none'}",
             examples=[
                 "# Configure the app in settings:",
                 f"identity={{'provider': '{provider}', '{provider}_apps': {{",
@@ -255,13 +263,14 @@ class MultiTenantConfigError(ConfigurationError):
             ],
             related_settings=[
                 f"SWAPLAYER.identity.{provider}_apps",
-            ]
+            ],
         )
 
 
 # ============================================================================
 # Error Context Builder
 # ============================================================================
+
 
 class ErrorContext:
     """Build rich error context for debugging."""
@@ -291,20 +300,24 @@ class ErrorContext:
         ]
 
         if config_dict:
-            lines.extend([
-                "📋 Your configuration:",
-                "---",
-                ErrorContext._format_config(config_dict, indent=0),
-                "",
-            ])
+            lines.extend(
+                [
+                    "📋 Your configuration:",
+                    "---",
+                    ErrorContext._format_config(config_dict, indent=0),
+                    "",
+                ]
+            )
 
-        lines.extend([
-            "=" * 80,
-            "Need help? Check the documentation or file an issue:",
-            "  📚 https://github.com/yourusername/swap_layer/blob/main/SETTINGS_MANAGEMENT.md",
-            "  🐛 https://github.com/yourusername/swap_layer/issues",
-            "=" * 80,
-        ])
+        lines.extend(
+            [
+                "=" * 80,
+                "Need help? Check the documentation or file an issue:",
+                "  📚 https://github.com/Tunet-xyz/swap_layer/blob/main/docs/README.md",
+                "  🐛 https://github.com/Tunet-xyz/swap_layer/issues",
+                "=" * 80,
+            ]
+        )
 
         return "\n".join(lines)
 
@@ -329,8 +342,14 @@ class ErrorContext:
     def _is_sensitive_key(key: str) -> bool:
         """Check if a key contains sensitive data."""
         sensitive_keywords = [
-            'key', 'secret', 'token', 'password', 'api_key',
-            'auth_token', 'client_secret', 'cookie_password',
+            "key",
+            "secret",
+            "token",
+            "password",
+            "api_key",
+            "auth_token",
+            "client_secret",
+            "cookie_password",
         ]
         return any(keyword in key.lower() for keyword in sensitive_keywords)
 
@@ -338,6 +357,7 @@ class ErrorContext:
 # ============================================================================
 # Helper Functions
 # ============================================================================
+
 
 def enhance_validation_error(error: Exception, context: dict[str, Any]) -> Exception:
     """
@@ -354,26 +374,26 @@ def enhance_validation_error(error: Exception, context: dict[str, Any]) -> Excep
 
     # Detect common error patterns and provide better messages
     if "secret_key" in error_str and "must start with 'sk_'" in error_str:
-        provided = context.get('secret_key', '')
-        return StripeKeyError('secret key', provided)
+        provided = context.get("secret_key", "")
+        return StripeKeyError("secret key", provided)
 
     if "Account SID" in error_str and "must start with 'AC'" in error_str:
-        provided = context.get('account_sid', '')
+        provided = context.get("account_sid", "")
         return TwilioConfigError.invalid_account_sid(provided)
 
     if "E.164 format" in error_str:
-        provided = context.get('from_number', '')
+        provided = context.get("from_number", "")
         return TwilioConfigError.invalid_phone_number(provided)
 
     if "Cookie password" in error_str and "32 characters" in error_str:
-        provided_length = len(context.get('cookie_password', ''))
+        provided_length = len(context.get("cookie_password", ""))
         return WorkOSConfigError.short_cookie_password(provided_length)
 
     # Default: wrap in SwapLayerError with context
     return SwapLayerError(
         str(error),
         hint="Check your configuration values and types",
-        docs_url="https://github.com/yourusername/swap_layer/blob/main/SETTINGS_MANAGEMENT.md",
+        docs_url="https://github.com/Tunet-xyz/swap_layer/blob/main/docs/README.md",
     )
 
 
@@ -398,24 +418,28 @@ def format_startup_validation_errors(errors: list[dict[str, Any]]) -> str:
     ]
 
     for i, error in enumerate(errors, 1):
-        loc = " → ".join(str(location) for location in error.get('loc', []))
-        msg = error.get('msg', 'Unknown error')
-        error_type = error.get('type', 'unknown')
+        loc = " → ".join(str(location) for location in error.get("loc", []))
+        msg = error.get("msg", "Unknown error")
+        error_type = error.get("type", "unknown")
 
-        lines.extend([
-            f"{i}. ❌ {loc}",
-            f"   Error: {msg}",
-            f"   Type: {error_type}",
+        lines.extend(
+            [
+                f"{i}. ❌ {loc}",
+                f"   Error: {msg}",
+                f"   Type: {error_type}",
+                "",
+            ]
+        )
+
+    lines.extend(
+        [
+            "💡 Tips:",
+            "  • Run: python manage.py swaplayer_check --verbose",
+            "  • Check: docs/README.md for configuration guide",
+            "  • See: docs/architecture.md for patterns and examples",
             "",
-        ])
-
-    lines.extend([
-        "💡 Tips:",
-        "  • Run: python manage.py swaplayer_check --verbose",
-        "  • Check: SETTINGS_MANAGEMENT.md for configuration guide",
-        "  • See: CONFIGURATION_EXAMPLES.md for examples",
-        "",
-        "=" * 80,
-    ])
+            "=" * 80,
+        ]
+    )
 
     return "\n".join(lines)

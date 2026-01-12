@@ -30,13 +30,16 @@ def get_email_provider() -> EmailProviderAdapter:
     else:
         # Fallback to legacy Django settings for backward compatibility
         from django.conf import settings as django_settings
-        provider = getattr(django_settings, 'EMAIL_PROVIDER', 'django')
 
-    if provider == 'django':
+        provider = getattr(django_settings, "EMAIL_PROVIDER", "django")
+
+    if provider == "django":
         from .providers.django_email import DjangoEmailAdapter
+
         return DjangoEmailAdapter()
-    elif provider == 'smtp':
+    elif provider == "smtp":
         from .providers.smtp import SMTPEmailProvider
+
         return SMTPEmailProvider()
     else:
         raise ValueError(
@@ -44,4 +47,3 @@ def get_email_provider() -> EmailProviderAdapter:
             f"Supported: 'django' (recommended), 'smtp'. "
             f"For SendGrid/Mailgun/SES, use EMAIL_PROVIDER='django' with django-anymail."
         )
-

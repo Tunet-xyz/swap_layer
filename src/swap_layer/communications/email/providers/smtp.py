@@ -31,7 +31,7 @@ class SMTPEmailProvider(EmailProviderAdapter):
     """
 
     def __init__(self):
-        self.default_from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@example.com')
+        self.default_from_email = getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@example.com")
         self.connection = None
 
     def _get_connection(self):
@@ -75,7 +75,7 @@ class SMTPEmailProvider(EmailProviderAdapter):
             if html_body:
                 msg = EmailMultiAlternatives(
                     subject=subject,
-                    body=text_body or '',
+                    body=text_body or "",
                     from_email=from_addr,
                     to=to,
                     cc=cc or [],
@@ -100,9 +100,9 @@ class SMTPEmailProvider(EmailProviderAdapter):
             if attachments:
                 for attachment in attachments:
                     msg.attach(
-                        filename=attachment.get('filename', 'attachment'),
-                        content=attachment.get('content', ''),
-                        mimetype=attachment.get('mimetype', 'application/octet-stream')
+                        filename=attachment.get("filename", "attachment"),
+                        content=attachment.get("content", ""),
+                        mimetype=attachment.get("mimetype", "application/octet-stream"),
                     )
 
             # Send email
@@ -114,12 +114,12 @@ class SMTPEmailProvider(EmailProviderAdapter):
             logger.info(f"Email sent via SMTP to {to}: {subject}")
 
             return {
-                'message_id': message_id,
-                'status': 'sent' if result == 1 else 'failed',
-                'provider_response': {
-                    'sent_count': result,
-                    'backend': 'smtp',
-                }
+                "message_id": message_id,
+                "status": "sent" if result == 1 else "failed",
+                "provider_response": {
+                    "sent_count": result,
+                    "backend": "smtp",
+                },
             }
 
         except Exception as e:
@@ -149,12 +149,12 @@ class SMTPEmailProvider(EmailProviderAdapter):
 
             # Try to render both text and HTML versions
             try:
-                html_body = render_to_string(f'{template_id}.html', template_data)
+                html_body = render_to_string(f"{template_id}.html", template_data)
             except TemplateDoesNotExist:
                 html_body = None
 
             try:
-                text_body = render_to_string(f'{template_id}.txt', template_data)
+                text_body = render_to_string(f"{template_id}.txt", template_data)
             except TemplateDoesNotExist:
                 text_body = None
 
@@ -164,7 +164,7 @@ class SMTPEmailProvider(EmailProviderAdapter):
                 )
 
             # Extract subject from template_data or use a default
-            subject = template_data.get('subject', 'Email from CODED:X')
+            subject = template_data.get("subject", "Email from SwapLayer")
 
             return self.send_email(
                 to=to,
@@ -211,17 +211,23 @@ class SMTPEmailProvider(EmailProviderAdapter):
             for recipient in recipients:
                 to_email = None
                 try:
-                    to_email = recipient.get('to')
+                    to_email = recipient.get("to")
                     if not to_email:
                         raise ValueError("Missing 'to' field in recipient")
 
-                    substitutions = recipient.get('substitutions', {})
+                    substitutions = recipient.get("substitutions", {})
 
                     # Apply simple string substitutions using string.Template for better performance
                     # Note: Using $variable format for consistency with Python's string.Template
-                    personalized_subject = Template(subject).safe_substitute(substitutions) if subject else ''
-                    personalized_text = Template(text_body).safe_substitute(substitutions) if text_body else None
-                    personalized_html = Template(html_body).safe_substitute(substitutions) if html_body else None
+                    personalized_subject = (
+                        Template(subject).safe_substitute(substitutions) if subject else ""
+                    )
+                    personalized_text = (
+                        Template(text_body).safe_substitute(substitutions) if text_body else None
+                    )
+                    personalized_html = (
+                        Template(html_body).safe_substitute(substitutions) if html_body else None
+                    )
 
                     # Ensure we have at least text_body or html_body
                     if not personalized_text and not personalized_html:
@@ -240,10 +246,7 @@ class SMTPEmailProvider(EmailProviderAdapter):
                 except Exception as e:
                     logger.error(f"Failed to send bulk email to {to_email or 'unknown'}: {e}")
                     total_failed += 1
-                    failed_recipients.append({
-                        'email': to_email or 'unknown',
-                        'error': str(e)
-                    })
+                    failed_recipients.append({"email": to_email or "unknown", "error": str(e)})
 
         finally:
             connection.close()
@@ -251,9 +254,9 @@ class SMTPEmailProvider(EmailProviderAdapter):
         logger.info(f"Bulk email sent: {total_sent} sent, {total_failed} failed")
 
         return {
-            'total_sent': total_sent,
-            'total_failed': total_failed,
-            'failed_recipients': failed_recipients,
+            "total_sent": total_sent,
+            "total_failed": total_failed,
+            "failed_recipients": failed_recipients,
         }
 
     def verify_email(self, email: str) -> dict[str, Any]:
@@ -263,16 +266,16 @@ class SMTPEmailProvider(EmailProviderAdapter):
         Returns a simple format check. For real verification, use SendGrid or similar.
         """
         # Basic email regex pattern
-        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        email_pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
         is_valid = bool(re.match(email_pattern, email))
 
         return {
-            'is_valid': is_valid,
-            'reason': 'format_check' if is_valid else 'invalid_format',
-            'provider_response': {
-                'method': 'regex',
-                'note': 'SMTP provider only performs basic format validation'
-            }
+            "is_valid": is_valid,
+            "reason": "format_check" if is_valid else "invalid_format",
+            "provider_response": {
+                "method": "regex",
+                "note": "SMTP provider only performs basic format validation",
+            },
         }
 
     def get_send_statistics(
@@ -289,19 +292,19 @@ class SMTPEmailProvider(EmailProviderAdapter):
         logger.warning("SMTP provider does not support statistics")
 
         return {
-            'sent': 0,
-            'delivered': 0,
-            'bounced': 0,
-            'complained': 0,
-            'opened': 0,
-            'clicked': 0,
-            'note': 'SMTP provider does not track statistics'
+            "sent": 0,
+            "delivered": 0,
+            "bounced": 0,
+            "complained": 0,
+            "opened": 0,
+            "clicked": 0,
+            "note": "SMTP provider does not track statistics",
         }
 
     def add_to_suppression_list(
         self,
         email: str,
-        reason: str = 'manual',
+        reason: str = "manual",
     ) -> dict[str, Any]:
         """
         Add to suppression list (not supported by SMTP).
@@ -312,10 +315,10 @@ class SMTPEmailProvider(EmailProviderAdapter):
         logger.warning(f"SMTP provider does not support suppression lists: {email}")
 
         return {
-            'email': email,
-            'status': 'not_supported',
-            'reason': reason,
-            'note': 'SMTP provider does not support suppression lists'
+            "email": email,
+            "status": "not_supported",
+            "reason": reason,
+            "note": "SMTP provider does not support suppression lists",
         }
 
     def remove_from_suppression_list(self, email: str) -> dict[str, Any]:
@@ -325,9 +328,9 @@ class SMTPEmailProvider(EmailProviderAdapter):
         logger.warning(f"SMTP provider does not support suppression lists: {email}")
 
         return {
-            'email': email,
-            'status': 'not_supported',
-            'note': 'SMTP provider does not support suppression lists'
+            "email": email,
+            "status": "not_supported",
+            "note": "SMTP provider does not support suppression lists",
         }
 
     def validate_webhook_signature(

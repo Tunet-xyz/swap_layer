@@ -27,7 +27,7 @@ class Auth0UserManagement(UserManagementAdapter):
         per_page: int = 50,
         search_query: str | None = None,
         fields: list[str] | None = None,
-        **kwargs
+        **kwargs,
     ) -> list[dict[str, Any]]:
         """
         List users in Auth0 tenant.
@@ -42,20 +42,16 @@ class Auth0UserManagement(UserManagementAdapter):
         Returns:
             List of user objects
         """
-        params = {
-            'page': page,
-            'per_page': min(per_page, 50),
-            **kwargs
-        }
+        params = {"page": page, "per_page": min(per_page, 50), **kwargs}
 
         if search_query:
-            params['q'] = search_query
-            params['search_engine'] = 'v3'
+            params["q"] = search_query
+            params["search_engine"] = "v3"
 
         if fields:
-            params['fields'] = ','.join(fields)
+            params["fields"] = ",".join(fields)
 
-        return self.base_client._make_request('GET', '/users', params=params)
+        return self.base_client._make_request("GET", "/users", params=params)
 
     def get_user(self, user_id: str) -> dict[str, Any]:
         """
@@ -67,7 +63,7 @@ class Auth0UserManagement(UserManagementAdapter):
         Returns:
             User object
         """
-        return self.base_client._make_request('GET', f'/users/{user_id}')
+        return self.base_client._make_request("GET", f"/users/{user_id}")
 
     def create_user(
         self,
@@ -75,8 +71,8 @@ class Auth0UserManagement(UserManagementAdapter):
         password: str | None = None,
         email_verified: bool = False,
         metadata: dict | None = None,
-        connection: str = 'Username-Password-Authentication',
-        **kwargs
+        connection: str = "Username-Password-Authentication",
+        **kwargs,
     ) -> dict[str, Any]:
         """
         Create a new user in Auth0.
@@ -93,26 +89,22 @@ class Auth0UserManagement(UserManagementAdapter):
             Created user object
         """
         payload = {
-            'email': email,
-            'connection': connection,
-            'email_verified': email_verified,
-            **kwargs
+            "email": email,
+            "connection": connection,
+            "email_verified": email_verified,
+            **kwargs,
         }
 
         if password:
-            payload['password'] = password
+            payload["password"] = password
 
         if metadata:
-            payload['user_metadata'] = metadata
+            payload["user_metadata"] = metadata
 
-        return self.base_client._make_request('POST', '/users', json=payload)
+        return self.base_client._make_request("POST", "/users", json=payload)
 
     def update_user(
-        self,
-        user_id: str,
-        email: str | None = None,
-        metadata: dict | None = None,
-        **kwargs
+        self, user_id: str, email: str | None = None, metadata: dict | None = None, **kwargs
     ) -> dict[str, Any]:
         """
         Update an existing user.
@@ -129,14 +121,14 @@ class Auth0UserManagement(UserManagementAdapter):
         payload = {}
 
         if email:
-            payload['email'] = email
+            payload["email"] = email
 
         if metadata:
-            payload['user_metadata'] = metadata
+            payload["user_metadata"] = metadata
 
         payload.update(kwargs)
 
-        return self.base_client._make_request('PATCH', f'/users/{user_id}', json=payload)
+        return self.base_client._make_request("PATCH", f"/users/{user_id}", json=payload)
 
     def delete_user(self, user_id: str) -> None:
         """
@@ -145,14 +137,9 @@ class Auth0UserManagement(UserManagementAdapter):
         Args:
             user_id: Auth0 user ID
         """
-        self.base_client._make_request('DELETE', f'/users/{user_id}')
+        self.base_client._make_request("DELETE", f"/users/{user_id}")
 
-    def search_users(
-        self,
-        query: str,
-        per_page: int = 50,
-        **kwargs
-    ) -> list[dict[str, Any]]:
+    def search_users(self, query: str, per_page: int = 50, **kwargs) -> list[dict[str, Any]]:
         """
         Search users using Lucene query syntax.
 

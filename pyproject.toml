@@ -12,6 +12,7 @@ description = "Swap providers with zero vendor lock-in. For Django SaaS."
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
+keywords = ["django", "saas", "providers", "stripe", "twilio", "aws", "infrastructure", "anti-vendor-lock-in"]
 authors = [
   { name = "Alex C", email = "alex@coded.uk" },
 ]
@@ -27,6 +28,13 @@ classifiers = [
   "Topic :: Software Development :: Libraries :: Python Modules",
   "Intended Audience :: Developers",
 ]
+
+[project.urls]
+Homepage = "https://github.com/Tunet-xyz/swap_layer"
+Documentation = "https://github.com/Tunet-xyz/swap_layer/blob/main/docs/README.md"
+Repository = "https://github.com/Tunet-xyz/swap_layer"
+Issues = "https://github.com/Tunet-xyz/swap_layer/issues"
+Changelog = "https://github.com/Tunet-xyz/swap_layer/blob/main/CHANGELOG.md"
 dependencies = [
   "Django>=4.2",
   "pydantic>=2.0.0",

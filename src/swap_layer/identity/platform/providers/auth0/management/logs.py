@@ -27,7 +27,7 @@ class Auth0LogManagement(LogManagementAdapter):
         per_page: int = 50,
         query: str | None = None,
         from_id: str | None = None,
-        **kwargs
+        **kwargs,
     ) -> list[dict[str, Any]]:
         """
         List audit logs with pagination and optional filtering.
@@ -50,19 +50,19 @@ class Auth0LogManagement(LogManagementAdapter):
 
         # Checkpoint-based pagination (preferred for large datasets)
         if from_id:
-            params['from'] = from_id
-            params['take'] = per_page
+            params["from"] = from_id
+            params["take"] = per_page
         # Offset-based pagination
         else:
-            params['page'] = page
-            params['per_page'] = per_page
+            params["page"] = page
+            params["per_page"] = per_page
 
         if query:
-            params['q'] = query
+            params["q"] = query
 
         params.update(kwargs)
 
-        return self.base_client._make_request('GET', '/logs', params=params)
+        return self.base_client._make_request("GET", "/logs", params=params)
 
     def get_log(self, log_id: str) -> dict[str, Any]:
         """
@@ -74,14 +74,10 @@ class Auth0LogManagement(LogManagementAdapter):
         Returns:
             Log entry object
         """
-        return self.base_client._make_request('GET', f'/logs/{log_id}')
+        return self.base_client._make_request("GET", f"/logs/{log_id}")
 
     def get_user_logs(
-        self,
-        user_id: str,
-        page: int = 0,
-        per_page: int = 50,
-        **kwargs
+        self, user_id: str, page: int = 0, per_page: int = 50, **kwargs
     ) -> list[dict[str, Any]]:
         """
         Get logs for a specific user.
@@ -100,11 +96,7 @@ class Auth0LogManagement(LogManagementAdapter):
         return self.list_logs(page=page, per_page=per_page, query=query, **kwargs)
 
     def get_logs_by_type(
-        self,
-        log_type: str,
-        page: int = 0,
-        per_page: int = 50,
-        **kwargs
+        self, log_type: str, page: int = 0, per_page: int = 50, **kwargs
     ) -> list[dict[str, Any]]:
         """
         Get logs by type.
@@ -126,16 +118,11 @@ class Auth0LogManagement(LogManagementAdapter):
             - 'fu': Failed User Update
             - 'fp': Failed Password Change
         """
-        query = f'type:{log_type}'
+        query = f"type:{log_type}"
         return self.list_logs(page=page, per_page=per_page, query=query, **kwargs)
 
     def get_logs_by_date_range(
-        self,
-        date_from: str,
-        date_to: str,
-        page: int = 0,
-        per_page: int = 50,
-        **kwargs
+        self, date_from: str, date_to: str, page: int = 0, per_page: int = 50, **kwargs
     ) -> list[dict[str, Any]]:
         """
         Get logs within a date range.
@@ -153,5 +140,5 @@ class Auth0LogManagement(LogManagementAdapter):
         Example:
             >>> logs.get_logs_by_date_range('2024-01-01', '2024-01-31')
         """
-        query = f'date:[{date_from} TO {date_to}]'
+        query = f"date:[{date_from} TO {date_to}]"
         return self.list_logs(page=page, per_page=per_page, query=query, **kwargs)

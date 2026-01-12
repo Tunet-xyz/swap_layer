@@ -109,7 +109,7 @@ class WorkOSManagementClient(IdentityManagementClient):
             status_code = None
 
             # Extract status code if available
-            if hasattr(e, 'response') and e.response is not None:
+            if hasattr(e, "response") and e.response is not None:
                 status_code = e.response.status_code
                 try:
                     error_msg = e.response.text

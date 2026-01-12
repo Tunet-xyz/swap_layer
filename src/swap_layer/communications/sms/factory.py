@@ -1,6 +1,7 @@
 """
 Factory function for creating SMS provider instances.
 """
+
 from swap_layer.settings import get_swaplayer_settings
 
 from .adapter import SMSProviderAdapter
@@ -28,21 +29,23 @@ def get_sms_provider() -> SMSProviderAdapter:
         provider = sms_config.provider.lower()
 
         # Pass Twilio config from SwapLayerSettings if available
-        if provider == 'twilio' and sms_config.twilio:
+        if provider == "twilio" and sms_config.twilio:
             return TwilioSMSProvider(
                 account_sid=sms_config.twilio.account_sid,
                 auth_token=sms_config.twilio.auth_token,
-                from_number=sms_config.twilio.from_number
+                from_number=sms_config.twilio.from_number,
             )
     else:
         # Fallback to legacy Django settings for backward compatibility
         from django.conf import settings as django_settings
-        provider = getattr(django_settings, 'SMS_PROVIDER', 'twilio').lower()
 
-    if provider == 'twilio':
+        provider = getattr(django_settings, "SMS_PROVIDER", "twilio").lower()
+
+    if provider == "twilio":
         return TwilioSMSProvider()
-    elif provider == 'sns':
+    elif provider == "sns":
         from .providers.sns import SNSSMSProvider
+
         return SNSSMSProvider()
     else:
         raise ValueError(f"Unsupported SMS provider: {provider}")

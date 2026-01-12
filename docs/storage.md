@@ -450,4 +450,4 @@ All abstractions follow the same architectural pattern for consistency and ease 
 
 ## License
 
-This abstraction layer is part of the CODED:X platform and follows the same license terms.
+This module is part of SwapLayer and follows the MIT License.

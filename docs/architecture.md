@@ -1,6 +1,6 @@
 # Infrastructure Abstractions Overview
 
-This document provides a comprehensive overview of all infrastructure abstractions in the CODED:X platform, explaining the consistent architectural pattern and how to use them effectively.
+This document provides a comprehensive overview of all infrastructure abstractions in SwapLayer, explaining the consistent architectural pattern and how to use them effectively.
 
 ## Table of Contents
 
@@ -16,7 +16,7 @@ This document provides a comprehensive overview of all infrastructure abstractio
 
 ## Overview
 
-The CODED:X platform uses a **Provider Adapter Pattern** for all infrastructure concerns. This architectural approach allows the application to switch between different third-party service providers without changing business logic code.
+SwapLayer uses a **Provider Adapter Pattern** for all infrastructure concerns. This architectural approach allows the application to switch between different third-party service providers without changing business logic code.
 
 ### What is a Provider Abstraction?
 
@@ -629,7 +629,7 @@ customer = provider.create_customer(email='user@example.com')
 
 ## Conclusion
 
-The infrastructure abstractions in CODED:X provide a consistent, maintainable approach to integrating third-party services. By following the Provider Adapter Pattern, we gain:
+The infrastructure abstractions in SwapLayer provide a consistent, maintainable approach to integrating third-party services. By following the Provider Adapter Pattern, we gain:
 
 - **Flexibility** - Switch providers easily
 - **Testability** - Mock cleanly in tests
@@ -642,13 +642,13 @@ All new infrastructure integrations should follow this pattern for maximum benef
 
 ## Further Reading
 
-- [Authentication Abstraction](./identity/platform/README.md)
-- [Identity Verification Abstraction](./identity/verification/README.md)
-- [Payment Abstraction](./payments/README.md)
-- [Email Abstraction](./email/README.md)
-- [Storage Abstraction](./storage/README.md)
-- [SMS Abstraction](./sms/README.md)
+- [Authentication Abstraction](identity-platform.md)
+- [Identity Verification Abstraction](identity-verification.md)
+- [Payment Abstraction](billing.md)
+- [Email Abstraction](email.md)
+- [Storage Abstraction](storage.md)
+- [SMS Abstraction](sms.md)
 
 ---
 
-**Built with ❤️ for the CODED:X Platform**
+**Built with ❤️ by SwapLayer**

@@ -10,26 +10,37 @@ from swap_layer.billing.subscriptions.adapter import SubscriptionAdapter
 
 class PaymentError(Exception):
     """Base exception for all payment related errors."""
+
     pass
+
 
 class PaymentValidationError(PaymentError):
     """Raised when input data is invalid (e.g. invalid email, negative amount)."""
+
     pass
+
 
 class PaymentDeclinedError(PaymentError):
     """Raised when the payment was declined by the processor."""
+
     pass
+
 
 class PaymentConnectionError(PaymentError):
     """Raised when connection to the payment provider fails."""
+
     pass
+
 
 class ResourceNotFoundError(PaymentError):
     """Raised when a requested resource (customer, subscription) is not found."""
+
     pass
 
 
-class PaymentProviderAdapter(ABC, CustomerAdapter, SubscriptionAdapter, PaymentAdapter, ProductAdapter):
+class PaymentProviderAdapter(
+    ABC, CustomerAdapter, SubscriptionAdapter, PaymentAdapter, ProductAdapter
+):
     """
     Abstract base class for Payment Providers (Stripe, PayPal, Square, etc.)
     This ensures we can switch providers without rewriting the application logic.

@@ -25,7 +25,7 @@ class WorkOSUserManagement(UserManagementAdapter):
         email: str | None = None,
         organization_id: str | None = None,
         limit: int = 50,
-        **kwargs
+        **kwargs,
     ) -> dict[str, Any]:
         """List users with optional filters.
 
@@ -64,7 +64,7 @@ class WorkOSUserManagement(UserManagementAdapter):
         first_name: str | None = None,
         last_name: str | None = None,
         email_verified: bool = False,
-        **kwargs
+        **kwargs,
     ) -> dict[str, Any]:
         """Create a new user.
 
@@ -96,7 +96,7 @@ class WorkOSUserManagement(UserManagementAdapter):
         last_name: str | None = None,
         email: str | None = None,
         email_verified: bool | None = None,
-        **kwargs
+        **kwargs,
     ) -> dict[str, Any]:
         """Update an existing user.
 

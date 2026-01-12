@@ -5,7 +5,7 @@ All documentation in one place. Pick your module:
 ## 📦 Core Modules
 
 - **[email.md](email.md)** - Send emails through any provider
-- **[payments.md](payments.md)** - Accept payments without vendor lock-in
+- **[billing.md](billing.md)** - Accept payments without vendor lock-in
 - **[sms.md](sms.md)** - Send SMS messages
 - **[storage.md](storage.md)** - Store files anywhere
 - **[identity-platform.md](identity-platform.md)** - OAuth/SSO authentication

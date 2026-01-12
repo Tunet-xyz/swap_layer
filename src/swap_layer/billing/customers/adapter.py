@@ -10,10 +10,7 @@ class CustomerAdapter:
 
     @abstractmethod
     def create_customer(
-        self,
-        email: str,
-        name: str | None = None,
-        metadata: dict[str, Any] | None = None
+        self, email: str, name: str | None = None, metadata: dict[str, Any] | None = None
     ) -> dict[str, Any]:
         """
         Create a customer in the payment provider.
@@ -43,7 +40,7 @@ class CustomerAdapter:
         customer_id: str,
         email: str | None = None,
         name: str | None = None,
-        metadata: dict[str, Any] | None = None
+        metadata: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """
         Update customer details.

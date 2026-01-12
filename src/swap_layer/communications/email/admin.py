@@ -26,23 +26,23 @@ class EmailLogAdminMixin:
             return format_html('<span style="color: #999;">—</span>')
 
         colors = {
-            'sent': '#17a2b8',
-            'delivered': '#28a745',
-            'opened': '#007bff',
-            'clicked': '#6f42c1',
-            'bounced': '#dc3545',
-            'failed': '#dc3545',
+            "sent": "#17a2b8",
+            "delivered": "#28a745",
+            "opened": "#007bff",
+            "clicked": "#6f42c1",
+            "bounced": "#dc3545",
+            "failed": "#dc3545",
         }
 
-        color = colors.get(obj.status, '#6c757d')
+        color = colors.get(obj.status, "#6c757d")
         return format_html(
             '<span style="background: {}; color: white; padding: 2px 8px; border-radius: 3px; font-size: 11px;">{}</span>',
             color,
-            obj.status.upper()
+            obj.status.upper(),
         )
 
-    status_badge.short_description = 'Status'
-    status_badge.admin_order_field = 'status'
+    status_badge.short_description = "Status"
+    status_badge.admin_order_field = "status"
 
     def provider_badge(self, obj):
         """Display provider with badge."""
@@ -51,11 +51,11 @@ class EmailLogAdminMixin:
 
         return format_html(
             '<span style="background: #6c757d; color: white; padding: 2px 8px; border-radius: 3px; font-size: 11px;">{}</span>',
-            obj.email_provider.upper()
+            obj.email_provider.upper(),
         )
 
-    provider_badge.short_description = 'Provider'
-    provider_badge.admin_order_field = 'email_provider'
+    provider_badge.short_description = "Provider"
+    provider_badge.admin_order_field = "email_provider"
 
 
 class EmailSuppressionAdminMixin:
@@ -71,18 +71,18 @@ class EmailSuppressionAdminMixin:
             return format_html('<span style="color: #999;">—</span>')
 
         colors = {
-            'bounce': '#dc3545',
-            'complaint': '#ffc107',
-            'unsubscribe': '#17a2b8',
-            'manual': '#6c757d',
+            "bounce": "#dc3545",
+            "complaint": "#ffc107",
+            "unsubscribe": "#17a2b8",
+            "manual": "#6c757d",
         }
 
-        color = colors.get(obj.suppression_type, '#6c757d')
+        color = colors.get(obj.suppression_type, "#6c757d")
         return format_html(
             '<span style="background: {}; color: white; padding: 2px 8px; border-radius: 3px; font-size: 11px;">{}</span>',
             color,
-            obj.suppression_type.upper()
+            obj.suppression_type.upper(),
         )
 
-    suppression_type_badge.short_description = 'Type'
-    suppression_type_badge.admin_order_field = 'suppression_type'
+    suppression_type_badge.short_description = "Type"
+    suppression_type_badge.admin_order_field = "suppression_type"

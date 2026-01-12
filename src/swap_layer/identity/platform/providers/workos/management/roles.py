@@ -23,11 +23,7 @@ class WorkOSRoleManagement(RoleManagementAdapter):
         """
         self.base_client = base_client
 
-    def list_roles(
-        self,
-        organization_id: str | None = None,
-        **kwargs
-    ) -> dict[str, Any]:
+    def list_roles(self, organization_id: str | None = None, **kwargs) -> dict[str, Any]:
         """List roles for an organization.
 
         Args:
@@ -62,7 +58,7 @@ class WorkOSRoleManagement(RoleManagementAdapter):
         name: str,
         description: str | None = None,
         permissions: list[str] | None = None,
-        **kwargs
+        **kwargs,
     ) -> dict[str, Any]:
         """Create a new role.
 
@@ -93,10 +89,7 @@ class WorkOSRoleManagement(RoleManagementAdapter):
         raise NotImplementedError("WorkOS does not support deleting roles via API")
 
     def assign_role_to_user(
-        self,
-        user_id: str,
-        role_id: str,
-        organization_id: str | None = None
+        self, user_id: str, role_id: str, organization_id: str | None = None
     ) -> dict[str, Any]:
         """Assign a role to a user via organization membership.
 
@@ -116,8 +109,9 @@ class WorkOSRoleManagement(RoleManagementAdapter):
             raise ValueError("organization_id is required for WorkOS role assignment")
 
         memberships_resp = self.base_client._make_request(
-            "GET", "/user_management/organization_memberships",
-            params={"user_id": user_id, "organization_id": organization_id}
+            "GET",
+            "/user_management/organization_memberships",
+            params={"user_id": user_id, "organization_id": organization_id},
         )
         memberships = memberships_resp.get("data", [])
         if not memberships:
@@ -125,15 +119,13 @@ class WorkOSRoleManagement(RoleManagementAdapter):
 
         membership_id = memberships[0].get("id")
         return self.base_client._make_request(
-            "PUT", f"/user_management/organization_memberships/{membership_id}",
-            json={"role_slug": role_id}
+            "PUT",
+            f"/user_management/organization_memberships/{membership_id}",
+            json={"role_slug": role_id},
         )
 
     def remove_role_from_user(
-        self,
-        user_id: str,
-        role_id: str,
-        organization_id: str | None = None
+        self, user_id: str, role_id: str, organization_id: str | None = None
     ) -> bool:
         """Remove a role from a user.
 
@@ -152,9 +144,7 @@ class WorkOSRoleManagement(RoleManagementAdapter):
         )
 
     def get_user_roles(
-        self,
-        user_id: str,
-        organization_id: str | None = None
+        self, user_id: str, organization_id: str | None = None
     ) -> list[dict[str, Any]]:
         """Get roles assigned to a user.
 

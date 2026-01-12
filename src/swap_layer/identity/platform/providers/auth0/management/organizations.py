@@ -24,10 +24,7 @@ class Auth0OrganizationManagement(OrganizationManagementAdapter):
         self.base_client = base_client
 
     def list_organizations(
-        self,
-        page: int = 0,
-        per_page: int = 50,
-        **kwargs
+        self, page: int = 0, per_page: int = 50, **kwargs
     ) -> list[dict[str, Any]]:
         """
         List organizations in Auth0 tenant.
@@ -40,12 +37,8 @@ class Auth0OrganizationManagement(OrganizationManagementAdapter):
         Returns:
             List of organization objects
         """
-        params = {
-            'page': page,
-            'per_page': per_page,
-            **kwargs
-        }
-        return self.base_client._make_request('GET', '/organizations', params=params)
+        params = {"page": page, "per_page": per_page, **kwargs}
+        return self.base_client._make_request("GET", "/organizations", params=params)
 
     def get_organization(self, org_id: str) -> dict[str, Any]:
         """
@@ -57,7 +50,7 @@ class Auth0OrganizationManagement(OrganizationManagementAdapter):
         Returns:
             Organization object
         """
-        return self.base_client._make_request('GET', f'/organizations/{org_id}')
+        return self.base_client._make_request("GET", f"/organizations/{org_id}")
 
     def create_organization(
         self,
@@ -65,7 +58,7 @@ class Auth0OrganizationManagement(OrganizationManagementAdapter):
         display_name: str | None = None,
         metadata: dict | None = None,
         branding: dict | None = None,
-        **kwargs
+        **kwargs,
     ) -> dict[str, Any]:
         """
         Create a new organization.
@@ -80,21 +73,18 @@ class Auth0OrganizationManagement(OrganizationManagementAdapter):
         Returns:
             Created organization object
         """
-        payload = {
-            'name': name,
-            **kwargs
-        }
+        payload = {"name": name, **kwargs}
 
         if display_name:
-            payload['display_name'] = display_name
+            payload["display_name"] = display_name
 
         if metadata:
-            payload['metadata'] = metadata
+            payload["metadata"] = metadata
 
         if branding:
-            payload['branding'] = branding
+            payload["branding"] = branding
 
-        return self.base_client._make_request('POST', '/organizations', json=payload)
+        return self.base_client._make_request("POST", "/organizations", json=payload)
 
     def update_organization(
         self,
@@ -103,7 +93,7 @@ class Auth0OrganizationManagement(OrganizationManagementAdapter):
         display_name: str | None = None,
         metadata: dict | None = None,
         branding: dict | None = None,
-        **kwargs
+        **kwargs,
     ) -> dict[str, Any]:
         """
         Update an organization.
@@ -122,20 +112,20 @@ class Auth0OrganizationManagement(OrganizationManagementAdapter):
         payload = {}
 
         if name:
-            payload['name'] = name
+            payload["name"] = name
 
         if display_name:
-            payload['display_name'] = display_name
+            payload["display_name"] = display_name
 
         if metadata:
-            payload['metadata'] = metadata
+            payload["metadata"] = metadata
 
         if branding:
-            payload['branding'] = branding
+            payload["branding"] = branding
 
         payload.update(kwargs)
 
-        return self.base_client._make_request('PATCH', f'/organizations/{org_id}', json=payload)
+        return self.base_client._make_request("PATCH", f"/organizations/{org_id}", json=payload)
 
     def delete_organization(self, org_id: str) -> None:
         """
@@ -144,14 +134,10 @@ class Auth0OrganizationManagement(OrganizationManagementAdapter):
         Args:
             org_id: Organization ID
         """
-        self.base_client._make_request('DELETE', f'/organizations/{org_id}')
+        self.base_client._make_request("DELETE", f"/organizations/{org_id}")
 
     def list_organization_members(
-        self,
-        org_id: str,
-        page: int = 0,
-        per_page: int = 50,
-        **kwargs
+        self, org_id: str, page: int = 0, per_page: int = 50, **kwargs
     ) -> list[dict[str, Any]]:
         """
         List members of an organization.
@@ -165,23 +151,12 @@ class Auth0OrganizationManagement(OrganizationManagementAdapter):
         Returns:
             List of member objects
         """
-        params = {
-            'page': page,
-            'per_page': per_page,
-            **kwargs
-        }
+        params = {"page": page, "per_page": per_page, **kwargs}
         return self.base_client._make_request(
-            'GET',
-            f'/organizations/{org_id}/members',
-            params=params
+            "GET", f"/organizations/{org_id}/members", params=params
         )
 
-    def add_organization_members(
-        self,
-        org_id: str,
-        user_ids: list[str],
-        **kwargs
-    ) -> None:
+    def add_organization_members(self, org_id: str, user_ids: list[str], **kwargs) -> None:
         """
         Add members to an organization.
 
@@ -190,22 +165,10 @@ class Auth0OrganizationManagement(OrganizationManagementAdapter):
             user_ids: List of user IDs to add
             **kwargs: Additional Auth0-specific parameters
         """
-        payload = {
-            'members': user_ids,
-            **kwargs
-        }
-        self.base_client._make_request(
-            'POST',
-            f'/organizations/{org_id}/members',
-            json=payload
-        )
+        payload = {"members": user_ids, **kwargs}
+        self.base_client._make_request("POST", f"/organizations/{org_id}/members", json=payload)
 
-    def remove_organization_members(
-        self,
-        org_id: str,
-        user_ids: list[str],
-        **kwargs
-    ) -> None:
+    def remove_organization_members(self, org_id: str, user_ids: list[str], **kwargs) -> None:
         """
         Remove members from an organization.
 
@@ -214,21 +177,11 @@ class Auth0OrganizationManagement(OrganizationManagementAdapter):
             user_ids: List of user IDs to remove
             **kwargs: Additional Auth0-specific parameters
         """
-        payload = {
-            'members': user_ids,
-            **kwargs
-        }
-        self.base_client._make_request(
-            'DELETE',
-            f'/organizations/{org_id}/members',
-            json=payload
-        )
+        payload = {"members": user_ids, **kwargs}
+        self.base_client._make_request("DELETE", f"/organizations/{org_id}/members", json=payload)
 
     def get_organization_member_roles(
-        self,
-        org_id: str,
-        user_id: str,
-        **kwargs
+        self, org_id: str, user_id: str, **kwargs
     ) -> list[dict[str, Any]]:
         """
         Get roles assigned to a member within an organization.
@@ -242,17 +195,11 @@ class Auth0OrganizationManagement(OrganizationManagementAdapter):
             List of role objects
         """
         return self.base_client._make_request(
-            'GET',
-            f'/organizations/{org_id}/members/{user_id}/roles',
-            params=kwargs
+            "GET", f"/organizations/{org_id}/members/{user_id}/roles", params=kwargs
         )
 
     def assign_organization_member_roles(
-        self,
-        org_id: str,
-        user_id: str,
-        role_ids: list[str],
-        **kwargs
+        self, org_id: str, user_id: str, role_ids: list[str], **kwargs
     ) -> None:
         """
         Assign roles to a member within an organization.
@@ -263,12 +210,7 @@ class Auth0OrganizationManagement(OrganizationManagementAdapter):
             role_ids: List of role IDs to assign
             **kwargs: Additional Auth0-specific parameters
         """
-        payload = {
-            'roles': role_ids,
-            **kwargs
-        }
+        payload = {"roles": role_ids, **kwargs}
         self.base_client._make_request(
-            'POST',
-            f'/organizations/{org_id}/members/{user_id}/roles',
-            json=payload
+            "POST", f"/organizations/{org_id}/members/{user_id}/roles", json=payload
         )

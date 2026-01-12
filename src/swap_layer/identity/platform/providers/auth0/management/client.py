@@ -48,7 +48,7 @@ class Auth0ManagementClient(IdentityManagementClient):
         >>> logs = mgmt.logs.list_logs(query='type:f')
     """
 
-    def __init__(self, app_name: str = 'developer'):
+    def __init__(self, app_name: str = "developer"):
         """
         Initialize Management API client.
 
@@ -69,11 +69,13 @@ class Auth0ManagementClient(IdentityManagementClient):
         # Management API credentials (different from OAuth client credentials)
         # These should be configured as a "Machine to Machine" application
         # with Management API permissions
-        self.client_id = self.config.get('management_client_id') or self.config['client_id']
-        self.client_secret = self.config.get('management_client_secret') or self.config['client_secret']
+        self.client_id = self.config.get("management_client_id") or self.config["client_id"]
+        self.client_secret = (
+            self.config.get("management_client_secret") or self.config["client_secret"]
+        )
 
         # Token caching
-        self._token_cache_key = f'auth0_mgmt_token_{app_name}'
+        self._token_cache_key = f"auth0_mgmt_token_{app_name}"
 
         # Create resilient session for API requests
         self._session = None  # Lazily initialized after token fetch
@@ -127,15 +129,15 @@ class Auth0ManagementClient(IdentityManagementClient):
 
         # Request new token with retry support
         payload = {
-            'grant_type': 'client_credentials',
-            'client_id': self.client_id,
-            'client_secret': self.client_secret,
-            'audience': f'https://{self.domain}/api/v2/'
+            "grant_type": "client_credentials",
+            "client_id": self.client_id,
+            "client_secret": self.client_secret,
+            "audience": f"https://{self.domain}/api/v2/",
         }
 
         try:
             response = resilient_request(
-                'POST',
+                "POST",
                 self.token_url,
                 json=payload,
                 timeout=30,
@@ -146,8 +148,8 @@ class Auth0ManagementClient(IdentityManagementClient):
             logger.error(f"Failed to obtain Auth0 management token: {e}")
             raise
 
-        token = data['access_token']
-        expires_in = data.get('expires_in', 86400)  # Default 24 hours
+        token = data["access_token"]
+        expires_in = data.get("expires_in", 86400)  # Default 24 hours
 
         # Cache token (with 5 minute buffer)
         cache.set(self._token_cache_key, token, timeout=expires_in - 300)
@@ -162,25 +164,18 @@ class Auth0ManagementClient(IdentityManagementClient):
         if self._session is None:
             self._session = ResilientSession(
                 base_url=self.base_url,
-                headers={
-                    'Authorization': f'Bearer {token}',
-                    'Content-Type': 'application/json'
-                },
+                headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
                 timeout=30,
                 max_retries=3,
             )
         else:
             # Update auth header in case token refreshed
-            self._session.session.headers['Authorization'] = f'Bearer {token}'
+            self._session.session.headers["Authorization"] = f"Bearer {token}"
 
         return self._session
 
     def _make_request(
-        self,
-        method: str,
-        endpoint: str,
-        params: dict | None = None,
-        json: dict | None = None
+        self, method: str, endpoint: str, params: dict | None = None, json: dict | None = None
     ) -> dict[str, Any]:
         """
         Make authenticated request to Management API with automatic retries.
@@ -224,7 +219,7 @@ class Auth0ManagementClient(IdentityManagementClient):
         Returns:
             Statistics about active users, logins, etc.
         """
-        return self._make_request('GET', '/stats/active-users')
+        return self._make_request("GET", "/stats/active-users")
 
     def get_daily_stats(self, date_from: str, date_to: str) -> list:
         """
@@ -237,5 +232,5 @@ class Auth0ManagementClient(IdentityManagementClient):
         Returns:
             Daily statistics
         """
-        params = {'from': date_from, 'to': date_to}
-        return self._make_request('GET', '/stats/daily', params=params)
+        params = {"from": date_from, "to": date_to}
+        return self._make_request("GET", "/stats/daily", params=params)

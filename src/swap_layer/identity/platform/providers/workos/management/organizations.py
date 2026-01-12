@@ -31,10 +31,7 @@ class WorkOSOrganizationManagement(OrganizationManagementAdapter):
         self.base_client = base_client
 
     def list_organizations(
-        self,
-        domains: list[str] | None = None,
-        limit: int = 50,
-        **kwargs
+        self, domains: list[str] | None = None, limit: int = 50, **kwargs
     ) -> dict[str, Any]:
         """List organizations.
 
@@ -64,10 +61,7 @@ class WorkOSOrganizationManagement(OrganizationManagementAdapter):
         return self.base_client._make_request("GET", f"/organizations/{organization_id}")
 
     def create_organization(
-        self,
-        name: str,
-        domains: list[str] | None = None,
-        **kwargs
+        self, name: str, domains: list[str] | None = None, **kwargs
     ) -> dict[str, Any]:
         """Create a new organization.
 
@@ -91,7 +85,7 @@ class WorkOSOrganizationManagement(OrganizationManagementAdapter):
         organization_id: str,
         name: str | None = None,
         domains: list[str] | None = None,
-        **kwargs
+        **kwargs,
     ) -> dict[str, Any]:
         """Update an existing organization.
 
@@ -125,10 +119,7 @@ class WorkOSOrganizationManagement(OrganizationManagementAdapter):
         return True
 
     def list_organization_members(
-        self,
-        organization_id: str,
-        limit: int = 50,
-        **kwargs
+        self, organization_id: str, limit: int = 50, **kwargs
     ) -> dict[str, Any]:
         """List organization members.
 
@@ -147,10 +138,7 @@ class WorkOSOrganizationManagement(OrganizationManagementAdapter):
         )
 
     def add_organization_member(
-        self,
-        organization_id: str,
-        user_id: str,
-        role_slug: str | None = None
+        self, organization_id: str, user_id: str, role_slug: str | None = None
     ) -> dict[str, Any]:
         """Add a member to an organization.
 
@@ -190,10 +178,7 @@ class WorkOSOrganizationManagement(OrganizationManagementAdapter):
         return False
 
     def update_organization_member_role(
-        self,
-        organization_id: str,
-        user_id: str,
-        role_slug: str
+        self, organization_id: str, user_id: str, role_slug: str
     ) -> dict[str, Any]:
         """Update organization member's role.
 

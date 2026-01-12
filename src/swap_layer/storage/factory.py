@@ -1,6 +1,7 @@
 """
 Factory function for creating storage provider instances.
 """
+
 from swap_layer.settings import get_swaplayer_settings
 
 from .adapter import StorageProviderAdapter
@@ -32,23 +33,25 @@ def get_storage_provider() -> StorageProviderAdapter:
     if settings.storage:
         provider = settings.storage.provider.lower()
         # Pass storage config from SwapLayerSettings if available
-        if provider == 'local':
+        if provider == "local":
             return LocalFileStorageProvider(
-                base_path=settings.storage.media_root,
-                base_url=settings.storage.media_url
+                base_path=settings.storage.media_root, base_url=settings.storage.media_url
             )
-        elif provider == 'django':
+        elif provider == "django":
             from .providers.django_storage import DjangoStorageAdapter
+
             return DjangoStorageAdapter()
     else:
         # Fallback to legacy Django settings for backward compatibility
         from django.conf import settings as django_settings
-        provider = getattr(django_settings, 'STORAGE_PROVIDER', 'local').lower()
 
-    if provider == 'django':
+        provider = getattr(django_settings, "STORAGE_PROVIDER", "local").lower()
+
+    if provider == "django":
         from .providers.django_storage import DjangoStorageAdapter
+
         return DjangoStorageAdapter()
-    elif provider == 'local':
+    elif provider == "local":
         return LocalFileStorageProvider()
     else:
         raise ValueError(
@@ -56,4 +59,3 @@ def get_storage_provider() -> StorageProviderAdapter:
             f"Supported: 'local', 'django' (recommended). "
             f"For S3/Azure/GCS, use STORAGE_PROVIDER='django' with django-storages."
         )
-

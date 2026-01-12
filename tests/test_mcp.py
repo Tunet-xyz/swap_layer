@@ -1,6 +1,7 @@
 """
 Tests for SwapLayer MCP server functionality.
 """
+
 import pytest
 
 
@@ -11,7 +12,7 @@ def test_mcp_server_creation():
 
         server = create_mcp_server()
         assert server is not None
-        assert hasattr(server, 'name')
+        assert hasattr(server, "name")
         assert server.name == "swaplayer"
     except ImportError:
         # MCP not installed, skip test
@@ -23,12 +24,14 @@ def test_mcp_not_available_error():
     try:
         # Try to import mcp
         import mcp  # noqa: F401
+
         # If successful, skip this test
         pytest.skip("MCP is installed, cannot test error condition")
     except ImportError:
         # MCP not installed, we expect ImportError when creating server
         # Just verify the module can be imported
         from swap_layer.mcp import create_mcp_server  # noqa: F401
+
         # Test passes if we can import the function
         # Actual error testing would require isolating imports
         pass

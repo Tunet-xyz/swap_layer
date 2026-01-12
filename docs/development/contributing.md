@@ -17,9 +17,9 @@ To maintain a clean, navigable codebase, we enforce **strict documentation rules
 ```
 docs/
 ├── README.md                    # Documentation index
-├── ABSTRACTIONS_OVERVIEW.md     # Architecture guide
-├── CONFIGURATION_EXAMPLES.md    # Configuration scenarios
-└── archive/                     # Development history
+├── architecture.md              # Architecture guide
+├── [module].md                  # Module-specific guides (email.md, billing.md, etc.)
+└── development/                 # Development history and notes
 ```
 
 ### 📦 Module Documentation
@@ -137,8 +137,8 @@ Closes #issue-number
 
 ## Questions?
 
-- Check [Documentation Index](docs/README.md)
-- Review [Architecture Guide](docs/ABSTRACTIONS_OVERVIEW.md)
+- Check [Documentation Index](../README.md)
+- Review [Architecture Guide](../architecture.md)
 - Open an issue for clarification
 
 ---

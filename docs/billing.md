@@ -9,12 +9,10 @@ The payment infrastructure is organized into logical subdomains, each handling a
 ### 1. **Customers** (`swap_layer.payments.customers`)
 Handles customer management operations:
 - Create, retrieve, update, and delete customers
-- [Documentation](./customers/README.md)
 
 ### 2. **Subscriptions** (`swap_layer.payments.subscriptions`)
 Manages recurring subscription lifecycle:
 - Create, retrieve, update, cancel, and list subscriptions
-- [Documentation](./subscriptions/README.md)
 
 ### 3. **Payment Intents** (`swap_layer.payments.payment_intents`)
 Handles payment processing and related operations:
@@ -23,7 +21,6 @@ Handles payment processing and related operations:
 - Checkout sessions
 - Invoices
 - Webhook verification
-- [Documentation](./payment_intents/README.md)
 
 ### 4. **Products** (`swap_layer.payments.products`)
 Product catalog and pricing management (placeholder for future implementation):

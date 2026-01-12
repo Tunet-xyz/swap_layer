@@ -84,11 +84,14 @@ except ImportError:
         max_wait: float = 60,
     ):
         """Fallback when tenacity is not installed - no retry logic."""
+
         def decorator(func):
             @wraps(func)
             def wrapper(*args, **kwargs):
                 return func(*args, **kwargs)
+
             return wrapper
+
         return decorator
 
     def with_retry(func):

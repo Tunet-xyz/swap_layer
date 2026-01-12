@@ -25,4 +25,4 @@ Usage:
 from .client import Auth0Client
 from .management import Auth0ManagementClient
 
-__all__ = ['Auth0Client', 'Auth0ManagementClient']
+__all__ = ["Auth0Client", "Auth0ManagementClient"]

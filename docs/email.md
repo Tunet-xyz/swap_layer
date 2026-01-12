@@ -119,7 +119,7 @@ provider = get_email_provider()
 # Send a simple email
 result = provider.send_email(
     to=['user@example.com'],
-    subject='Welcome to CODED:X',
+    subject='Welcome to SwapLayer',
     text_body='Thank you for joining our platform.',
     html_body='<h1>Welcome!</h1><p>Thank you for joining our platform.</p>',
 )
@@ -183,7 +183,7 @@ result = provider.send_template_email(
     template_id='emails/welcome',
     template_data={
         'name': 'John Doe',
-        'subject': 'Welcome to CODED:X'
+        'subject': 'Welcome to SwapLayer'
     }
 )
 ```
@@ -460,4 +460,4 @@ All follow the same provider adapter pattern for consistency.
 
 ## License
 
-This module is part of the CODED:X platform.
+This module is part of SwapLayer.

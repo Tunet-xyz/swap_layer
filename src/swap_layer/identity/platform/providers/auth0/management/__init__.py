@@ -11,9 +11,9 @@ from .roles import Auth0RoleManagement
 from .users import Auth0UserManagement
 
 __all__ = [
-    'Auth0ManagementClient',
-    'Auth0UserManagement',
-    'Auth0OrganizationManagement',
-    'Auth0RoleManagement',
-    'Auth0LogManagement',
+    "Auth0ManagementClient",
+    "Auth0UserManagement",
+    "Auth0OrganizationManagement",
+    "Auth0RoleManagement",
+    "Auth0LogManagement",
 ]

@@ -4,21 +4,25 @@ from typing import Any
 
 class IdentityVerificationError(Exception):
     """Base exception for all identity verification related errors."""
+
     pass
 
 
 class IdentityVerificationValidationError(IdentityVerificationError):
     """Raised when input data is invalid."""
+
     pass
 
 
 class IdentityVerificationSessionNotFoundError(IdentityVerificationError):
     """Raised when a verification session is not found."""
+
     pass
 
 
 class IdentityVerificationConnectionError(IdentityVerificationError):
     """Raised when connection to the verification provider fails."""
+
     pass
 
 
@@ -39,10 +43,7 @@ class IdentityVerificationProviderAdapter(ABC):
 
     @abstractmethod
     def create_verification_session(
-        self,
-        user: Any,
-        verification_type: str,
-        options: dict[str, Any] | None = None
+        self, user: Any, verification_type: str, options: dict[str, Any] | None = None
     ) -> dict[str, Any]:
         """
         Create a verification session with the provider.
@@ -86,10 +87,7 @@ class IdentityVerificationProviderAdapter(ABC):
 
     @abstractmethod
     def list_verification_sessions(
-        self,
-        limit: int = 10,
-        status: str | None = None,
-        **kwargs
+        self, limit: int = 10, status: str | None = None, **kwargs
     ) -> dict[str, Any]:
         """
         List verification sessions from the provider.

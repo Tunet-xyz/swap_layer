@@ -118,7 +118,7 @@ def send_verification_code(phone_number):
     # Send SMS
     result = sms.send_sms(
         to=phone_number,
-        message=f'Your CODED:X verification code is {code}. Valid for 10 minutes.',
+        message=f'Your verification code is {code}. Valid for 10 minutes.',
         metadata={'type': 'verification', 'code': code}
     )
     
@@ -295,7 +295,7 @@ def send_2fa_code(request):
     try:
         sms.send_sms(
             to=request.user.phone_number,
-            message=f'Your CODED:X 2FA code is {code}. Do not share this code.'
+            message=f'Your 2FA code is {code}. Do not share this code.'
         )
         return JsonResponse({'success': True})
     except Exception as e:
@@ -537,4 +537,4 @@ VONAGE_FROM_NUMBER = os.environ.get('VONAGE_FROM_NUMBER')
 
 ## License
 
-This abstraction layer is part of the CODED:X platform and follows the same license terms.
+This module is part of SwapLayer and follows the MIT License.

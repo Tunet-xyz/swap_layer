@@ -28,8 +28,8 @@ class TestStripeKeyError:
         with pytest.raises(StripeKeyError) as exc_info:
             SwapLayerSettings(
                 billing={
-                    'provider': 'stripe',
-                    'stripe': {'secret_key': 'pk_test_123abc'}  # Wrong! Publishable key
+                    "provider": "stripe",
+                    "stripe": {"secret_key": "pk_test_123abc"},  # Wrong! Publishable key
                 }
             )
 
@@ -48,10 +48,7 @@ class TestStripeKeyError:
         """Should handle completely invalid key gracefully."""
         with pytest.raises(StripeKeyError):
             SwapLayerSettings(
-                billing={
-                    'provider': 'stripe',
-                    'stripe': {'secret_key': 'totally_wrong_key_format'}
-                }
+                billing={"provider": "stripe", "stripe": {"secret_key": "totally_wrong_key_format"}}
             )
 
 
@@ -63,13 +60,13 @@ class TestTwilioConfigError:
         with pytest.raises(TwilioConfigError) as exc_info:
             SwapLayerSettings(
                 communications={
-                    'sms': {
-                        'provider': 'twilio',
-                        'twilio': {
-                            'account_sid': 'XX1234567890abcdef1234567890abcd',  # Wrong! Should start with AC
-                            'auth_token': 'test_token',
-                            'from_number': '+15555551234'
-                        }
+                    "sms": {
+                        "provider": "twilio",
+                        "twilio": {
+                            "account_sid": "XX1234567890abcdef1234567890abcd",  # Wrong! Should start with AC
+                            "auth_token": "test_token",
+                            "from_number": "+15555551234",
+                        },
                     }
                 }
             )
@@ -87,13 +84,13 @@ class TestTwilioConfigError:
         with pytest.raises(TwilioConfigError) as exc_info:
             SwapLayerSettings(
                 communications={
-                    'sms': {
-                        'provider': 'twilio',
-                        'twilio': {
-                            'account_sid': 'AC1234567890abcdef1234567890abcd',
-                            'auth_token': 'test_token',
-                            'from_number': '555-123-4567'  # Wrong! Not E.164
-                        }
+                    "sms": {
+                        "provider": "twilio",
+                        "twilio": {
+                            "account_sid": "AC1234567890abcdef1234567890abcd",
+                            "auth_token": "test_token",
+                            "from_number": "555-123-4567",  # Wrong! Not E.164
+                        },
                     }
                 }
             )
@@ -112,13 +109,13 @@ class TestTwilioConfigError:
         with pytest.raises(TwilioConfigError):
             SwapLayerSettings(
                 communications={
-                    'sms': {
-                        'provider': 'twilio',
-                        'twilio': {
-                            'account_sid': 'AC1234567890abcdef1234567890abcd',
-                            'auth_token': 'test_token',
-                            'from_number': '15555551234'  # Missing '+'
-                        }
+                    "sms": {
+                        "provider": "twilio",
+                        "twilio": {
+                            "account_sid": "AC1234567890abcdef1234567890abcd",
+                            "auth_token": "test_token",
+                            "from_number": "15555551234",  # Missing '+'
+                        },
                     }
                 }
             )
@@ -132,14 +129,14 @@ class TestWorkOSConfigError:
         with pytest.raises(WorkOSConfigError) as exc_info:
             SwapLayerSettings(
                 identity={
-                    'provider': 'workos',
-                    'workos_apps': {
-                        'default': {
-                            'api_key': 'sk_test_123',
-                            'client_id': 'client_123',
-                            'cookie_password': 'short123'  # Only 8 chars, need 32+
+                    "provider": "workos",
+                    "workos_apps": {
+                        "default": {
+                            "api_key": "sk_test_123",
+                            "client_id": "client_123",
+                            "cookie_password": "short123",  # Only 8 chars, need 32+
                         }
-                    }
+                    },
                 }
             )
 
@@ -156,17 +153,17 @@ class TestWorkOSConfigError:
         # Should not raise
         config = SwapLayerSettings(
             identity={
-                'provider': 'workos',
-                'workos_apps': {
-                    'default': {
-                        'api_key': 'sk_test_123',
-                        'client_id': 'client_123',
-                        'cookie_password': 'a' * 32  # Exactly 32 chars
+                "provider": "workos",
+                "workos_apps": {
+                    "default": {
+                        "api_key": "sk_test_123",
+                        "client_id": "client_123",
+                        "cookie_password": "a" * 32,  # Exactly 32 chars
                     }
-                }
+                },
             }
         )
-        assert config.identity.workos_apps['default'].cookie_password == 'a' * 32
+        assert config.identity.workos_apps["default"].cookie_password == "a" * 32
 
 
 class TestProviderConfigMismatchError:
@@ -177,7 +174,7 @@ class TestProviderConfigMismatchError:
         with pytest.raises(ProviderConfigMismatchError) as exc_info:
             SwapLayerSettings(
                 billing={
-                    'provider': 'stripe',
+                    "provider": "stripe",
                     # Missing 'stripe' config!
                 }
             )
@@ -195,8 +192,8 @@ class TestProviderConfigMismatchError:
         with pytest.raises(ProviderConfigMismatchError):
             SwapLayerSettings(
                 communications={
-                    'sms': {
-                        'provider': 'twilio',
+                    "sms": {
+                        "provider": "twilio",
                         # Missing 'twilio' config!
                     }
                 }
@@ -207,7 +204,7 @@ class TestProviderConfigMismatchError:
         with pytest.raises(ProviderConfigMismatchError):
             SwapLayerSettings(
                 identity={
-                    'provider': 'workos',
+                    "provider": "workos",
                     # Missing 'workos_apps' config!
                 }
             )
@@ -218,7 +215,7 @@ class TestModuleNotConfiguredError:
 
     def test_billing_not_configured(self):
         """Should provide helpful error when trying to use unconfigured module."""
-        error = ModuleNotConfiguredError('billing')
+        error = ModuleNotConfiguredError("billing")
         error_message = str(error)
 
         assert "❌ SwapLayer 'billing' module is not configured" in error_message
@@ -228,7 +225,7 @@ class TestModuleNotConfiguredError:
 
     def test_sms_not_configured(self):
         """Should provide helpful error for SMS module."""
-        error = ModuleNotConfiguredError('communications')
+        error = ModuleNotConfiguredError("communications")
         error_message = str(error)
 
         assert "'communications' module is not configured" in error_message
@@ -240,7 +237,7 @@ class TestEnvironmentVariableError:
 
     def test_missing_env_var(self):
         """Should provide helpful error for missing environment variable."""
-        error = EnvironmentVariableError('SWAPLAYER_STRIPE_SECRET_KEY')
+        error = EnvironmentVariableError("SWAPLAYER_STRIPE_SECRET_KEY")
         error_message = str(error)
 
         assert "❌ Missing or invalid environment variable" in error_message
@@ -250,7 +247,9 @@ class TestEnvironmentVariableError:
 
     def test_env_var_with_expected_format(self):
         """Should show expected format when provided."""
-        error = EnvironmentVariableError('TWILIO_FROM_NUMBER', expected_format='E.164 format (+15555551234)')
+        error = EnvironmentVariableError(
+            "TWILIO_FROM_NUMBER", expected_format="E.164 format (+15555551234)"
+        )
         error_message = str(error)
 
         assert "Expected format: E.164 format" in error_message
@@ -261,7 +260,7 @@ class TestMultiTenantConfigError:
 
     def test_app_not_found(self):
         """Should provide helpful error when requested app doesn't exist."""
-        error = MultiTenantConfigError('customer_portal', 'workos', ['default', 'admin'])
+        error = MultiTenantConfigError("customer_portal", "workos", ["default", "admin"])
         error_message = str(error)
 
         assert "❌ App 'customer_portal' not found" in error_message
@@ -271,7 +270,7 @@ class TestMultiTenantConfigError:
 
     def test_no_apps_configured(self):
         """Should handle case where no apps are configured."""
-        error = MultiTenantConfigError('default', 'auth0', [])
+        error = MultiTenantConfigError("default", "auth0", [])
         error_message = str(error)
 
         assert "Available apps: none" in error_message
@@ -284,12 +283,9 @@ class TestErrorContext:
         """Should build comprehensive error context."""
         error = ValueError("Test error message")
         config = {
-            'billing': {
-                'provider': 'stripe',
-                'stripe': {
-                    'secret_key': 'sk_test_123',
-                    'publishable_key': 'pk_test_456'
-                }
+            "billing": {
+                "provider": "stripe",
+                "stripe": {"secret_key": "sk_test_123", "publishable_key": "pk_test_456"},
             }
         }
 
@@ -309,10 +305,10 @@ class TestErrorContext:
     def test_sensitive_keys_masked(self):
         """Should mask sensitive keys in configuration display."""
         config = {
-            'api_key': 'secret_key_123',
-            'password': 'my_password',
-            'auth_token': 'token_abc',
-            'normal_field': 'visible_value'
+            "api_key": "secret_key_123",
+            "password": "my_password",
+            "auth_token": "token_abc",
+            "normal_field": "visible_value",
         }
 
         formatted = ErrorContext._format_config(config)
@@ -334,15 +330,15 @@ class TestStartupValidationErrors:
         """Should format multiple validation errors nicely."""
         errors = [
             {
-                'loc': ('billing', 'stripe', 'secret_key'),
-                'msg': "Stripe secret key must start with 'sk_'",
-                'type': 'value_error'
+                "loc": ("billing", "stripe", "secret_key"),
+                "msg": "Stripe secret key must start with 'sk_'",
+                "type": "value_error",
             },
             {
-                'loc': ('sms', 'twilio', 'account_sid'),
-                'msg': "Twilio Account SID must start with 'AC'",
-                'type': 'value_error'
-            }
+                "loc": ("sms", "twilio", "account_sid"),
+                "msg": "Twilio Account SID must start with 'AC'",
+                "type": "value_error",
+            },
         ]
 
         formatted = format_startup_validation_errors(errors)
@@ -351,8 +347,8 @@ class TestStartupValidationErrors:
         assert "1. ❌ billing → stripe → secret_key" in formatted
         assert "2. ❌ sms → twilio → account_sid" in formatted
         assert "python manage.py swaplayer_check" in formatted
-        assert "SETTINGS_MANAGEMENT.md" in formatted
-        assert "CONFIGURATION_EXAMPLES.md" in formatted
+        assert "docs/README.md" in formatted
+        assert "docs/architecture.md" in formatted
 
 
 class TestRichErrorsInRealScenarios:
@@ -363,11 +359,11 @@ class TestRichErrorsInRealScenarios:
         with pytest.raises(StripeKeyError) as exc_info:
             SwapLayerSettings(
                 billing={
-                    'provider': 'stripe',
-                    'stripe': {
-                        'secret_key': 'pk_test_51Abc123...',  # Oops! Used wrong key
-                        'publishable_key': 'pk_test_51Abc123...'
-                    }
+                    "provider": "stripe",
+                    "stripe": {
+                        "secret_key": "pk_test_51Abc123...",  # Oops! Used wrong key
+                        "publishable_key": "pk_test_51Abc123...",
+                    },
                 }
             )
 
@@ -382,13 +378,13 @@ class TestRichErrorsInRealScenarios:
         with pytest.raises(TwilioConfigError) as exc_info:
             SwapLayerSettings(
                 communications={
-                    'sms': {
-                        'provider': 'twilio',
-                        'twilio': {
-                            'account_sid': 'AC1234567890abcdef1234567890abcd',
-                            'auth_token': 'test_token',
-                            'from_number': '(555) 123-4567'  # Copied from UI
-                        }
+                    "sms": {
+                        "provider": "twilio",
+                        "twilio": {
+                            "account_sid": "AC1234567890abcdef1234567890abcd",
+                            "auth_token": "test_token",
+                            "from_number": "(555) 123-4567",  # Copied from UI
+                        },
                     }
                 }
             )
@@ -404,14 +400,14 @@ class TestRichErrorsInRealScenarios:
         with pytest.raises(WorkOSConfigError) as exc_info:
             SwapLayerSettings(
                 identity={
-                    'provider': 'workos',
-                    'workos_apps': {
-                        'default': {
-                            'api_key': 'sk_test_123',
-                            'client_id': 'client_123',
-                            'cookie_password': 'password123'  # Too weak!
+                    "provider": "workos",
+                    "workos_apps": {
+                        "default": {
+                            "api_key": "sk_test_123",
+                            "client_id": "client_123",
+                            "cookie_password": "password123",  # Too weak!
                         }
-                    }
+                    },
                 }
             )
 
@@ -424,7 +420,7 @@ class TestRichErrorsInRealScenarios:
         """Simulate: Developer sets provider but forgets the actual config."""
         with pytest.raises(ProviderConfigMismatchError) as exc_info:
             SwapLayerSettings(
-                billing={'provider': 'stripe'}  # Forgot the stripe config!
+                billing={"provider": "stripe"}  # Forgot the stripe config!
             )
 
         # Error should show complete example
@@ -453,12 +449,9 @@ class TestErrorInheritance:
 
         with pytest.raises(SwapLayerError):
             SwapLayerSettings(
-                billing={
-                    'provider': 'stripe',
-                    'stripe': {'secret_key': 'invalid_key'}
-                }
+                billing={"provider": "stripe", "stripe": {"secret_key": "invalid_key"}}
             )
 
 
-if __name__ == '__main__':
-    pytest.main([__file__, '-v'])
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])

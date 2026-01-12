@@ -24,7 +24,12 @@ class TwilioSMSProvider(SMSProviderAdapter):
         TWILIO_FROM_NUMBER = os.environ.get('TWILIO_FROM_NUMBER')  # E.164 format
     """
 
-    def __init__(self, account_sid: str | None = None, auth_token: str | None = None, from_number: str | None = None):
+    def __init__(
+        self,
+        account_sid: str | None = None,
+        auth_token: str | None = None,
+        from_number: str | None = None,
+    ):
         """
         Initialize Twilio SMS provider.
 
@@ -38,11 +43,11 @@ class TwilioSMSProvider(SMSProviderAdapter):
 
             # Use provided config or fallback to Django settings for backward compatibility
             if account_sid is None:
-                account_sid = getattr(settings, 'TWILIO_ACCOUNT_SID', None)
+                account_sid = getattr(settings, "TWILIO_ACCOUNT_SID", None)
             if auth_token is None:
-                auth_token = getattr(settings, 'TWILIO_AUTH_TOKEN', None)
+                auth_token = getattr(settings, "TWILIO_AUTH_TOKEN", None)
             if from_number is None:
-                from_number = getattr(settings, 'TWILIO_FROM_NUMBER', None)
+                from_number = getattr(settings, "TWILIO_FROM_NUMBER", None)
 
             if not account_sid or not auth_token:
                 raise ValueError("TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN must be configured")
@@ -71,15 +76,15 @@ class TwilioSMSProvider(SMSProviderAdapter):
                 body=message,
                 from_=from_num,
                 to=to,
-                status_callback=metadata.get('status_callback') if metadata else None
+                status_callback=metadata.get("status_callback") if metadata else None,
             )
 
             return {
-                'message_id': tw_message.sid,
-                'status': tw_message.status,
-                'to': tw_message.to,
-                'from_number': tw_message.from_,
-                'segments': tw_message.num_segments,
+                "message_id": tw_message.sid,
+                "status": tw_message.status,
+                "to": tw_message.to,
+                "from_number": tw_message.from_,
+                "segments": tw_message.num_segments,
             }
         except Exception as e:
             raise SMSSendError(f"Failed to send SMS: {str(e)}")
@@ -98,21 +103,23 @@ class TwilioSMSProvider(SMSProviderAdapter):
 
         for recipient in recipients:
             try:
-                to = recipient['to']
-                msg = recipient.get('message', message)
+                to = recipient["to"]
+                msg = recipient.get("message", message)
                 self.send_sms(to, msg, from_number, metadata)
                 total_sent += 1
             except Exception as e:
                 total_failed += 1
-                failed_recipients.append({
-                    'to': recipient['to'],
-                    'error': str(e),
-                })
+                failed_recipients.append(
+                    {
+                        "to": recipient["to"],
+                        "error": str(e),
+                    }
+                )
 
         return {
-            'total_sent': total_sent,
-            'total_failed': total_failed,
-            'failed_recipients': failed_recipients,
+            "total_sent": total_sent,
+            "total_failed": total_failed,
+            "failed_recipients": failed_recipients,
         }
 
     def get_message_status(self, message_id: str) -> dict[str, Any]:
@@ -121,14 +128,14 @@ class TwilioSMSProvider(SMSProviderAdapter):
             message = self.client.messages(message_id).fetch()
 
             return {
-                'message_id': message.sid,
-                'status': message.status,
-                'to': message.to,
-                'from_number': message.from_,
-                'error': message.error_message if message.error_code else None,
+                "message_id": message.sid,
+                "status": message.status,
+                "to": message.to,
+                "from_number": message.from_,
+                "error": message.error_message if message.error_code else None,
             }
         except Exception as e:
-            if 'not found' in str(e).lower():
+            if "not found" in str(e).lower():
                 raise SMSMessageNotFoundError(f"Message not found: {message_id}")
             raise SMSSendError(f"Failed to get message status: {str(e)}")
 
@@ -142,20 +149,20 @@ class TwilioSMSProvider(SMSProviderAdapter):
             lookup = self.client.lookups.v1.phone_numbers(phone_number).fetch()
 
             return {
-                'is_valid': True,
-                'phone_number': lookup.phone_number,
-                'country_code': lookup.country_code,
-                'carrier': None,  # Requires carrier lookup add-on
-                'line_type': None,  # Requires carrier lookup add-on
+                "is_valid": True,
+                "phone_number": lookup.phone_number,
+                "country_code": lookup.country_code,
+                "carrier": None,  # Requires carrier lookup add-on
+                "line_type": None,  # Requires carrier lookup add-on
             }
         except Exception as e:
-            if 'not found' in str(e).lower() or 'invalid' in str(e).lower():
+            if "not found" in str(e).lower() or "invalid" in str(e).lower():
                 return {
-                    'is_valid': False,
-                    'phone_number': phone_number,
-                    'country_code': None,
-                    'carrier': None,
-                    'line_type': None,
+                    "is_valid": False,
+                    "phone_number": phone_number,
+                    "country_code": None,
+                    "carrier": None,
+                    "line_type": None,
                 }
             raise SMSInvalidPhoneNumberError(f"Failed to validate phone number: {str(e)}")
 
@@ -165,9 +172,9 @@ class TwilioSMSProvider(SMSProviderAdapter):
             balance = self.client.balance.fetch()
 
             return {
-                'balance': float(balance.balance),
-                'currency': balance.currency,
-                'account_status': 'active',
+                "balance": float(balance.balance),
+                "currency": balance.currency,
+                "account_status": "active",
             }
         except Exception as e:
             raise SMSSendError(f"Failed to get account balance: {str(e)}")
@@ -177,18 +184,18 @@ class TwilioSMSProvider(SMSProviderAdapter):
         start_date: str | None = None,
         end_date: str | None = None,
         status: str | None = None,
-        limit: int = 50
+        limit: int = 50,
     ) -> list[dict[str, Any]]:
         """List sent messages from Twilio."""
         try:
             # Build filter parameters
-            filters = {'limit': limit}
+            filters = {"limit": limit}
 
             if start_date:
-                filters['date_sent_after'] = datetime.fromisoformat(start_date)
+                filters["date_sent_after"] = datetime.fromisoformat(start_date)
 
             if end_date:
-                filters['date_sent_before'] = datetime.fromisoformat(end_date)
+                filters["date_sent_before"] = datetime.fromisoformat(end_date)
 
             messages = self.client.messages.list(**filters)
 
@@ -198,13 +205,15 @@ class TwilioSMSProvider(SMSProviderAdapter):
                 if status and msg.status != status:
                     continue
 
-                result.append({
-                    'message_id': msg.sid,
-                    'to': msg.to,
-                    'from_number': msg.from_,
-                    'status': msg.status,
-                    'sent_at': msg.date_sent.isoformat() if msg.date_sent else None,
-                })
+                result.append(
+                    {
+                        "message_id": msg.sid,
+                        "to": msg.to,
+                        "from_number": msg.from_,
+                        "status": msg.status,
+                        "sent_at": msg.date_sent.isoformat() if msg.date_sent else None,
+                    }
+                )
 
             return result
         except Exception as e:
@@ -220,8 +229,8 @@ class TwilioSMSProvider(SMSProviderAdapter):
         # In a real implementation, you would store this in your database
         # Twilio automatically handles STOP/START keywords
         return {
-            'phone_number': phone_number,
-            'status': 'opted_out',
+            "phone_number": phone_number,
+            "status": "opted_out",
         }
 
     def opt_in_number(self, phone_number: str) -> dict[str, Any]:
@@ -234,6 +243,6 @@ class TwilioSMSProvider(SMSProviderAdapter):
         # In a real implementation, you would remove this from your database
         # Twilio automatically handles STOP/START keywords
         return {
-            'phone_number': phone_number,
-            'status': 'opted_in',
+            "phone_number": phone_number,
+            "status": "opted_in",
         }
