@@ -164,7 +164,7 @@ class SMTPEmailProvider(EmailProviderAdapter):
                 )
 
             # Extract subject from template_data or use a default
-            subject = template_data.get('subject', 'Email from CODED:X')
+            subject = template_data.get('subject', 'Email from SwapLayer')
 
             return self.send_email(
                 to=to,
