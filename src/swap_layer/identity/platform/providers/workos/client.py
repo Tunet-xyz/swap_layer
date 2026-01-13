@@ -91,7 +91,6 @@ class WorkOSClient(AuthProviderAdapter):
         self._configure_workos()
         response = workos.client.user_management.authenticate_with_code(
             code=code,
-            client_id=self._client_id,
             session={"seal_session": True, "cookie_password": self._cookie_password},
         )
 
