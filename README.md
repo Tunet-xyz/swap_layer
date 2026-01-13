@@ -34,9 +34,26 @@ customer = payments.create_customer(email='user@example.com')
 
 ### 1. Install
 
+SwapLayer has optional dependencies - install only what you need:
+
 ```bash
-pip install swaplayer[stripe,email,sms]
+# Install with specific providers
+pip install swaplayer[stripe]        # Just Stripe billing
+pip install swaplayer[identity]      # Just WorkOS/Auth0
+pip install swaplayer[email,sms]     # Email + SMS
+
+# Or install everything
+pip install swaplayer[all]
 ```
+
+**Available extras:**
+- `stripe` - Stripe payment processing
+- `identity` - WorkOS/Auth0 OAuth/SSO
+- `email` - Enhanced email (django-anymail)
+- `sms` - Twilio/AWS SNS messaging
+- `aws` - AWS services (S3, SNS)
+- `mcp` - AI assistant integration
+- `all` - Everything
 
 ### 2. Configure
 

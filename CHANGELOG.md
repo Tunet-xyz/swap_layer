@@ -4,6 +4,29 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+## [0.2.3] - 2026-01-13
+
+### Fixed
+- **CRITICAL**: Fixed provider dependencies being loaded even when not used. All provider modules now use lazy imports via `__getattr__`, ensuring that:
+  - You can use WorkOS without having Stripe installed
+  - You can use Stripe without having Twilio installed
+  - Optional dependencies are truly optional
+  - No import errors for unused providers
+- **SECURITY**: Fixed secret values being exposed in error messages. All sensitive configuration errors now properly mask secrets while still providing helpful debugging information:
+  - Stripe API keys are masked (shows only prefix/suffix like `sk_t********abcd`)
+  - Twilio Account SIDs are masked
+  - Phone numbers are masked (CRITICAL: previously exposed full phone numbers)
+  - Cookie passwords remain completely hidden (only length shown)
+  - Added `_mask_secret()` helper function for consistent masking across all error messages
+
+### Added
+- Test suite for optional dependencies (`test_optional_dependencies.py`)
+- Enhanced README documentation about optional dependency installation
+- Security tests verifying that secrets are properly masked in error messages
+
 ## [0.2.2] - 2026-01-12
 
 ### Fixed

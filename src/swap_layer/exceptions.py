@@ -9,6 +9,48 @@ from typing import Any
 from django.core.exceptions import ImproperlyConfigured
 
 
+def _mask_secret(value: str, show_prefix: int = 4, show_suffix: int = 4) -> str:
+    """
+    Safely mask a secret value for display in error messages.
+    
+    Shows only the prefix and suffix to help identify the value type
+    without exposing the actual secret.
+    
+    Args:
+        value: The secret value to mask
+        show_prefix: Number of characters to show at the start
+        show_suffix: Number of characters to show at the end
+        
+    Returns:
+        Masked string like 'sk_t****abcd' or '****' for very short values
+        
+    Examples:
+        >>> _mask_secret('sk_test_1234567890abcdef', 4, 4)
+        'sk_t********cdef'
+        >>> _mask_secret('short', 2, 2)
+        'sh****rt'
+        >>> _mask_secret('abc')
+        '***'
+    """
+    if not value:
+        return "(empty)"
+    
+    # For very short values, mask completely
+    if len(value) <= 6:
+        return "*" * min(len(value), 8)
+    
+    # For short values, reduce what we show
+    if len(value) < (show_prefix + show_suffix + 4):
+        show_prefix = min(2, len(value) // 3)
+        show_suffix = min(2, len(value) // 3)
+    
+    prefix = value[:show_prefix]
+    suffix = value[-show_suffix:] if show_suffix > 0 else ""
+    masked_length = max(8, len(value) - show_prefix - show_suffix)
+    
+    return f"{prefix}{'*' * masked_length}{suffix}"
+
+
 class SwapLayerError(Exception):
     """Base exception for all SwapLayer errors."""
 
@@ -85,10 +127,13 @@ class StripeKeyError(ConfigurationError):
     """Stripe API key is invalid or incorrectly formatted."""
 
     def __init__(self, key_type: str, provided_value: str):
+        # Mask the secret but show enough to identify format issues
+        masked = _mask_secret(provided_value, show_prefix=4, show_suffix=4)
+        
         super().__init__(
             f"❌ Invalid Stripe {key_type}",
             hint=f"Stripe {key_type}s have a specific format. "
-            f"You provided: '{provided_value[:15]}...'",
+            f"You provided a value starting with: '{provided_value[:4]}...' (full value: {masked})",
             examples=[
                 f"sk_test_51A... (test mode {key_type})",
                 f"sk_live_51A... (live mode {key_type})",
@@ -111,10 +156,13 @@ class TwilioConfigError(ConfigurationError):
 
     @classmethod
     def invalid_account_sid(cls, provided_value: str) -> "TwilioConfigError":
+        # Mask the Account SID but show prefix to identify format issues
+        masked = _mask_secret(provided_value, show_prefix=4, show_suffix=4)
+        
         return cls(
             "❌ Invalid Twilio Account SID",
             hint=f"Twilio Account SIDs always start with 'AC'. "
-            f"You provided: '{provided_value[:10]}...'",
+            f"You provided a value starting with: '{provided_value[:4]}...' (full value: {masked})",
             examples=[
                 "AC1234567890abcdef1234567890abcd (34 characters)",
             ],
@@ -126,10 +174,14 @@ class TwilioConfigError(ConfigurationError):
 
     @classmethod
     def invalid_phone_number(cls, provided_value: str) -> "TwilioConfigError":
+        # Mask the phone number - only show if it starts with + and length
+        starts_with_plus = provided_value.startswith("+") if provided_value else False
+        masked = _mask_secret(provided_value, show_prefix=3, show_suffix=0)
+        
         return cls(
             "❌ Invalid phone number format",
             hint=f"Phone numbers must be in E.164 format (starts with '+' and country code). "
-            f"You provided: '{provided_value}'",
+            f"You provided: '{masked}' (length: {len(provided_value)}, starts with '+': {starts_with_plus})",
             examples=[
                 "+15555551234 (US number)",
                 "+442071838750 (UK number)",

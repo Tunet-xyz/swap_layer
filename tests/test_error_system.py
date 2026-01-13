@@ -38,11 +38,14 @@ class TestStripeKeyError:
         # Check error contains helpful elements
         assert "❌ Invalid Stripe secret key" in error_message
         assert "💡 Hint:" in error_message
-        assert "pk_test_123" in error_message  # Shows what they provided
+        assert "pk_t" in error_message  # Shows prefix of what they provided
+        assert "*" in error_message  # Shows value is masked
         assert "sk_test_" in error_message  # Shows correct format
         assert "sk_live_" in error_message  # Shows live example too
         assert "stripe.com/docs/keys" in error_message  # Documentation link
         assert "SWAPLAYER.billing.stripe.secret_key" in error_message  # Related setting
+        # Ensure the full key is NOT exposed
+        assert "pk_test_123abc" not in error_message
 
     def test_completely_wrong_key(self):
         """Should handle completely invalid key gracefully."""
@@ -75,9 +78,12 @@ class TestTwilioConfigError:
 
         assert "❌ Invalid Twilio Account SID" in error_message
         assert "💡 Hint:" in error_message
-        assert "XX12345678" in error_message  # Shows what they provided
+        assert "XX12" in error_message  # Shows prefix of what they provided
+        assert "*" in error_message  # Shows value is masked
         assert "AC" in error_message  # Shows correct prefix
         assert "twilio.com/docs" in error_message
+        # Ensure the full Account SID is NOT exposed
+        assert "XX1234567890abcdef1234567890abcd" not in error_message
 
     def test_invalid_phone_number_format(self):
         """Should provide helpful error for invalid phone number format."""
@@ -99,10 +105,14 @@ class TestTwilioConfigError:
 
         assert "❌ Invalid phone number format" in error_message
         assert "E.164 format" in error_message
-        assert "555-123-4567" in error_message  # Shows what they provided
+        # Should show format info but NOT the actual phone number
+        assert "*" in error_message  # Shows value is masked
+        assert "starts with '+': False" in error_message  # Shows format issue
         assert "+15555551234" in error_message  # US example
         assert "+442071838750" in error_message  # UK example
         assert "+61212345678" in error_message  # AU example
+        # Ensure the full phone number is NOT exposed
+        assert "555-123-4567" not in error_message or "555*" in error_message
 
     def test_phone_number_missing_plus(self):
         """Should catch phone numbers missing '+' prefix."""
@@ -370,8 +380,11 @@ class TestRichErrorsInRealScenarios:
         # Error should be immediately obvious
         error = str(exc_info.value)
         assert "Invalid Stripe secret key" in error
-        assert "pk_test_51Abc" in error  # Shows what they used
+        assert "pk_t" in error  # Shows prefix of what they used
+        assert "*" in error  # Shows value is masked
         assert "sk_test_" in error  # Shows what they should use
+        # Ensure full key is NOT exposed
+        assert "pk_test_51Abc123" not in error
 
     def test_developer_copies_phone_number_wrong_format(self):
         """Simulate: Developer copies phone number from UI in wrong format."""
@@ -392,8 +405,11 @@ class TestRichErrorsInRealScenarios:
         # Error should explain E.164 format
         error = str(exc_info.value)
         assert "E.164 format" in error
-        assert "(555) 123-4567" in error
+        assert "*" in error  # Phone number is masked
+        assert "starts with '+': False" in error  # Shows format issue
         assert "+1" in error  # Shows proper format
+        # Ensure full phone number is NOT exposed
+        assert "(555) 123-4567" not in error or "(55*" in error
 
     def test_developer_uses_weak_cookie_password(self):
         """Simulate: Developer uses simple password instead of secure random."""
