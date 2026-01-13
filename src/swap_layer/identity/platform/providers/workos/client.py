@@ -9,7 +9,6 @@ from typing import Any
 
 from django.conf import settings
 from workos import WorkOSClient as WorkOSSDKClient
-from workos.user_management import UserManagementProviderType
 
 from ...adapter import AuthProviderAdapter
 
@@ -68,7 +67,7 @@ class WorkOSClient(AuthProviderAdapter):
             Authorization URL to redirect the user to
         """
         return self._workos_client.user_management.get_authorization_url(
-            provider=UserManagementProviderType.AuthKit, redirect_uri=redirect_uri, state=state
+            provider="authkit", redirect_uri=redirect_uri, state=state
         )
 
     def exchange_code_for_user(self, request, code: str) -> dict[str, Any]:
@@ -95,7 +94,7 @@ class WorkOSClient(AuthProviderAdapter):
             "first_name": user.first_name,
             "last_name": user.last_name,
             "email_verified": user.email_verified,
-            "raw_user": user.to_dict(),
+            "raw_user": user.model_dump(),
             "sealed_session": response.sealed_session,
         }
 
