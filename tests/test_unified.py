@@ -53,7 +53,7 @@ class TestUnifiedProvider(unittest.TestCase):
     def test_get_identity_provider(self):
         """Test getting identity provider through unified interface."""
         with patch.object(settings, "IDENTITY_PROVIDER", "workos"):
-            with patch("swap_layer.identity.platform.providers.workos.client.workos"):
+            with patch("swap_layer.identity.platform.providers.workos.client.WorkOSSDKClient"):
                 provider = get_provider("identity")
                 from swap_layer.identity.platform.adapter import AuthProviderAdapter
 
@@ -76,7 +76,7 @@ class TestUnifiedProvider(unittest.TestCase):
                 },
             }
             with patch.object(settings, "WORKOS_APPS", mock_workos_apps):
-                with patch("swap_layer.identity.platform.providers.workos.client.workos"):
+                with patch("swap_layer.identity.platform.providers.workos.client.WorkOSSDKClient"):
                     provider = get_provider("identity", app_name="custom")
                 from swap_layer.identity.platform.adapter import AuthProviderAdapter
 

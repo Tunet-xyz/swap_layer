@@ -94,7 +94,7 @@ def test_identity_platform_factory_uses_swaplayer_settings():
     with patch(
         "swap_layer.identity.platform.factory.get_swaplayer_settings", return_value=mock_settings
     ):
-        with patch("swap_layer.identity.platform.providers.workos.client.workos"):
+        with patch("swap_layer.identity.platform.providers.workos.client.WorkOSSDKClient"):
             from swap_layer.identity.platform.factory import get_identity_client
             from swap_layer.identity.platform.providers.workos.client import WorkOSClient
 

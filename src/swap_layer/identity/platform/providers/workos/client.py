@@ -1,29 +1,25 @@
 """
 WorkOS Authentication Client.
 
-Thread-safe implementation that properly manages WorkOS configuration
-to avoid global state issues in multi-tenant environments.
+Thread-safe implementation using WorkOS SDK v5.x client pattern.
+Each instance maintains its own WorkOSClient with dedicated credentials.
 """
 
-import threading
 from typing import Any
 
-import workos
 from django.conf import settings
+from workos import WorkOSClient as WorkOSSDKClient
 from workos.user_management import UserManagementProviderType
 
 from ...adapter import AuthProviderAdapter
 
-# Thread lock for safe WorkOS configuration
-_workos_lock = threading.Lock()
-
 
 class WorkOSClient(AuthProviderAdapter):
     """
-    Thread-safe WorkOS authentication client.
+    WorkOS authentication client using SDK v5.x pattern.
 
-    Uses thread locking to safely configure WorkOS SDK for multi-tenant
-    usage where different apps may have different credentials.
+    Each instance creates its own WorkOSClient with dedicated credentials,
+    making it thread-safe without requiring global state manipulation.
     """
 
     def __init__(self, app_name: str = "default"):
@@ -48,17 +44,16 @@ class WorkOSClient(AuthProviderAdapter):
         self._client_id = self.config["client_id"]
         self._cookie_password = self.config["cookie_password"]
 
-    def _configure_workos(self):
-        """Thread-safe configuration of WorkOS SDK."""
-        with _workos_lock:
-            workos.api_key = self._api_key
-            workos.client_id = self._client_id
+        # Create dedicated WorkOS client instance (SDK v5.x pattern)
+        self._workos_client = WorkOSSDKClient(
+            api_key=self._api_key,
+            client_id=self._client_id,
+        )
 
     @property
     def client(self):
-        """Get the WorkOS SDK client instance (thread-safe)."""
-        self._configure_workos()
-        return workos.client
+        """Get the WorkOS SDK client instance."""
+        return self._workos_client
 
     def get_authorization_url(self, request, redirect_uri: str, state: str | None = None) -> str:
         """
@@ -72,8 +67,7 @@ class WorkOSClient(AuthProviderAdapter):
         Returns:
             Authorization URL to redirect the user to
         """
-        self._configure_workos()
-        return workos.client.user_management.get_authorization_url(
+        return self._workos_client.user_management.get_authorization_url(
             provider=UserManagementProviderType.AuthKit, redirect_uri=redirect_uri, state=state
         )
 
@@ -88,8 +82,7 @@ class WorkOSClient(AuthProviderAdapter):
         Returns:
             Dict containing normalized user data and sealed session
         """
-        self._configure_workos()
-        response = workos.client.user_management.authenticate_with_code(
+        response = self._workos_client.user_management.authenticate_with_code(
             code=code,
             session={"seal_session": True, "cookie_password": self._cookie_password},
         )
@@ -121,8 +114,7 @@ class WorkOSClient(AuthProviderAdapter):
 
         if sealed_session:
             try:
-                self._configure_workos()
-                session = workos.client.user_management.load_sealed_session(
+                session = self._workos_client.user_management.load_sealed_session(
                     sealed_session=sealed_session,
                     cookie_password=self._cookie_password,
                 )

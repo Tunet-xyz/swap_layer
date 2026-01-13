@@ -57,33 +57,37 @@ class TestIdentityPlatformFactory(unittest.TestCase):
 @pytest.mark.skipif(not WORKOS_AVAILABLE, reason="workos package not installed")
 class TestWorkOSClient(unittest.TestCase):
     def setUp(self):
-        with patch("swap_layer.identity.platform.providers.workos.client.workos") as mock_workos:
-            self.mock_workos_module = mock_workos
-            self.mock_workos_module.api_key = None
-            self.mock_workos_module.client_id = None
-            self.provider = WorkOSClient(app_name="default")
-
+        # Mock both WorkOSSDKClient and UserManagementProviderType
+        self.mock_sdk_client = MagicMock()
+        self.sdk_patcher = patch(
+            "swap_layer.identity.platform.providers.workos.client.WorkOSSDKClient",
+            return_value=self.mock_sdk_client
+        )
+        self.provider_type_patcher = patch(
+            "swap_layer.identity.platform.providers.workos.client.UserManagementProviderType"
+        )
+        self.sdk_patcher.start()
+        self.mock_provider_type = self.provider_type_patcher.start()
+        self.provider = WorkOSClient(app_name="default")
         self.mock_request = MagicMock()
+
+    def tearDown(self):
+        self.sdk_patcher.stop()
+        self.provider_type_patcher.stop()
 
     def test_get_authorization_url(self):
         """Test generating authorization URL."""
-        with (
-            patch("swap_layer.identity.platform.providers.workos.client.workos") as mock_workos,
-            patch(
-                "swap_layer.identity.platform.providers.workos.client.UserManagementProviderType"
-            ),
-        ):
-            mock_workos.client.user_management.get_authorization_url.return_value = (
-                "https://workos.com/sso/authorize?client_id=..."
-            )
-            result = self.provider.get_authorization_url(
-                request=self.mock_request,
-                redirect_uri="https://example.com/callback",
-                state="random_state",
-            )
+        self.mock_sdk_client.user_management.get_authorization_url.return_value = (
+            "https://workos.com/sso/authorize?client_id=..."
+        )
+        result = self.provider.get_authorization_url(
+            request=self.mock_request,
+            redirect_uri="https://example.com/callback",
+            state="random_state",
+        )
 
-            self.assertIn("workos.com", result)
-            mock_workos.client.user_management.get_authorization_url.assert_called_once()
+        self.assertIn("workos.com", result)
+        self.mock_sdk_client.user_management.get_authorization_url.assert_called_once()
 
     def test_exchange_code_for_user_success(self):
         """Test exchanging authorization code for user data."""
@@ -105,18 +109,15 @@ class TestWorkOSClient(unittest.TestCase):
         mock_response.user = mock_user
         mock_response.sealed_session = "sealed_session_value"
 
-        with patch(
-            "swap_layer.identity.platform.providers.workos.client.workos.client"
-        ) as mock_client:
-            mock_client.user_management.authenticate_with_code.return_value = mock_response
-            result = self.provider.exchange_code_for_user(
-                request=self.mock_request, code="auth_code_123"
-            )
+        self.mock_sdk_client.user_management.authenticate_with_code.return_value = mock_response
+        result = self.provider.exchange_code_for_user(
+            request=self.mock_request, code="auth_code_123"
+        )
 
-            self.assertEqual(result["id"], "user_01ABC")
-            self.assertEqual(result["email"], "user@example.com")
-            self.assertEqual(result["first_name"], "John")
-            self.assertEqual(result["last_name"], "Doe")
+        self.assertEqual(result["id"], "user_01ABC")
+        self.assertEqual(result["email"], "user@example.com")
+        self.assertEqual(result["first_name"], "John")
+        self.assertEqual(result["last_name"], "Doe")
 
     def test_get_logout_url(self):
         """Test generating logout URL."""
@@ -133,6 +134,8 @@ class TestWorkOSClient(unittest.TestCase):
         """Test logout URL with invalid sealed session falls back gracefully."""
         # Add invalid sealed session to mock request
         self.mock_request.session = {"workos_sealed_session": "invalid_sealed_value"}
+        # Make load_sealed_session raise an exception
+        self.mock_sdk_client.user_management.load_sealed_session.side_effect = Exception("Invalid session")
 
         result = self.provider.get_logout_url(
             request=self.mock_request, return_to="https://example.com/fallback"
