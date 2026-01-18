@@ -57,23 +57,18 @@ class TestIdentityPlatformFactory(unittest.TestCase):
 @pytest.mark.skipif(not WORKOS_AVAILABLE, reason="workos package not installed")
 class TestWorkOSClient(unittest.TestCase):
     def setUp(self):
-        # Mock both WorkOSSDKClient and UserManagementProviderType
+        # Mock WorkOSSDKClient only
         self.mock_sdk_client = MagicMock()
         self.sdk_patcher = patch(
             "swap_layer.identity.platform.providers.workos.client.WorkOSSDKClient",
             return_value=self.mock_sdk_client
         )
-        self.provider_type_patcher = patch(
-            "swap_layer.identity.platform.providers.workos.client.UserManagementProviderType"
-        )
         self.sdk_patcher.start()
-        self.mock_provider_type = self.provider_type_patcher.start()
         self.provider = WorkOSClient(app_name="default")
         self.mock_request = MagicMock()
 
     def tearDown(self):
         self.sdk_patcher.stop()
-        self.provider_type_patcher.stop()
 
     def test_get_authorization_url(self):
         """Test generating authorization URL."""
@@ -144,6 +139,33 @@ class TestWorkOSClient(unittest.TestCase):
         # Should fallback to return_to when session loading fails
         self.assertEqual(result, "https://example.com/fallback")
 
+    def test_clear_session(self):
+        """Test clearing WorkOS session data."""
+        # Add WorkOS sealed session
+        self.mock_request.session = {
+            "workos_sealed_session": "sealed_session_value",
+            "other_data": "should_remain"
+        }
+
+        # Clear session
+        self.provider.clear_session(self.mock_request)
+
+        # WorkOS sealed session should be removed
+        self.assertNotIn("workos_sealed_session", self.mock_request.session)
+        
+        # Other data should remain
+        self.assertIn("other_data", self.mock_request.session)
+
+    def test_clear_session_when_no_session_exists(self):
+        """Test clearing session when no WorkOS session data exists."""
+        self.mock_request.session = {"other_data": "should_remain"}
+
+        # Should not raise an error
+        self.provider.clear_session(self.mock_request)
+
+        # Other data should remain
+        self.assertIn("other_data", self.mock_request.session)
+
 
 class TestAuth0Client(unittest.TestCase):
     def setUp(self):
@@ -153,6 +175,8 @@ class TestAuth0Client(unittest.TestCase):
             self.provider = Auth0Client(app_name="developer")
 
         self.mock_request = MagicMock()
+        # Make session a real dict so we can test clearing functionality
+        self.mock_request.session = {}
 
     def test_get_authorization_url(self):
         """Test generating Auth0 authorization URL."""
@@ -205,6 +229,25 @@ class TestAuth0Client(unittest.TestCase):
         self.assertIn("auth0.com", result)
         self.assertIn("returnTo", result)
         self.assertIn("logout", result)
+
+    def test_clear_session(self):
+        """Test clearing Auth0 session data."""
+        # Add some OAuth session data
+        self.mock_request.session["_oauth_state"] = "test_state"
+        self.mock_request.session["_oauth_token"] = "test_token"
+        self.mock_request.session["auth0_user_id"] = "user_123"
+        self.mock_request.session["other_data"] = "should_remain"
+
+        # Clear session
+        self.provider.clear_session(self.mock_request)
+
+        # OAuth and Auth0 keys should be removed
+        self.assertNotIn("_oauth_state", self.mock_request.session)
+        self.assertNotIn("_oauth_token", self.mock_request.session)
+        self.assertNotIn("auth0_user_id", self.mock_request.session)
+        
+        # Other data should remain
+        self.assertIn("other_data", self.mock_request.session)
 
 
 if __name__ == "__main__":

@@ -172,6 +172,9 @@ def logout_view(request):
     """Handle logout with provider"""
     identity = get_identity_client()
     
+    # Clear provider-specific session data (sealed sessions, tokens, etc.)
+    identity.clear_session(request)
+    
     # Logout from Django
     logout(request)
     

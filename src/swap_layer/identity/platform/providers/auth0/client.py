@@ -55,3 +55,22 @@ class Auth0Client(AuthProviderAdapter):
             },
             quote_via=quote_plus,
         )
+
+    def clear_session(self, request) -> None:
+        """
+        Clear Auth0-specific session data.
+        
+        Auth0 uses Authlib's OAuth client which stores session data 
+        with specific keys. We clear those to prevent automatic re-authentication.
+        
+        Args:
+            request: Django HTTP request containing session to clear
+        """
+        # Authlib stores OAuth state and token info in session
+        # Clear any authlib-related session keys
+        keys_to_remove = [
+            key for key in request.session.keys() 
+            if key.startswith("_oauth_") or key.startswith("auth0_")
+        ]
+        for key in keys_to_remove:
+            del request.session[key]

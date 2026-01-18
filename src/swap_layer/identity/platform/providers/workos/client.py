@@ -123,3 +123,17 @@ class WorkOSClient(AuthProviderAdapter):
                 pass
 
         return return_to
+
+    def clear_session(self, request) -> None:
+        """
+        Clear WorkOS-specific session data.
+        
+        Removes the sealed session from Django's session storage to ensure
+        the user is fully logged out and won't be automatically re-authenticated.
+        
+        Args:
+            request: Django HTTP request containing session to clear
+        """
+        # Remove WorkOS sealed session if it exists
+        if "workos_sealed_session" in request.session:
+            del request.session["workos_sealed_session"]
