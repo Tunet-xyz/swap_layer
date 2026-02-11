@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.7] - 2026-02-11
+
+### Added
+- **Storage Security**: Added `ScopedStorageProvider` for tenant-isolated storage operations
+- **Storage Security Context**: Added `StorageSecurityContext` for RLS-style access control in storage layer
+- **Storage Permissions**: Added `StoragePermission` enum for fine-grained access control
+- **Context Manager**: Added `storage_context()` context manager for scoped storage operations
+- **Validation**: Added `validate_storage_context()` for security context validation
+- **GCS Provider**: Enhanced GCS storage provider integration with security context support
+
+### Changed
+- Storage module now supports automatic path prefixing with `orgs/{organization_id}/` for multi-tenant isolation
+- Storage operations now validate security context before executing
+
 ## [0.2.3] - 2026-01-13
 
 ### Fixed

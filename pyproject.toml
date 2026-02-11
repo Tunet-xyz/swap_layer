@@ -7,7 +7,7 @@ packages = ["src/swap_layer"]
 
 [project]
 name = "SwapLayer"
-version = "0.2.6"
+version = "0.2.7"
 description = "Swap providers with zero vendor lock-in. For Django SaaS."
 readme = "README.md"
 requires-python = ">=3.10"
