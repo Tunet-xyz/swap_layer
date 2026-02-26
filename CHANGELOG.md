@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-02-26
+
+### Changed
+- **BREAKING**: `scope_format` is now a **required** parameter on `StorageSecurityContext`. Callers must explicitly declare their path scoping convention (e.g. `scope_format='{organization_id}'`). No implicit fallback.
+- Removed `path_prefix` field from `StorageSecurityContext` — use `scope_format` instead.
+- Removed hardcoded `orgs/` path prefix. Path convention is now fully user-controlled via `scope_format`.
+- Centralised prefix resolution into `_resolve_prefix()` (used by both `scope_path()` and `validate_scoped_path()`).
+
+### Migration
+- Replace `StorageSecurityContext(organization_id='org-456', ...)` with `StorageSecurityContext(scope_format='{organization_id}', organization_id='org-456', ...)`
+- Replace any `path_prefix='custom/prefix'` with `scope_format='custom/prefix'`
+
 ## [0.2.7] - 2026-02-11
 
 ### Added

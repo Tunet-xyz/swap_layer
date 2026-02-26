@@ -31,26 +31,38 @@ Design Philosophy:
 Usage:
     from swap_layer.storage.security import StorageSecurityContext, storage_context
 
-    # Create context with caller identity
+    # Create context — scope_format controls path prefixing
     ctx = StorageSecurityContext(
         user_id='auth0|123',
         organization_id='org-456',
         role='admin',
         platform='safety_az_central',
+        scope_format='{organization_id}',  # required — org at bucket root
     )
 
     # Use with storage provider
     provider = get_storage_provider()
     with storage_context(provider, ctx) as scoped:
-        # All paths are auto-prefixed: 'docs/report.pdf' -> 'orgs/org-456/docs/report.pdf'
+        # 'docs/report.pdf' -> 'org-456/docs/report.pdf'
         scoped.upload_file('docs/report.pdf', file_data, content_type='application/pdf')
         url = scoped.get_file_url('docs/report.pdf', expiration=timedelta(hours=1))
         scoped.delete_file('docs/report.pdf')
 
+    # Custom scope format — nest under a directory structure
+    ctx = StorageSecurityContext(
+        user_id='auth0|123',
+        organization_id='org-456',
+        role='admin',
+        scope_format='tenants/{organization_id}/data',
+    )
+    with storage_context(provider, ctx) as scoped:
+        # 'docs/report.pdf' -> 'tenants/org-456/data/docs/report.pdf'
+        scoped.upload_file('docs/report.pdf', file_data, content_type='application/pdf')
+
     # Without context (system operations) - requires explicit opt-in
     ctx = StorageSecurityContext.system_context()
     with storage_context(provider, ctx) as scoped:
-        scoped.list_files(prefix='orgs/')  # Full access, logged as system operation
+        scoped.list_files(prefix='')  # Full access, logged as system operation
 """
 
 import logging
@@ -128,10 +140,16 @@ class StorageSecurityContext:
     determine path scoping and permission boundaries for storage operations.
     
     Path Scoping Strategy:
-        All paths are automatically prefixed with the tenant namespace:
-        - With org: 'orgs/{organization_id}/{original_path}'
-        - System: No prefix (full access)
-        
+        All paths are automatically prefixed with a tenant namespace derived
+        from ``scope_format`` — a Python format string interpolated with
+        context fields at runtime.  ``scope_format`` is **required** for
+        non-system contexts, making the scoping convention explicit:
+
+        - ``'{organization_id}'`` → org id at bucket root
+        - ``'orgs/{organization_id}'`` → nested under ``orgs/``
+        - ``'tenants/{organization_id}/data'`` → arbitrary nesting
+        - System context → no prefix (full access)
+
     Identity Resolution Strategy:
         Same as database RLS: Django/API gateway resolves identity and passes
         resolved values. No additional lookups needed in storage operations.
@@ -142,16 +160,20 @@ class StorageSecurityContext:
         role: User's role (determines permissions)
         platform: Application platform (e.g., 'safety_az_central')
         permissions: Explicit permissions (if None, derived from role)
-        path_prefix: Custom path prefix (overrides default org-based prefix)
+        scope_format: **Required.** Format string for the path prefix.
+            Supports ``{organization_id}``, ``{platform}``, and ``{role}``
+            placeholders.  Examples: ``'{organization_id}'``,
+            ``'orgs/{organization_id}'``,
+            ``'tenants/{organization_id}/data'``.
         is_system: Whether this is a system-level context (bypasses scoping)
         metadata: Additional context metadata for audit logging
     """
+    scope_format: str = ''
     user_id: Optional[str] = None
     organization_id: Optional[str] = None
     role: Optional[str] = None
     platform: Optional[str] = None
     permissions: Optional[set[StoragePermission]] = None
-    path_prefix: Optional[str] = None
     is_system: bool = False
     metadata: dict[str, Any] = field(default_factory=dict)
     
@@ -167,6 +189,12 @@ class StorageSecurityContext:
                 raise ValueError(
                     "StorageSecurityContext requires organization_id for tenant isolation. "
                     "Use StorageSecurityContext.system_context() for system operations."
+                )
+            if not self.scope_format:
+                raise ValueError(
+                    "StorageSecurityContext requires scope_format for path scoping. "
+                    "Example: scope_format='{organization_id}' to place files "
+                    "under the org id at the bucket root."
                 )
     
     def get_permissions(self) -> set[StoragePermission]:
@@ -205,21 +233,31 @@ class StorageSecurityContext:
                 f"User '{self.user_id}' with role '{self.role}' does not have this permission."
             )
     
+    def _resolve_prefix(self) -> str:
+        """Interpolate ``scope_format`` with context fields."""
+        return self.scope_format.format(
+            organization_id=self.organization_id or '',
+            platform=self.platform or '',
+            role=self.role or '',
+        )
+
     def scope_path(self, path: str) -> str:
         """
         Apply tenant-scoped path prefix.
+        
+        Interpolates ``scope_format`` with context fields to produce
+        the prefix, then prepends it to the given path.
         
         Args:
             path: Original path (e.g., 'documents/report.pdf')
             
         Returns:
-            Scoped path (e.g., 'orgs/org-456/documents/report.pdf')
+            Scoped path (e.g., 'org-456/documents/report.pdf')
         """
         if self.is_system:
             return path
         
-        # Use custom prefix if provided, otherwise derive from org
-        prefix = self.path_prefix or f"orgs/{self.organization_id}"
+        prefix = self._resolve_prefix()
         
         # Validate the prefix
         validate_path_segment(prefix)
@@ -243,7 +281,7 @@ class StorageSecurityContext:
         if self.is_system:
             return True
         
-        prefix = self.path_prefix or f"orgs/{self.organization_id}"
+        prefix = self._resolve_prefix()
         prefix = prefix.strip('/')
         
         return scoped_path.startswith(f"{prefix}/")
@@ -274,6 +312,7 @@ class StorageSecurityContext:
             f"Creating system-level StorageSecurityContext - reason: {reason}"
         )
         return cls(
+            scope_format='',
             user_id='system',
             role='system',
             is_system=True,
