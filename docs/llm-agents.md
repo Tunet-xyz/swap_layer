@@ -393,7 +393,7 @@ Compare documentation against code and open a PR fixing any discrepancies.
 ```
 For each docs/{module}.md file, check:
 1. Do import paths match the actual module structure?
-2. Do method names in examples match the adapter ABCs?
+2. Do method names in examples match the adapter interfaces?
 3. Does the provider status table match which providers/ files exist?
 4. Does README.md version match pyproject.toml?
 5. Are all docs listed in docs/README.md index?
