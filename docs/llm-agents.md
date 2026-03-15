@@ -16,6 +16,7 @@ A practical guide for using LLM agents (GitHub Copilot, Claude, ChatGPT, Cursor,
 8. [Add a New Module End-to-End](#8-add-a-new-module-end-to-end)
 9. [Audit Adapter Consistency](#9-audit-adapter-consistency)
 10. [Write Migration Guide for Breaking Changes](#10-write-migration-guide-for-breaking-changes)
+11. [Autonomous Agent Tasks (OpenClaw / 24/7 Agent)](#autonomous-agent-tasks-openclaw--247-agent)
 
 ---
 
@@ -340,6 +341,136 @@ If the agent's output isn't right, refine the prompt rather than editing the out
 
 ---
 
+## Autonomous Agent Tasks (OpenClaw / 24/7 Agent)
+
+These tasks are specifically designed for a continuously-running autonomous agent that opens PRs without merge power. Every task is low-risk and produces a reviewable PR — nothing lands without your approval.
+
+### Always-On: Dependency Security Audits
+
+Run `pip-audit` and `safety check` against all dependencies weekly. Open a PR if vulnerabilities are found.
+
+```
+Run pip-audit and safety check on SwapLayer's dependencies.
+Check both core deps (Django, Pydantic, requests, tenacity) and all
+optional deps (stripe, twilio, boto3, etc.) from pyproject.toml.
+
+If vulnerabilities are found:
+1. Open a PR bumping the affected dependency to a patched version
+2. Run the full test suite to confirm nothing breaks
+3. Include the CVE number and severity in the PR description
+```
+
+### Always-On: Lint Auto-Fix
+
+The CI currently fails on main due to 113 ruff whitespace errors. An autonomous agent can fix these and keep the codebase lint-clean going forward.
+
+```
+Run `ruff check --fix src/ tests/` to auto-fix all safe lint errors.
+Then run `ruff format src/ tests/` to apply consistent formatting.
+Run the test suite to confirm nothing breaks.
+Open a PR with the fixes grouped by category (whitespace, imports, etc.).
+```
+
+### Weekly: Test Coverage Expansion
+
+Current coverage threshold is 45%. An agent can incrementally raise this by adding tests for untested code paths.
+
+```
+Run `pytest --cov=swap_layer --cov-report=term-missing` and identify
+the files with the lowest coverage percentages.
+
+Pick the lowest-covered module and write tests for its uncovered lines.
+Follow the patterns in existing test files (tests/test_billing.py, etc.).
+Mock external SDKs, test error paths, test edge cases.
+
+Target: increase coverage by 5% per PR. Don't change production code.
+```
+
+### Weekly: Doc-Code Drift Detection
+
+Compare documentation against code and open a PR fixing any discrepancies.
+
+```
+For each docs/{module}.md file, check:
+1. Do import paths match the actual module structure?
+2. Do method names in examples match the adapter ABCs?
+3. Does the provider status table match which providers/ files exist?
+4. Does README.md version match pyproject.toml?
+5. Are all docs listed in docs/README.md index?
+
+Fix any drift. Don't change the writing style, just correct facts.
+```
+
+### Monthly: Type Hint Improvements
+
+MyPy is currently non-blocking in CI (`continue-on-error: true`). An agent can incrementally improve type coverage.
+
+```
+Run `mypy src/swap_layer/{module}/ --strict` on one module at a time.
+Fix type errors by adding type hints, not by adding # type: ignore.
+
+Priority order:
+1. settings.py and exceptions.py (core, high-impact)
+2. adapter.py files (interfaces should be fully typed)
+3. factory.py files (small, high-value)
+4. provider implementations (largest surface area)
+
+One module per PR. Run tests after each change.
+```
+
+### Monthly: Code Quality Sweeps
+
+Fix mechanical code quality issues that ruff or pyupgrade can detect.
+
+```
+Run the following checks and fix any issues found:
+
+1. `ruff check --select UP src/` — Python upgrade opportunities
+   (e.g., Optional[str] → str | None for Python 3.10+)
+2. `ruff check --select B src/` — bugbear checks (common mistakes)
+3. `ruff check --select SIM src/` — simplification opportunities
+4. `ruff check --select PIE src/` — unnecessary code patterns
+
+Apply only safe fixes. Run tests. One category per PR.
+```
+
+### On Demand: Adapter Consistency Audit
+
+Check that all adapter ABCs follow the same naming and typing conventions.
+
+```
+Compare all adapter.py files across modules. Check that:
+- CRUD methods follow create_X / get_X / list_X / update_X / delete_X
+- All abstract methods have docstrings with Args/Returns sections
+- Return types are documented consistently
+- Parameter names for the same concept are identical across modules
+  (e.g., always customer_id, never cust_id)
+
+Open a PR fixing any inconsistencies. Don't change method signatures
+that would break the public API — just fix docstrings and parameter names
+in adapter ABCs where providers haven't been implemented yet.
+```
+
+### On Demand: Example Expansion
+
+The examples/ directory only has one MCP config file. An agent can add practical examples.
+
+```
+Add example files to the examples/ directory:
+
+1. examples/django_settings.py — complete SWAPLAYER configuration
+   showing all modules configured with placeholder credentials
+2. examples/send_email.py — send an email using get_provider('email')
+3. examples/process_payment.py — create customer + subscription
+4. examples/upload_file.py — upload and retrieve a file
+5. examples/multi_tenant_storage.py — scoped storage with StorageSecurityContext
+
+Each example should be a standalone Python file with comments explaining
+what it does. Use the same style as code examples in the docs.
+```
+
+---
+
 ## Quick Reference — What to Automate vs. Do Yourself
 
 | Task | Agent? | Why |
@@ -351,6 +482,13 @@ If the agent's output isn't right, refine the prompt rather than editing the out
 | Code review | ✅ Agent | Check pattern compliance |
 | Generate changelog | ✅ Agent | Read git log, format consistently |
 | Remove dead code | ✅ Agent | Search for references, confirm safe removal |
+| Dependency audits | ✅ Agent (24/7) | Automated scanning, creates PRs |
+| Lint auto-fix | ✅ Agent (24/7) | Fully automated, safe fixes only |
+| Test coverage expansion | ✅ Agent (24/7) | Adds tests, never changes prod code |
+| Type hint improvements | ✅ Agent (24/7) | Incremental, one module at a time |
+| Code quality sweeps | ✅ Agent (24/7) | Ruff/pyupgrade, safe fixes only |
+| Doc-code drift detection | ✅ Agent (24/7) | Compare and fix, no style changes |
+| Example expansion | ✅ Agent (24/7) | Pattern-following from existing docs |
 | Design new adapter APIs | ❌ You | Requires product judgment |
 | Choose providers to support | ❌ You | Requires market/user research |
 | Handle security issues | ❌ You | Requires careful human review |
