@@ -139,6 +139,7 @@ Closes #issue-number
 
 - Check [Documentation Index](../README.md)
 - Review [Architecture Guide](../architecture.md)
+- Review [LLM Agent Use Cases](../llm-agents.md) for AI-assisted development
 - Open an issue for clarification
 
 ---
