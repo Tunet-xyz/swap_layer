@@ -1,7 +1,7 @@
 """
 WorkOS Authentication Client.
 
-Thread-safe implementation using WorkOS SDK v5.x client pattern.
+Thread-safe implementation using WorkOS SDK v6+/v7 client pattern.
 Each instance maintains its own WorkOSClient with dedicated credentials.
 """
 
@@ -9,13 +9,14 @@ from typing import Any
 
 from django.conf import settings
 from workos import WorkOSClient as WorkOSSDKClient
+from workos.session import seal_session_from_auth_response
 
 from ...adapter import AuthProviderAdapter
 
 
 class WorkOSClient(AuthProviderAdapter):
     """
-    WorkOS authentication client using SDK v5.x pattern.
+    WorkOS authentication client using SDK v6+/v7 pattern.
 
     Each instance creates its own WorkOSClient with dedicated credentials,
     making it thread-safe without requiring global state manipulation.
@@ -43,7 +44,7 @@ class WorkOSClient(AuthProviderAdapter):
         self._client_id = self.config["client_id"]
         self._cookie_password = self.config["cookie_password"]
 
-        # Create dedicated WorkOS client instance (SDK v5.x pattern)
+        # Create dedicated WorkOS client instance (v6+/v7 pattern)
         self._workos_client = WorkOSSDKClient(
             api_key=self._api_key,
             client_id=self._client_id,
@@ -74,6 +75,9 @@ class WorkOSClient(AuthProviderAdapter):
         """
         Exchange authorization code for user data.
 
+        In v6+/v7, authenticate_with_code no longer accepts session=.
+        Sealed sessions are created explicitly after authentication.
+
         Args:
             request: Django HTTP request (unused, for interface compatibility)
             code: Authorization code from OAuth callback
@@ -81,12 +85,20 @@ class WorkOSClient(AuthProviderAdapter):
         Returns:
             Dict containing normalized user data and sealed session
         """
-        response = self._workos_client.user_management.authenticate_with_code(
-            code=code,
-            session={"seal_session": True, "cookie_password": self._cookie_password},
-        )
+        response = self._workos_client.user_management.authenticate_with_code(code=code)
 
         user = response.user
+
+        # Explicitly seal the session after authentication (v6+ pattern)
+        sealed_session = seal_session_from_auth_response(
+            access_token=response.access_token,
+            refresh_token=response.refresh_token,
+            user=user.to_dict(),
+            impersonator=(
+                response.impersonator.to_dict() if response.impersonator else None
+            ),
+            cookie_password=self._cookie_password,
+        )
 
         return {
             "id": user.id,
@@ -94,8 +106,8 @@ class WorkOSClient(AuthProviderAdapter):
             "first_name": user.first_name,
             "last_name": user.last_name,
             "email_verified": user.email_verified,
-            "raw_user": user.model_dump(),
-            "sealed_session": response.sealed_session,
+            "raw_user": user.to_dict(),
+            "sealed_session": sealed_session,
         }
 
     def get_logout_url(self, request, return_to: str) -> str:

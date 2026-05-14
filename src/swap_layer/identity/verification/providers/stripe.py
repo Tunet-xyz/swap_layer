@@ -15,20 +15,23 @@ from ..adapter import (
 class StripeIdentityVerificationProvider(IdentityVerificationProviderAdapter):
     """
     Stripe implementation of the IdentityVerificationProviderAdapter.
+
+    Uses the StripeClient service-based pattern (v8+) instead of the deprecated
+    global stripe.api_key + resource class methods.
     """
 
     def __init__(self):
         if not hasattr(settings, "STRIPE_SECRET_KEY") or not settings.STRIPE_SECRET_KEY:
             raise ValueError("Stripe secret key not configured")
-        stripe.api_key = settings.STRIPE_SECRET_KEY
+        self._client = stripe.StripeClient(settings.STRIPE_SECRET_KEY)
 
     def get_vendor_client(self) -> Any:
         """
-        Return the underlying Stripe client/SDK for advanced usage.
+        Return the StripeClient instance for advanced usage.
         Use this escape hatch when you need to access Stripe-specific features
         that are not exposed by the abstraction layer.
         """
-        return stripe
+        return self._client
 
     def create_verification_session(
         self, user: Any, verification_type: str, options: dict[str, Any] | None = None
@@ -66,7 +69,7 @@ class StripeIdentityVerificationProvider(IdentityVerificationProviderAdapter):
                 if "metadata" in options:
                     default_options["metadata"].update(options["metadata"])
 
-            session = stripe.identity.VerificationSession.create(**default_options)
+            session = self._client.identity.verification_sessions.create(params=default_options)
 
             return {
                 "provider_session_id": session.id,
@@ -76,11 +79,11 @@ class StripeIdentityVerificationProvider(IdentityVerificationProviderAdapter):
                 "url": session.url,
                 "created": session.created,
             }
-        except stripe.error.InvalidRequestError as e:
+        except stripe.InvalidRequestError as e:
             raise IdentityVerificationValidationError(f"Invalid request: {str(e)}")
-        except stripe.error.APIConnectionError as e:
+        except stripe.APIConnectionError as e:
             raise IdentityVerificationConnectionError(f"Connection error: {str(e)}")
-        except stripe.error.StripeError as e:
+        except stripe.StripeError as e:
             raise IdentityVerificationError(f"Stripe error: {str(e)}")
 
     def get_verification_session(self, session_id: str) -> dict[str, Any]:
@@ -94,8 +97,8 @@ class StripeIdentityVerificationProvider(IdentityVerificationProviderAdapter):
             Dict with session details
         """
         try:
-            session = stripe.identity.VerificationSession.retrieve(
-                session_id, expand=["verified_outputs", "last_error"]
+            session = self._client.identity.verification_sessions.retrieve(
+                session_id, params={"expand": ["verified_outputs", "last_error"]}
             )
 
             result = {
@@ -114,13 +117,13 @@ class StripeIdentityVerificationProvider(IdentityVerificationProviderAdapter):
                 result["last_error"] = session.last_error
 
             return result
-        except stripe.error.InvalidRequestError as e:
+        except stripe.InvalidRequestError as e:
             if "No such" in str(e):
                 raise IdentityVerificationSessionNotFoundError(f"Session not found: {session_id}")
             raise IdentityVerificationValidationError(f"Invalid request: {str(e)}")
-        except stripe.error.APIConnectionError as e:
+        except stripe.APIConnectionError as e:
             raise IdentityVerificationConnectionError(f"Connection error: {str(e)}")
-        except stripe.error.StripeError as e:
+        except stripe.StripeError as e:
             raise IdentityVerificationError(f"Stripe error: {str(e)}")
 
     def list_verification_sessions(
@@ -138,7 +141,7 @@ class StripeIdentityVerificationProvider(IdentityVerificationProviderAdapter):
             Dict with session data
         """
         try:
-            params = {"limit": limit}
+            params: dict[str, Any] = {"limit": limit}
             if status:
                 params["status"] = status
 
@@ -148,11 +151,11 @@ class StripeIdentityVerificationProvider(IdentityVerificationProviderAdapter):
             # Note: Stripe doesn't directly filter by metadata in list
             # We rely on our DB for user-specific listing
 
-            sessions = stripe.identity.VerificationSession.list(**params)
+            sessions = self._client.identity.verification_sessions.list(params=params)
             return sessions
-        except stripe.error.APIConnectionError as e:
+        except stripe.APIConnectionError as e:
             raise IdentityVerificationConnectionError(f"Connection error: {str(e)}")
-        except stripe.error.StripeError as e:
+        except stripe.StripeError as e:
             raise IdentityVerificationError(f"Stripe error: {str(e)}")
 
     def cancel_verification_session(self, session_id: str) -> dict[str, Any]:
@@ -166,18 +169,18 @@ class StripeIdentityVerificationProvider(IdentityVerificationProviderAdapter):
             Dict with id and status
         """
         try:
-            session = stripe.identity.VerificationSession.cancel(session_id)
+            session = self._client.identity.verification_sessions.cancel(session_id)
             return {
                 "id": session.id,
                 "status": session.status,
             }
-        except stripe.error.InvalidRequestError as e:
+        except stripe.InvalidRequestError as e:
             if "No such" in str(e):
                 raise IdentityVerificationSessionNotFoundError(f"Session not found: {session_id}")
             raise IdentityVerificationValidationError(f"Invalid request: {str(e)}")
-        except stripe.error.APIConnectionError as e:
+        except stripe.APIConnectionError as e:
             raise IdentityVerificationConnectionError(f"Connection error: {str(e)}")
-        except stripe.error.StripeError as e:
+        except stripe.StripeError as e:
             raise IdentityVerificationError(f"Stripe error: {str(e)}")
 
     def redact_verification_session(self, session_id: str) -> dict[str, Any]:
@@ -191,18 +194,18 @@ class StripeIdentityVerificationProvider(IdentityVerificationProviderAdapter):
             Dict with id and status
         """
         try:
-            session = stripe.identity.VerificationSession.redact(session_id)
+            session = self._client.identity.verification_sessions.redact(session_id)
             return {
                 "id": session.id,
                 "status": session.status,
             }
-        except stripe.error.InvalidRequestError as e:
+        except stripe.InvalidRequestError as e:
             if "No such" in str(e):
                 raise IdentityVerificationSessionNotFoundError(f"Session not found: {session_id}")
             raise IdentityVerificationValidationError(f"Invalid request: {str(e)}")
-        except stripe.error.APIConnectionError as e:
+        except stripe.APIConnectionError as e:
             raise IdentityVerificationConnectionError(f"Connection error: {str(e)}")
-        except stripe.error.StripeError as e:
+        except stripe.StripeError as e:
             raise IdentityVerificationError(f"Stripe error: {str(e)}")
 
     def get_verification_report(self, report_id: str) -> dict[str, Any]:
@@ -216,7 +219,7 @@ class StripeIdentityVerificationProvider(IdentityVerificationProviderAdapter):
             Dict with report details
         """
         try:
-            report = stripe.identity.VerificationReport.retrieve(report_id)
+            report = self._client.identity.verification_reports.retrieve(report_id)
             return {
                 "id": report.id,
                 "type": report.type,
@@ -227,13 +230,13 @@ class StripeIdentityVerificationProvider(IdentityVerificationProviderAdapter):
                 "verification_session": report.verification_session,
                 "options": report.options,
             }
-        except stripe.error.InvalidRequestError as e:
+        except stripe.InvalidRequestError as e:
             if "No such" in str(e):
                 raise IdentityVerificationSessionNotFoundError(f"Report not found: {report_id}")
             raise IdentityVerificationValidationError(f"Invalid request: {str(e)}")
-        except stripe.error.APIConnectionError as e:
+        except stripe.APIConnectionError as e:
             raise IdentityVerificationConnectionError(f"Connection error: {str(e)}")
-        except stripe.error.StripeError as e:
+        except stripe.StripeError as e:
             raise IdentityVerificationError(f"Stripe error: {str(e)}")
 
     def get_verification_insights(self, session_id: str) -> dict[str, Any]:
@@ -258,8 +261,8 @@ class StripeIdentityVerificationProvider(IdentityVerificationProviderAdapter):
             }
 
             # Re-fetch to ensure we have the report expanded
-            session = stripe.identity.VerificationSession.retrieve(
-                session_id, expand=["last_verification_report"]
+            session = self._client.identity.verification_sessions.retrieve(
+                session_id, params={"expand": ["last_verification_report"]}
             )
 
             report = session.last_verification_report
@@ -301,9 +304,9 @@ class StripeIdentityVerificationProvider(IdentityVerificationProviderAdapter):
             return insights
         except IdentityVerificationError:
             raise
-        except stripe.error.APIConnectionError as e:
+        except stripe.APIConnectionError as e:
             raise IdentityVerificationConnectionError(f"Connection error: {str(e)}")
-        except stripe.error.StripeError as e:
+        except stripe.StripeError as e:
             raise IdentityVerificationError(f"Stripe error: {str(e)}")
 
     def handle_webhook(self, payload: bytes, signature: str) -> dict[str, Any]:
@@ -320,9 +323,9 @@ class StripeIdentityVerificationProvider(IdentityVerificationProviderAdapter):
         endpoint_secret = getattr(settings, "STRIPE_IDENTITY_WEBHOOK_SECRET", None)
 
         try:
-            event = stripe.Webhook.construct_event(payload, signature, endpoint_secret)
+            event = self._client.construct_event(payload, signature, endpoint_secret)
             return event
         except ValueError as e:
             raise IdentityVerificationValidationError(f"Invalid payload: {str(e)}")
-        except stripe.error.SignatureVerificationError as e:
+        except stripe.SignatureVerificationError as e:
             raise IdentityVerificationError(f"Invalid signature: {str(e)}")
