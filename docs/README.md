@@ -14,6 +14,7 @@ All documentation in one place. Pick your module:
 ## 🤖 AI Integration
 
 - **[mcp.md](mcp.md)** - MCP server for AI assistant integration
+- **[llm-agents.md](llm-agents.md)** - LLM agent use cases for solo development
 
 ## 🏗️ Architecture
 

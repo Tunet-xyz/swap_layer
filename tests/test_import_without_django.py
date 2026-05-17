@@ -10,7 +10,7 @@ def test_import_main_package():
     """Test that swap_layer can be imported without Django configured."""
     import swap_layer
 
-    assert swap_layer.__version__ == "0.2.3"
+    assert swap_layer.__version__ == "0.3.0"
 
 
 def test_import_get_provider():
