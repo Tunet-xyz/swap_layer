@@ -3,6 +3,8 @@
 
 **One Interface. Any Provider. Zero Rewrites.**
 
+Part of the [Tunet](https://github.com/Tunet-xyz) ecosystem — alongside [SessionArmor](https://github.com/Tunet-xyz/session_armor) and [GeoCanon](https://github.com/Tunet-xyz/geo_canon).
+
 ---
 
 ## What is SwapLayer?
@@ -93,8 +95,8 @@ get_provider('sms').send(to='+1555555', message='Welcome!')
 | **Email** | ✅ Production | SMTP, SendGrid, Mailgun, SES |
 | **Payments** | ✅ Production | Stripe (PayPal planned) |
 | **SMS** | ✅ Production | Twilio, AWS SNS |
-| **Storage** | ✅ Production | S3, Azure, GCS, Local |
-| **Identity** | 🚧 Beta | OAuth/SSO, KYC Verification |
+| **Storage** | ✅ Production | S3, Azure, GCS, Local — with scoped tenant isolation |
+| **Identity** | ✅ Production | OAuth/SSO (WorkOS, Auth0), KYC Verification (Stripe Identity) |
 | **MCP Server** | ✅ Production | AI Assistant Integration |
 
 ---
@@ -150,7 +152,7 @@ Perfect for AI-powered development workflows! **[→ MCP Documentation](docs/mcp
 
 ## License
 
-MIT - Because avoiding vendor lock-in should be free.
+MIT — Copyright (c) 2024-2026 Tunet Ltd. See [LICENSE](LICENSE).
 
 ---
 
