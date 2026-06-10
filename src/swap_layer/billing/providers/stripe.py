@@ -43,7 +43,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
         if not secret_key:
             raise ValueError("STRIPE_SECRET_KEY is required but not configured")
 
-        self._client = stripe.StripeClient(secret_key)
+        self._client = stripe.StripeClient(secret_key, max_network_retries=2)
         self.secret_key = secret_key
         self.publishable_key = publishable_key or getattr(settings, "STRIPE_PUBLISHABLE_KEY", None)
         self.webhook_secret = webhook_secret or getattr(settings, "STRIPE_WEBHOOK_SECRET", None)
@@ -85,7 +85,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
             if metadata:
                 params["metadata"] = metadata
 
-            customer = self._client.customers.create(params=params)
+            customer = self._client.v1.customers.create(params=params)
 
             return {
                 "id": customer.id,
@@ -100,7 +100,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
     def get_customer(self, customer_id: str) -> dict[str, Any]:
         """Retrieve a Stripe customer."""
         try:
-            customer = self._client.customers.retrieve(customer_id)
+            customer = self._client.v1.customers.retrieve(customer_id)
 
             return {
                 "id": customer.id,
@@ -131,7 +131,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
             if metadata:
                 params["metadata"] = metadata
 
-            customer = self._client.customers.update(customer_id, params=params)
+            customer = self._client.v1.customers.update(customer_id, params=params)
 
             return {
                 "id": customer.id,
@@ -145,7 +145,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
     def delete_customer(self, customer_id: str) -> dict[str, Any]:
         """Delete a Stripe customer."""
         try:
-            result = self._client.customers.delete(customer_id)
+            result = self._client.v1.customers.delete(customer_id)
 
             return {
                 "id": result.id,
@@ -173,7 +173,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
             if trial_period_days:
                 params["trial_period_days"] = trial_period_days
 
-            subscription = self._client.subscriptions.create(params=params)
+            subscription = self._client.v1.subscriptions.create(params=params)
 
             return self._normalize_subscription(subscription)
         except Exception as e:
@@ -181,7 +181,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
 
     def get_subscription(self, subscription_id: str) -> dict[str, Any]:
         """Retrieve a Stripe subscription."""
-        subscription = self._client.subscriptions.retrieve(subscription_id)
+        subscription = self._client.v1.subscriptions.retrieve(subscription_id)
         return self._normalize_subscription(subscription)
 
     def update_subscription(
@@ -195,7 +195,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
 
         if price_id:
             # Get the subscription to find the item ID
-            subscription = self._client.subscriptions.retrieve(subscription_id)
+            subscription = self._client.v1.subscriptions.retrieve(subscription_id)
             params["items"] = [
                 {
                     "id": subscription.items.data[0].id,
@@ -206,7 +206,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
         if metadata:
             params["metadata"] = metadata
 
-        subscription = self._client.subscriptions.update(subscription_id, params=params)
+        subscription = self._client.v1.subscriptions.update(subscription_id, params=params)
         return self._normalize_subscription(subscription)
 
     def cancel_subscription(
@@ -214,11 +214,11 @@ class StripePaymentProvider(PaymentProviderAdapter):
     ) -> dict[str, Any]:
         """Cancel a Stripe subscription."""
         if at_period_end:
-            subscription = self._client.subscriptions.update(
+            subscription = self._client.v1.subscriptions.update(
                 subscription_id, params={"cancel_at_period_end": True}
             )
         else:
-            subscription = self._client.subscriptions.cancel(subscription_id)
+            subscription = self._client.v1.subscriptions.cancel(subscription_id)
 
         return self._normalize_subscription(subscription)
 
@@ -233,7 +233,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
         if status:
             params["status"] = status
 
-        subscriptions = self._client.subscriptions.list(params=params)
+        subscriptions = self._client.v1.subscriptions.list(params=params)
         return [self._normalize_subscription(sub) for sub in subscriptions.data]
 
     def _normalize_subscription(self, subscription) -> dict[str, Any]:
@@ -264,7 +264,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
     # Payment Methods
     def attach_payment_method(self, customer_id: str, payment_method_id: str) -> dict[str, Any]:
         """Attach a payment method to a Stripe customer."""
-        payment_method = self._client.payment_methods.attach(
+        payment_method = self._client.v1.payment_methods.attach(
             payment_method_id,
             params={"customer": customer_id},
         )
@@ -273,7 +273,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
 
     def detach_payment_method(self, payment_method_id: str) -> dict[str, Any]:
         """Detach a payment method from a Stripe customer."""
-        payment_method = self._client.payment_methods.detach(payment_method_id)
+        payment_method = self._client.v1.payment_methods.detach(payment_method_id)
 
         return {
             "id": payment_method.id,
@@ -289,14 +289,14 @@ class StripePaymentProvider(PaymentProviderAdapter):
             "type": method_type or "card",
         }
 
-        payment_methods = self._client.payment_methods.list(params=params)
+        payment_methods = self._client.v1.payment_methods.list(params=params)
         return [self._normalize_payment_method(pm) for pm in payment_methods.data]
 
     def set_default_payment_method(
         self, customer_id: str, payment_method_id: str
     ) -> dict[str, Any]:
         """Set the default payment method for a Stripe customer."""
-        customer = self._client.customers.update(
+        customer = self._client.v1.customers.update(
             customer_id,
             params={
                 "invoice_settings": {
@@ -350,7 +350,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
         if metadata:
             params["metadata"] = metadata
 
-        payment_intent = self._client.payment_intents.create(params=params)
+        payment_intent = self._client.v1.payment_intents.create(params=params)
 
         return {
             "id": payment_intent.id,
@@ -369,7 +369,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
         if payment_method_id:
             params["payment_method"] = payment_method_id
 
-        payment_intent = self._client.payment_intents.confirm(
+        payment_intent = self._client.v1.payment_intents.confirm(
             payment_intent_id, params=params if params else None
         )
 
@@ -382,7 +382,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
 
     def get_payment_intent(self, payment_intent_id: str) -> dict[str, Any]:
         """Retrieve a Stripe payment intent."""
-        payment_intent = self._client.payment_intents.retrieve(payment_intent_id)
+        payment_intent = self._client.v1.payment_intents.retrieve(payment_intent_id)
 
         return {
             "id": payment_intent.id,
@@ -420,7 +420,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
         if metadata:
             params["metadata"] = metadata
 
-        session = self._client.checkout.sessions.create(params=params)
+        session = self._client.v1.checkout.sessions.create(params=params)
 
         return {
             "id": session.id,
@@ -432,7 +432,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
 
     def get_checkout_session(self, session_id: str) -> dict[str, Any]:
         """Retrieve a Stripe checkout session."""
-        session = self._client.checkout.sessions.retrieve(session_id)
+        session = self._client.v1.checkout.sessions.retrieve(session_id)
 
         return {
             "id": session.id,
@@ -445,7 +445,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
     # Invoices
     def get_invoice(self, invoice_id: str) -> dict[str, Any]:
         """Retrieve a Stripe invoice."""
-        invoice = self._client.invoices.retrieve(invoice_id)
+        invoice = self._client.v1.invoices.retrieve(invoice_id)
 
         return {
             "id": invoice.id,
@@ -459,7 +459,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
 
     def list_invoices(self, customer_id: str, limit: int = 10) -> list[dict[str, Any]]:
         """List Stripe invoices for a customer."""
-        invoices = self._client.invoices.list(params={"customer": customer_id, "limit": limit})
+        invoices = self._client.v1.invoices.list(params={"customer": customer_id, "limit": limit})
 
         return [
             {

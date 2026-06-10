@@ -20,10 +20,20 @@ class StripeIdentityVerificationProvider(IdentityVerificationProviderAdapter):
     global stripe.api_key + resource class methods.
     """
 
-    def __init__(self):
-        if not hasattr(settings, "STRIPE_SECRET_KEY") or not settings.STRIPE_SECRET_KEY:
+    def __init__(self, secret_key: str | None = None, webhook_secret: str | None = None):
+        secret_key = (
+            secret_key
+            or getattr(settings, "STRIPE_IDENTITY_SECRET_KEY", None)
+            or getattr(settings, "STRIPE_SECRET_KEY", None)
+        )
+        if not secret_key:
             raise ValueError("Stripe secret key not configured")
-        self._client = stripe.StripeClient(settings.STRIPE_SECRET_KEY)
+
+        self._client = stripe.StripeClient(secret_key, max_network_retries=2)
+        self.secret_key = secret_key
+        self.webhook_secret = webhook_secret or getattr(
+            settings, "STRIPE_IDENTITY_WEBHOOK_SECRET", None
+        )
 
     def get_vendor_client(self) -> Any:
         """
@@ -69,7 +79,7 @@ class StripeIdentityVerificationProvider(IdentityVerificationProviderAdapter):
                 if "metadata" in options:
                     default_options["metadata"].update(options["metadata"])
 
-            session = self._client.identity.verification_sessions.create(params=default_options)
+            session = self._client.v1.identity.verification_sessions.create(params=default_options)
 
             return {
                 "provider_session_id": session.id,
@@ -97,7 +107,7 @@ class StripeIdentityVerificationProvider(IdentityVerificationProviderAdapter):
             Dict with session details
         """
         try:
-            session = self._client.identity.verification_sessions.retrieve(
+            session = self._client.v1.identity.verification_sessions.retrieve(
                 session_id, params={"expand": ["verified_outputs", "last_error"]}
             )
 
@@ -151,7 +161,7 @@ class StripeIdentityVerificationProvider(IdentityVerificationProviderAdapter):
             # Note: Stripe doesn't directly filter by metadata in list
             # We rely on our DB for user-specific listing
 
-            sessions = self._client.identity.verification_sessions.list(params=params)
+            sessions = self._client.v1.identity.verification_sessions.list(params=params)
             return sessions
         except stripe.APIConnectionError as e:
             raise IdentityVerificationConnectionError(f"Connection error: {str(e)}")
@@ -169,7 +179,7 @@ class StripeIdentityVerificationProvider(IdentityVerificationProviderAdapter):
             Dict with id and status
         """
         try:
-            session = self._client.identity.verification_sessions.cancel(session_id)
+            session = self._client.v1.identity.verification_sessions.cancel(session_id)
             return {
                 "id": session.id,
                 "status": session.status,
@@ -194,7 +204,7 @@ class StripeIdentityVerificationProvider(IdentityVerificationProviderAdapter):
             Dict with id and status
         """
         try:
-            session = self._client.identity.verification_sessions.redact(session_id)
+            session = self._client.v1.identity.verification_sessions.redact(session_id)
             return {
                 "id": session.id,
                 "status": session.status,
@@ -219,7 +229,7 @@ class StripeIdentityVerificationProvider(IdentityVerificationProviderAdapter):
             Dict with report details
         """
         try:
-            report = self._client.identity.verification_reports.retrieve(report_id)
+            report = self._client.v1.identity.verification_reports.retrieve(report_id)
             return {
                 "id": report.id,
                 "type": report.type,
@@ -261,7 +271,7 @@ class StripeIdentityVerificationProvider(IdentityVerificationProviderAdapter):
             }
 
             # Re-fetch to ensure we have the report expanded
-            session = self._client.identity.verification_sessions.retrieve(
+            session = self._client.v1.identity.verification_sessions.retrieve(
                 session_id, params={"expand": ["last_verification_report"]}
             )
 
@@ -320,7 +330,7 @@ class StripeIdentityVerificationProvider(IdentityVerificationProviderAdapter):
         Returns:
             Dict with parsed event data
         """
-        endpoint_secret = getattr(settings, "STRIPE_IDENTITY_WEBHOOK_SECRET", None)
+        endpoint_secret = self.webhook_secret
 
         try:
             event = self._client.construct_event(payload, signature, endpoint_secret)

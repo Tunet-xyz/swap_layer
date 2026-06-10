@@ -14,13 +14,13 @@ def get_identity_verification_provider() -> IdentityVerificationProviderAdapter:
     Raises:
         ValueError: If the provider is not supported or not configured
     """
-    # Get provider from SwapLayerSettings
     settings = get_swaplayer_settings()
+    stripe_secret_key = None
 
     if settings.verification:
         provider = settings.verification.provider
+        stripe_secret_key = settings.verification.stripe_secret_key
     else:
-        # Fallback to legacy Django settings for backward compatibility
         from django.conf import settings as django_settings
 
         provider = getattr(django_settings, "IDENTITY_VERIFICATION_PROVIDER", "stripe")
@@ -28,7 +28,7 @@ def get_identity_verification_provider() -> IdentityVerificationProviderAdapter:
     if provider == "stripe":
         from .providers.stripe import StripeIdentityVerificationProvider
 
-        return StripeIdentityVerificationProvider()
+        return StripeIdentityVerificationProvider(secret_key=stripe_secret_key)
     # Add other providers here as they are implemented
     # elif provider == 'onfido':
     #     from .providers.onfido import OnfidoIdentityVerificationProvider

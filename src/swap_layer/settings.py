@@ -424,7 +424,8 @@ class SwapLayerSettings(BaseModel):
         if hasattr(settings, "IDENTITY_VERIFICATION_PROVIDER"):
             config["verification"] = {
                 "provider": getattr(settings, "IDENTITY_VERIFICATION_PROVIDER", "stripe"),
-                "stripe_secret_key": getattr(settings, "STRIPE_SECRET_KEY", None),
+                "stripe_secret_key": getattr(settings, "STRIPE_IDENTITY_SECRET_KEY", None)
+                or getattr(settings, "STRIPE_SECRET_KEY", None),
             }
 
         try:
