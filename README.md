@@ -11,7 +11,7 @@ Part of the [Tunet](https://github.com/Tunet-xyz) ecosystem — alongside [Sessi
 
 SwapLayer is a **unified infrastructure layer** for Django that protects you from vendor lock-in.
 
-Instead of coupling your code directly to Stripe, PayPal, AWS, or Twilio, you write against **one consistent interface** and swap providers by changing a single configuration line.
+Instead of coupling your code directly to Stripe, PayPal, Square, AWS, or Twilio, you write against **one consistent interface** and swap providers by changing a single configuration line.
 
 ### The Problem
 
@@ -42,6 +42,7 @@ SwapLayer has optional dependencies - install only what you need:
 # Install with specific providers
 pip install swaplayer[stripe]        # Stripe billing
 pip install swaplayer[paypal]        # PayPal billing
+pip install swaplayer[square]        # Square billing
 pip install swaplayer[identity]      # Just WorkOS/Auth0
 pip install swaplayer[email,sms]     # Email + SMS
 
@@ -52,6 +53,7 @@ pip install swaplayer[all]
 **Available extras:**
 - `stripe` - Stripe payment processing
 - `paypal` - PayPal payment processing
+- `square` - Square payment processing
 - `identity` - WorkOS/Auth0 OAuth/SSO
 - `email` - Enhanced email (django-anymail)
 - `sms` - Twilio/AWS SNS messaging
@@ -107,7 +109,26 @@ SWAPLAYER = SwapLayerSettings(
 )
 ```
 
-PayPal supports provider-agnostic products, plans, subscriptions, checkout orders, invoices, refunds, and webhook verification. Stripe remains the richer option for billing meters, coupons, promotion codes, tax-rate management, and the hosted customer billing portal.
+PayPal supports provider-agnostic products, plans, subscriptions, checkout orders, invoices, refunds, and webhook verification. It does not have direct equivalents for Stripe billing meters, Stripe coupons/promotion codes, Stripe tax-rate objects, or Stripe's hosted customer billing portal, so SwapLayer raises clear validation errors for those methods when PayPal is selected.
+
+### Square Billing
+
+```python
+SWAPLAYER = SwapLayerSettings(
+    billing={
+        'provider': 'square',
+        'square': {
+            'access_token': os.environ['SQUARE_ACCESS_TOKEN'],
+            'location_id': os.environ['SQUARE_LOCATION_ID'],
+            'webhook_signature_key': os.environ.get('SQUARE_WEBHOOK_SIGNATURE_KEY'),
+            'webhook_notification_url': os.environ.get('SQUARE_WEBHOOK_NOTIFICATION_URL'),
+            'sandbox': True,
+        },
+    }
+)
+```
+
+Square supports provider-agnostic customers, payments, catalog products/prices, subscriptions, checkout payment links, invoices, refunds, and webhook verification. Stripe remains the richest provider for metered usage, coupons/promotion codes, tax-rate management, and the hosted billing portal.
 ---
 
 ## Features
@@ -115,7 +136,7 @@ PayPal supports provider-agnostic products, plans, subscriptions, checkout order
 | Module | Status | Description |
 |--------|--------|-------------|
 | **Email** | ✅ Production | SMTP, SendGrid, Mailgun, SES |
-| **Payments** | ✅ Production | Stripe, PayPal |
+| **Payments** | ✅ Production | Stripe, PayPal, Square |
 | **SMS** | ✅ Production | Twilio, AWS SNS |
 | **Storage** | ✅ Production | S3, Azure, GCS, Local — with scoped tenant isolation |
 | **Identity** | ✅ Production | OAuth/SSO (WorkOS, Auth0), KYC Verification (Stripe Identity) |

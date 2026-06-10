@@ -336,7 +336,7 @@ class SquarePaymentProvider(PaymentProviderAdapter):
         return {"id": payment_method_id, "customer_id": customer_id, "type": "card"}
 
     def detach_payment_method(self, payment_method_id: str) -> dict[str, Any]:
-        self._request("DISABLE", f"/v2/cards/{payment_method_id}")
+        self._request("POST", f"/v2/cards/{payment_method_id}/disable", json_body={})
         return {"id": payment_method_id, "customer_id": None}
 
     def list_payment_methods(self, customer_id: str, method_type: str | None = None) -> list[dict[str, Any]]:

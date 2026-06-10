@@ -16,6 +16,7 @@ from swap_layer.settings import (
     CommunicationsConfig,
     PayPalConfig,
     SMSProviderConfig,
+    SquareConfig,
     StripeConfig,
     SwapLayerSettings,
     TwilioConfig,
@@ -93,6 +94,21 @@ class TestBillingConfig:
         assert config.provider == "paypal"
         assert config.paypal.client_id == "paypal-client"
         assert config.paypal.sandbox is True
+    def test_square_config_required_when_provider_is_square(self):
+        """Test that Square config is required when using Square provider."""
+        with pytest.raises(ProviderConfigMismatchError):
+            BillingConfig(provider="square")
+
+    def test_valid_square_billing_config(self):
+        """Test valid Square billing configuration."""
+        config = BillingConfig(
+            provider="square",
+            square=SquareConfig(access_token="square-token", location_id="LOC-123"),
+        )
+        assert config.provider == "square"
+        assert config.square.access_token == "square-token"
+        assert config.square.location_id == "LOC-123"
+        assert config.square.api_version == "2026-05-20"
 
 class TestCommunicationsConfig:
     def test_twilio_config_required_when_provider_is_twilio(self):
@@ -231,6 +247,22 @@ class TestEnvironmentVariables:
         assert settings.billing.paypal.client_id == "paypal-client"
         assert settings.billing.paypal.webhook_id == "WH-123"
         assert settings.billing.paypal.sandbox is False
+    def test_from_env_square_billing(self, monkeypatch):
+        """Test loading Square billing config from environment."""
+        monkeypatch.setenv("SWAPLAYER_BILLING_PROVIDER", "square")
+        monkeypatch.setenv("SWAPLAYER_BILLING_SQUARE_ACCESS_TOKEN", "square-token")
+        monkeypatch.setenv("SWAPLAYER_BILLING_SQUARE_LOCATION_ID", "LOC-123")
+        monkeypatch.setenv("SWAPLAYER_BILLING_SQUARE_WEBHOOK_SIGNATURE_KEY", "sig-key")
+        monkeypatch.setenv("SWAPLAYER_BILLING_SQUARE_WEBHOOK_NOTIFICATION_URL", "https://app.example.com/square/webhook")
+        monkeypatch.setenv("SWAPLAYER_BILLING_SQUARE_SANDBOX", "false")
+
+        settings = SwapLayerSettings.from_env()
+        assert settings.billing.provider == "square"
+        assert settings.billing.square.access_token == "square-token"
+        assert settings.billing.square.location_id == "LOC-123"
+        assert settings.billing.square.webhook_signature_key == "sig-key"
+        assert settings.billing.square.webhook_notification_url == "https://app.example.com/square/webhook"
+        assert settings.billing.square.sandbox is False
 
     def test_from_env_communications_sms(self, monkeypatch):
         """Test loading SMS config from environment."""

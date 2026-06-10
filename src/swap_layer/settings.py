@@ -69,6 +69,16 @@ class PayPalConfig(BaseModel):
     client_secret: str = Field(..., description="PayPal REST app client secret")
     webhook_id: str | None = Field(None, description="PayPal webhook ID for signature verification")
     sandbox: bool = Field(True, description="Use the PayPal sandbox API")
+
+class SquareConfig(BaseModel):
+    """Square payment provider configuration."""
+
+    access_token: str = Field(..., description="Square access token")
+    location_id: str = Field(..., description="Square location ID")
+    webhook_signature_key: str | None = Field(None, description="Square webhook signature key")
+    webhook_notification_url: str | None = Field(None, description="Square webhook notification URL")
+    sandbox: bool = Field(True, description="Use the Square sandbox API")
+    api_version: str = Field("2026-05-20", description="Square API version header")
 class TwilioConfig(BaseModel):
     """Twilio SMS provider configuration."""
 
@@ -105,9 +115,10 @@ class SNSConfig(BaseModel):
 class BillingConfig(BaseModel):
     """Billing module configuration."""
 
-    provider: Literal["stripe", "paypal"] = Field("stripe", description="Payment provider to use")
+    provider: Literal["stripe", "paypal", "square"] = Field("stripe", description="Payment provider to use")
     stripe: StripeConfig | None = Field(None, description="Stripe configuration")
     paypal: PayPalConfig | None = Field(None, description="PayPal configuration")
+    square: SquareConfig | None = Field(None, description="Square configuration")
 
     @model_validator(mode="after")
     def validate_provider_config(self):
@@ -115,6 +126,8 @@ class BillingConfig(BaseModel):
             raise ProviderConfigMismatchError("billing", "stripe", "stripe")
         if self.provider == "paypal" and not self.paypal:
             raise ProviderConfigMismatchError("billing", "paypal", "paypal")
+        if self.provider == "square" and not self.square:
+            raise ProviderConfigMismatchError("billing", "square", "square")
         return self
 
 
@@ -300,6 +313,11 @@ class SwapLayerSettings(BaseModel):
             "media_url",
             "base_path",
             "base_url",
+            "api_version",
+            "webhook_notification_url",
+            "webhook_signature_key",
+            "location_id",
+            "access_token",
         }
 
         config: dict[str, Any] = {}
@@ -316,7 +334,13 @@ class SwapLayerSettings(BaseModel):
             # Try to identify known compound field names at the end
             # Check for 2-word and 3-word compounds
             compound_field = None
-            if len(parts) >= 2:
+            if len(parts) >= 3:
+                # Check for 3-word compounds first, e.g. webhook_signature_key
+                last_three = "_".join(parts[-3:])
+                if last_three in known_fields:
+                    compound_field = last_three
+                    parts = parts[:-3] + [compound_field]
+            if compound_field is None and len(parts) >= 2:
                 # Check for 2-word compounds
                 last_two = "_".join(parts[-2:])
                 if last_two in known_fields:
@@ -399,6 +423,18 @@ class SwapLayerSettings(BaseModel):
                     or getattr(settings, "PAYPAL_SECRET", None),
                     "webhook_id": getattr(settings, "PAYPAL_WEBHOOK_ID", None),
                     "sandbox": sandbox,
+                }
+            elif billing_provider == "square" and hasattr(settings, "SQUARE_ACCESS_TOKEN"):
+                sandbox = getattr(settings, "SQUARE_SANDBOX", True)
+                if isinstance(sandbox, str):
+                    sandbox = sandbox.lower() not in {"0", "false", "no", "off"}
+                config["billing"]["square"] = {
+                    "access_token": settings.SQUARE_ACCESS_TOKEN,
+                    "location_id": getattr(settings, "SQUARE_LOCATION_ID", None),
+                    "webhook_signature_key": getattr(settings, "SQUARE_WEBHOOK_SIGNATURE_KEY", None),
+                    "webhook_notification_url": getattr(settings, "SQUARE_WEBHOOK_NOTIFICATION_URL", None),
+                    "sandbox": sandbox,
+                    "api_version": getattr(settings, "SQUARE_API_VERSION", "2026-05-20"),
                 }
         # Communications (Email + SMS)
         communications_config: dict[str, Any] = {}

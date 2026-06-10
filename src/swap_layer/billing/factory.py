@@ -35,6 +35,17 @@ def get_payment_provider() -> PaymentProviderAdapter:
                 webhook_id=settings.billing.paypal.webhook_id,
                 sandbox=settings.billing.paypal.sandbox,
             )
+        if provider == "square" and settings.billing.square:
+            from .providers.square import SquarePaymentProvider
+
+            return SquarePaymentProvider(
+                access_token=settings.billing.square.access_token,
+                location_id=settings.billing.square.location_id,
+                webhook_signature_key=settings.billing.square.webhook_signature_key,
+                webhook_notification_url=settings.billing.square.webhook_notification_url,
+                sandbox=settings.billing.square.sandbox,
+                api_version=settings.billing.square.api_version,
+            )
     else:
         # Fallback to legacy Django settings for backward compatibility
         from django.conf import settings as django_settings
@@ -53,6 +64,21 @@ def get_payment_provider() -> PaymentProviderAdapter:
                 or getattr(django_settings, "PAYPAL_SECRET", None),
                 webhook_id=getattr(django_settings, "PAYPAL_WEBHOOK_ID", None),
                 sandbox=sandbox,
+            )
+
+        if provider == "square":
+            from .providers.square import SquarePaymentProvider
+
+            sandbox = getattr(django_settings, "SQUARE_SANDBOX", True)
+            if isinstance(sandbox, str):
+                sandbox = sandbox.lower() not in {"0", "false", "no", "off"}
+            return SquarePaymentProvider(
+                access_token=getattr(django_settings, "SQUARE_ACCESS_TOKEN", None),
+                location_id=getattr(django_settings, "SQUARE_LOCATION_ID", None),
+                webhook_signature_key=getattr(django_settings, "SQUARE_WEBHOOK_SIGNATURE_KEY", None),
+                webhook_notification_url=getattr(django_settings, "SQUARE_WEBHOOK_NOTIFICATION_URL", None),
+                sandbox=sandbox,
+                api_version=getattr(django_settings, "SQUARE_API_VERSION", "2026-05-20"),
             )
 
     if provider == "stripe":

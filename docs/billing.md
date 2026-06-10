@@ -1,6 +1,6 @@
 # Payment Infrastructure
 
-This module provides an abstraction layer for payment and subscription providers, allowing the application to switch between Stripe and PayPal without modifying business logic.
+This module provides an abstraction layer for payment and subscription providers, allowing the application to switch between Stripe, PayPal, and Square without modifying business logic.
 
 ## Subdomain Architecture
 
@@ -140,7 +140,7 @@ Add to your Django `settings.py`:
 
 ```python
 # Payment Provider Selection
-PAYMENT_PROVIDER = 'stripe'  # Options: 'stripe', 'paypal'
+PAYMENT_PROVIDER = 'stripe'  # Options: 'stripe', 'paypal', 'square'
 
 # Stripe Configuration (if using Stripe)
 STRIPE_SECRET_KEY = 'sk_test_...'  # From Stripe Dashboard
@@ -435,7 +435,7 @@ This payment abstraction follows the same architectural pattern as the authentic
 |-----------|------|----------|
 | Base Class | `AuthProviderAdapter` | `PaymentProviderAdapter` |
 | Factory | `get_identity_client()` | `get_payment_provider()` |
-| Providers | Auth0, WorkOS | Stripe, PayPal |
+| Providers | Auth0, WorkOS | Stripe, PayPal, Square |
 | Location | `swap_layer/identity/platform/` | `swap_layer/payments/` |
 | Config Key | `IDENTITY_PROVIDER` | `PAYMENT_PROVIDER` |
 

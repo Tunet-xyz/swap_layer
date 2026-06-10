@@ -333,7 +333,7 @@ async def _list_providers(service: str) -> dict[str, Any]:
     # Provider information based on SwapLayer's architecture
     providers = {
         "email": ["django", "smtp", "sendgrid", "mailgun", "ses"],
-        "payments": ["stripe", "paypal"],
+        "payments": ["stripe", "paypal", "square"],
         "sms": ["twilio", "sns"],
         "storage": ["django", "s3", "azure", "gcs"],
         "identity": ["workos", "auth0"],
@@ -443,10 +443,20 @@ async def _get_provider_info(service: str, provider: str) -> dict[str, Any]:
         },
         "payments": {
             "stripe": {
-                "description": "Stripe payment processing",
-                "capabilities": ["customers", "subscriptions", "payment_intents", "products"],
+                "description": "Stripe payment processing and advanced billing",
+                "capabilities": ["customers", "subscriptions", "payment_intents", "products", "billing_meters", "coupons", "tax_rates", "billing_portal"],
                 "setup": "Requires STRIPE_SECRET_KEY",
-            }
+            },
+            "paypal": {
+                "description": "PayPal payments, orders, subscriptions, invoicing, and refunds",
+                "capabilities": ["customers", "subscriptions", "orders", "products", "plans", "invoices", "refunds", "webhooks"],
+                "setup": "Requires PAYPAL_CLIENT_ID and PAYPAL_CLIENT_SECRET",
+            },
+            "square": {
+                "description": "Square payments, catalog, subscriptions, checkout links, invoicing, and refunds",
+                "capabilities": ["customers", "payments", "catalog", "subscriptions", "checkout_links", "invoices", "refunds", "webhooks"],
+                "setup": "Requires SQUARE_ACCESS_TOKEN and SQUARE_LOCATION_ID",
+            },
         },
         "sms": {
             "twilio": {
