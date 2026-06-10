@@ -333,7 +333,7 @@ async def _list_providers(service: str) -> dict[str, Any]:
     # Provider information based on SwapLayer's architecture
     providers = {
         "email": ["django", "smtp", "sendgrid", "mailgun", "ses"],
-        "payments": ["stripe"],  # PayPal planned
+        "payments": ["stripe", "paypal"],
         "sms": ["twilio", "sns"],
         "storage": ["django", "s3", "azure", "gcs"],
         "identity": ["workos", "auth0"],

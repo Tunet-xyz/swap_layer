@@ -7,12 +7,12 @@ packages = ["src/swap_layer"]
 
 [project]
 name = "SwapLayer"
-version = "0.4.0"
+version = "0.5.0"
 description = "Swap providers with zero vendor lock-in. For Django SaaS."
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
-keywords = ["django", "saas", "providers", "stripe", "twilio", "aws", "infrastructure", "anti-vendor-lock-in"]
+keywords = ["django", "saas", "providers", "stripe", "paypal", "twilio", "aws", "infrastructure", "anti-vendor-lock-in"]
 authors = [
   { name = "Tunet Ltd", email = "alex@tunet.xyz" },
 ]
@@ -44,6 +44,7 @@ Changelog = "https://github.com/Tunet-xyz/swap_layer/blob/main/CHANGELOG.md"
 
 [project.optional-dependencies]
 stripe = ["stripe>=15.2.0"]
+paypal = []
 aws = ["boto3>=1.26.0", "django-storages[s3]>=1.13"]
 azure = ["azure-storage-blob>=12.0.0", "django-storages[azure]>=1.13"]
 email = ["django-anymail>=10.0"]

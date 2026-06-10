@@ -11,7 +11,7 @@ Part of the [Tunet](https://github.com/Tunet-xyz) ecosystem — alongside [Sessi
 
 SwapLayer is a **unified infrastructure layer** for Django that protects you from vendor lock-in.
 
-Instead of coupling your code directly to Stripe, AWS, or Twilio, you write against **one consistent interface** and swap providers by changing a single configuration line.
+Instead of coupling your code directly to Stripe, PayPal, AWS, or Twilio, you write against **one consistent interface** and swap providers by changing a single configuration line.
 
 ### The Problem
 
@@ -40,7 +40,8 @@ SwapLayer has optional dependencies - install only what you need:
 
 ```bash
 # Install with specific providers
-pip install swaplayer[stripe]        # Just Stripe billing
+pip install swaplayer[stripe]        # Stripe billing
+pip install swaplayer[paypal]        # PayPal billing
 pip install swaplayer[identity]      # Just WorkOS/Auth0
 pip install swaplayer[email,sms]     # Email + SMS
 
@@ -50,6 +51,7 @@ pip install swaplayer[all]
 
 **Available extras:**
 - `stripe` - Stripe payment processing
+- `paypal` - PayPal payment processing
 - `identity` - WorkOS/Auth0 OAuth/SSO
 - `email` - Enhanced email (django-anymail)
 - `sms` - Twilio/AWS SNS messaging
@@ -65,7 +67,7 @@ from swap_layer.settings import SwapLayerSettings
 
 SWAPLAYER = SwapLayerSettings(
     email={'provider': 'django'},
-    payments={'provider': 'stripe', 'stripe': {'secret_key': '...'}},
+    billing={'provider': 'stripe', 'stripe': {'secret_key': 'sk_test_...'}},
     sms={'provider': 'twilio', 'twilio': {'account_sid': '...'}},
     storage={'provider': 'django'},
 )
@@ -88,12 +90,32 @@ get_provider('sms').send(to='+1555555', message='Welcome!')
 
 ---
 
+
+### PayPal Billing
+
+```python
+SWAPLAYER = SwapLayerSettings(
+    billing={
+        'provider': 'paypal',
+        'paypal': {
+            'client_id': os.environ['PAYPAL_CLIENT_ID'],
+            'client_secret': os.environ['PAYPAL_CLIENT_SECRET'],
+            'webhook_id': os.environ.get('PAYPAL_WEBHOOK_ID'),
+            'sandbox': True,
+        },
+    }
+)
+```
+
+PayPal supports provider-agnostic products, plans, subscriptions, checkout orders, invoices, refunds, and webhook verification. Stripe remains the richer option for billing meters, coupons, promotion codes, tax-rate management, and the hosted customer billing portal.
+---
+
 ## Features
 
 | Module | Status | Description |
 |--------|--------|-------------|
 | **Email** | ✅ Production | SMTP, SendGrid, Mailgun, SES |
-| **Payments** | ✅ Production | Stripe (PayPal planned) |
+| **Payments** | ✅ Production | Stripe, PayPal |
 | **SMS** | ✅ Production | Twilio, AWS SNS |
 | **Storage** | ✅ Production | S3, Azure, GCS, Local — with scoped tenant isolation |
 | **Identity** | ✅ Production | OAuth/SSO (WorkOS, Auth0), KYC Verification (Stripe Identity) |

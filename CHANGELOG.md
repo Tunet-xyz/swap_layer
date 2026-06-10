@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-06-10
+
+### Added
+- Added a PayPal billing provider using PayPal REST APIs for products, plans, subscriptions, checkout orders, invoices, refunds, and webhook verification.
+- Added PayPal configuration support through `SwapLayerSettings`, environment variables, and legacy Django settings.
+- Added PayPal provider tests and settings/factory coverage.
+
+### Changed
+- Bumped the PyPI package version to `0.5.0`.
+- Documented the PayPal install/config flow and PayPal versus Stripe billing capability differences.
 ## [0.3.0] - 2026-02-26
 
 ### Changed
@@ -64,6 +74,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `examples/vscode-mcp.json` template for easy VS Code integration
 ## [Unreleased]
 
+## [0.5.0] - 2026-06-10
+
+### Added
+- Added a PayPal billing provider using PayPal REST APIs for products, plans, subscriptions, checkout orders, invoices, refunds, and webhook verification.
+- Added PayPal configuration support through `SwapLayerSettings`, environment variables, and legacy Django settings.
+- Added PayPal provider tests and settings/factory coverage.
+
+### Changed
+- Bumped the PyPI package version to `0.5.0`.
+- Documented the PayPal install/config flow and PayPal versus Stripe billing capability differences.
 ## [0.2.0] - 2026-01-12
 
 ### Added
@@ -97,6 +117,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial beta release
 
-[Unreleased]: https://github.com/Tunet-xyz/swap_layer/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/Tunet-xyz/swap_layer/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/Tunet-xyz/swap_layer/releases/tag/v0.5.0
 [0.2.0]: https://github.com/Tunet-xyz/swap_layer/releases/tag/v0.2.0
 [0.1.0]: https://github.com/Tunet-xyz/swap_layer/releases/tag/v0.1.0

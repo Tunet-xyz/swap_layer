@@ -1,6 +1,6 @@
 # Payment Infrastructure
 
-This module provides an abstraction layer for payment and subscription providers, allowing the application to switch between different payment services (Stripe, PayPal, Square, etc.) without modifying business logic.
+This module provides an abstraction layer for payment and subscription providers, allowing the application to switch between Stripe and PayPal without modifying business logic.
 
 ## Subdomain Architecture
 
@@ -140,7 +140,7 @@ Add to your Django `settings.py`:
 
 ```python
 # Payment Provider Selection
-PAYMENT_PROVIDER = 'stripe'  # Options: 'stripe', 'paypal', 'square', etc.
+PAYMENT_PROVIDER = 'stripe'  # Options: 'stripe', 'paypal'
 
 # Stripe Configuration (if using Stripe)
 STRIPE_SECRET_KEY = 'sk_test_...'  # From Stripe Dashboard
@@ -155,7 +155,39 @@ import os
 STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY')
 ```
 
-Add to `INSTALLED_APPS`:
+
+### PayPal Configuration
+
+Use PayPal when you want an alternative provider for products, plans, subscriptions, checkout orders, invoicing, refunds, and webhook verification:
+
+```python
+from swap_layer.settings import SwapLayerSettings
+
+SWAPLAYER = SwapLayerSettings(
+    billing={
+        "provider": "paypal",
+        "paypal": {
+            "client_id": os.environ["PAYPAL_CLIENT_ID"],
+            "client_secret": os.environ["PAYPAL_CLIENT_SECRET"],
+            "webhook_id": os.environ.get("PAYPAL_WEBHOOK_ID"),
+            "sandbox": True,
+        },
+    }
+)
+```
+
+Legacy Django settings are also supported:
+
+```python
+PAYMENT_PROVIDER = "paypal"
+PAYPAL_CLIENT_ID = os.environ["PAYPAL_CLIENT_ID"]
+PAYPAL_CLIENT_SECRET = os.environ["PAYPAL_CLIENT_SECRET"]
+PAYPAL_WEBHOOK_ID = os.environ.get("PAYPAL_WEBHOOK_ID")
+PAYPAL_SANDBOX = True
+```
+
+PayPal does not have direct equivalents for Stripe Billing Meters, Stripe coupons/promotion codes, Stripe tax-rate objects, or Stripe's hosted customer billing portal. SwapLayer raises `PaymentValidationError` for those methods when the PayPal provider is selected, so unsupported capabilities fail clearly instead of pretending to work.
+Add to INSTALLED_APPS:
 
 ```python
 INSTALLED_APPS = [
@@ -380,49 +412,12 @@ All provider implementations return data in a standardized format:
 
 ## Adding a New Provider
 
-To add a new payment provider (e.g., PayPal):
+PayPal is now included. To add another payment provider:
 
-1. Create a new file `providers/paypal.py`
-2. Implement the `PaymentProviderAdapter` interface:
-
-```python
-from swap_layer.payments.adapter import PaymentProviderAdapter
-
-class PayPalPaymentProvider(PaymentProviderAdapter):
-    def __init__(self):
-        # Initialize PayPal SDK
-        pass
-    
-    def create_customer(self, email, name=None, metadata=None):
-        # PayPal-specific implementation
-        pass
-    
-    # Implement all other required methods...
-```
-
-3. Register the provider in `factory.py`:
-
-```python
-def get_payment_provider() -> PaymentProviderAdapter:
-    provider = getattr(settings, 'PAYMENT_PROVIDER', 'stripe')
-    
-    if provider == 'stripe':
-        return StripePaymentProvider()
-    elif provider == 'paypal':
-        from .providers.paypal import PayPalPaymentProvider
-        return PayPalPaymentProvider()
-    else:
-        raise ValueError(f"Unknown Payment Provider: {provider}")
-```
-
-4. Update settings:
-
-```python
-PAYMENT_PROVIDER = 'paypal'
-PAYPAL_CLIENT_ID = os.environ.get('PAYPAL_CLIENT_ID')
-PAYPAL_SECRET = os.environ.get('PAYPAL_SECRET')
-```
-
+1. Create a new file in `providers/`.
+2. Implement the `PaymentProviderAdapter` interface.
+3. Register the provider in `factory.py` and `providers/__init__.py`.
+4. Add `SwapLayerSettings` validation, documentation, and provider-specific tests.
 ## Benefits
 
 1. **Provider Independence**: Switch payment providers without changing business logic
@@ -440,7 +435,7 @@ This payment abstraction follows the same architectural pattern as the authentic
 |-----------|------|----------|
 | Base Class | `AuthProviderAdapter` | `PaymentProviderAdapter` |
 | Factory | `get_identity_client()` | `get_payment_provider()` |
-| Providers | Auth0, WorkOS | Stripe (+ future providers) |
+| Providers | Auth0, WorkOS | Stripe, PayPal |
 | Location | `swap_layer/identity/platform/` | `swap_layer/payments/` |
 | Config Key | `IDENTITY_PROVIDER` | `PAYMENT_PROVIDER` |
 
@@ -487,7 +482,6 @@ def test_subscription_creation():
 
 ## Future Enhancements
 
-- Add support for PayPal
 - Add support for Square
 - Add support for Braintree
 - Implement provider-agnostic webhook routing

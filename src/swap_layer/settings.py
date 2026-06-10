@@ -61,6 +61,14 @@ class StripeConfig(BaseModel):
         return v
 
 
+
+class PayPalConfig(BaseModel):
+    """PayPal payment provider configuration."""
+
+    client_id: str = Field(..., description="PayPal REST app client ID")
+    client_secret: str = Field(..., description="PayPal REST app client secret")
+    webhook_id: str | None = Field(None, description="PayPal webhook ID for signature verification")
+    sandbox: bool = Field(True, description="Use the PayPal sandbox API")
 class TwilioConfig(BaseModel):
     """Twilio SMS provider configuration."""
 
@@ -97,13 +105,16 @@ class SNSConfig(BaseModel):
 class BillingConfig(BaseModel):
     """Billing module configuration."""
 
-    provider: Literal["stripe"] = Field("stripe", description="Payment provider to use")
+    provider: Literal["stripe", "paypal"] = Field("stripe", description="Payment provider to use")
     stripe: StripeConfig | None = Field(None, description="Stripe configuration")
+    paypal: PayPalConfig | None = Field(None, description="PayPal configuration")
 
     @model_validator(mode="after")
     def validate_provider_config(self):
         if self.provider == "stripe" and not self.stripe:
             raise ProviderConfigMismatchError("billing", "stripe", "stripe")
+        if self.provider == "paypal" and not self.paypal:
+            raise ProviderConfigMismatchError("billing", "paypal", "paypal")
         return self
 
 
@@ -277,11 +288,13 @@ class SwapLayerSettings(BaseModel):
             "secret_key",
             "publishable_key",
             "webhook_secret",
+            "webhook_id",
             "account_sid",
             "auth_token",
             "from_number",
             "api_key",
             "client_id",
+            "client_secret",
             "cookie_password",
             "media_root",
             "media_url",
@@ -368,15 +381,25 @@ class SwapLayerSettings(BaseModel):
 
         # Billing
         if hasattr(settings, "PAYMENT_PROVIDER"):
-            config["billing"] = {
-                "provider": getattr(settings, "PAYMENT_PROVIDER", "stripe"),
-            }
-            if hasattr(settings, "STRIPE_SECRET_KEY"):
+            billing_provider = getattr(settings, "PAYMENT_PROVIDER", "stripe")
+            config["billing"] = {"provider": billing_provider}
+            if billing_provider == "stripe" and hasattr(settings, "STRIPE_SECRET_KEY"):
                 config["billing"]["stripe"] = {
                     "secret_key": settings.STRIPE_SECRET_KEY,
                     "publishable_key": getattr(settings, "STRIPE_PUBLISHABLE_KEY", None),
+                    "webhook_secret": getattr(settings, "STRIPE_WEBHOOK_SECRET", None),
                 }
-
+            elif billing_provider == "paypal" and hasattr(settings, "PAYPAL_CLIENT_ID"):
+                sandbox = getattr(settings, "PAYPAL_SANDBOX", True)
+                if isinstance(sandbox, str):
+                    sandbox = sandbox.lower() not in {"0", "false", "no", "off"}
+                config["billing"]["paypal"] = {
+                    "client_id": settings.PAYPAL_CLIENT_ID,
+                    "client_secret": getattr(settings, "PAYPAL_CLIENT_SECRET", None)
+                    or getattr(settings, "PAYPAL_SECRET", None),
+                    "webhook_id": getattr(settings, "PAYPAL_WEBHOOK_ID", None),
+                    "sandbox": sandbox,
+                }
         # Communications (Email + SMS)
         communications_config: dict[str, Any] = {}
 

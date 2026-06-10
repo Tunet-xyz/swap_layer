@@ -14,6 +14,7 @@ from swap_layer.exceptions import (
 from swap_layer.settings import (
     BillingConfig,
     CommunicationsConfig,
+    PayPalConfig,
     SMSProviderConfig,
     StripeConfig,
     SwapLayerSettings,
@@ -78,7 +79,20 @@ class TestBillingConfig:
         config = BillingConfig(provider="stripe", stripe=StripeConfig(secret_key="sk_test_123"))
         assert config.provider == "stripe"
         assert config.stripe.secret_key == "sk_test_123"
+    def test_paypal_config_required_when_provider_is_paypal(self):
+        """Test that PayPal config is required when using PayPal provider."""
+        with pytest.raises(ProviderConfigMismatchError):
+            BillingConfig(provider="paypal")
 
+    def test_valid_paypal_billing_config(self):
+        """Test valid PayPal billing configuration."""
+        config = BillingConfig(
+            provider="paypal",
+            paypal=PayPalConfig(client_id="paypal-client", client_secret="paypal-secret"),
+        )
+        assert config.provider == "paypal"
+        assert config.paypal.client_id == "paypal-client"
+        assert config.paypal.sandbox is True
 
 class TestCommunicationsConfig:
     def test_twilio_config_required_when_provider_is_twilio(self):
@@ -204,6 +218,19 @@ class TestEnvironmentVariables:
         settings = SwapLayerSettings.from_env()
         assert settings.billing.provider == "stripe"
         assert settings.billing.stripe.secret_key == "sk_test_123"
+    def test_from_env_paypal_billing(self, monkeypatch):
+        """Test loading PayPal billing config from environment."""
+        monkeypatch.setenv("SWAPLAYER_BILLING_PROVIDER", "paypal")
+        monkeypatch.setenv("SWAPLAYER_BILLING_PAYPAL_CLIENT_ID", "paypal-client")
+        monkeypatch.setenv("SWAPLAYER_BILLING_PAYPAL_CLIENT_SECRET", "paypal-secret")
+        monkeypatch.setenv("SWAPLAYER_BILLING_PAYPAL_WEBHOOK_ID", "WH-123")
+        monkeypatch.setenv("SWAPLAYER_BILLING_PAYPAL_SANDBOX", "false")
+
+        settings = SwapLayerSettings.from_env()
+        assert settings.billing.provider == "paypal"
+        assert settings.billing.paypal.client_id == "paypal-client"
+        assert settings.billing.paypal.webhook_id == "WH-123"
+        assert settings.billing.paypal.sandbox is False
 
     def test_from_env_communications_sms(self, monkeypatch):
         """Test loading SMS config from environment."""

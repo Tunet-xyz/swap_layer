@@ -14,12 +14,10 @@ def get_payment_provider() -> PaymentProviderAdapter:
     Raises:
         ValueError: If the provider is not supported or not configured
     """
-    # Get provider from SwapLayerSettings
     settings = get_swaplayer_settings()
 
     if settings.billing:
         provider = settings.billing.provider
-        # Pass Stripe config from SwapLayerSettings if available
         if provider == "stripe" and settings.billing.stripe:
             from .providers.stripe import StripePaymentProvider
 
@@ -28,20 +26,38 @@ def get_payment_provider() -> PaymentProviderAdapter:
                 publishable_key=settings.billing.stripe.publishable_key,
                 webhook_secret=settings.billing.stripe.webhook_secret,
             )
+        if provider == "paypal" and settings.billing.paypal:
+            from .providers.paypal import PayPalPaymentProvider
+
+            return PayPalPaymentProvider(
+                client_id=settings.billing.paypal.client_id,
+                client_secret=settings.billing.paypal.client_secret,
+                webhook_id=settings.billing.paypal.webhook_id,
+                sandbox=settings.billing.paypal.sandbox,
+            )
     else:
         # Fallback to legacy Django settings for backward compatibility
         from django.conf import settings as django_settings
 
         provider = getattr(django_settings, "PAYMENT_PROVIDER", "stripe")
 
+        if provider == "paypal":
+            from .providers.paypal import PayPalPaymentProvider
+
+            sandbox = getattr(django_settings, "PAYPAL_SANDBOX", True)
+            if isinstance(sandbox, str):
+                sandbox = sandbox.lower() not in {"0", "false", "no", "off"}
+            return PayPalPaymentProvider(
+                client_id=getattr(django_settings, "PAYPAL_CLIENT_ID", None),
+                client_secret=getattr(django_settings, "PAYPAL_CLIENT_SECRET", None)
+                or getattr(django_settings, "PAYPAL_SECRET", None),
+                webhook_id=getattr(django_settings, "PAYPAL_WEBHOOK_ID", None),
+                sandbox=sandbox,
+            )
+
     if provider == "stripe":
         from .providers.stripe import StripePaymentProvider
 
         return StripePaymentProvider()
-    # Add other providers here as they are implemented
-    # elif provider == 'paypal':
-    #     return PayPalPaymentProvider()
-    # elif provider == 'square':
-    #     return SquarePaymentProvider()
-    else:
-        raise ValueError(f"Unknown Payment Provider: {provider}")
+
+    raise ValueError(f"Unknown Payment Provider: {provider}")
