@@ -34,29 +34,29 @@ The payment infrastructure follows a subdomain-based pattern with adapter compos
 
 ```
 swap_layer/payments/
-├── __init__.py
-├── apps.py                      # Django AppConfig
-├── adapter.py                   # Main adapter (composes subdomain adapters)
-├── factory.py                   # Provider selection factory
-├── customers/                   # Customer management subdomain
-│   ├── __init__.py
-│   ├── adapter.py              # CustomerAdapter interface
-│   └── README.md
-├── subscriptions/              # Subscription management subdomain
-│   ├── __init__.py
-│   ├── adapter.py              # SubscriptionAdapter interface
-│   └── README.md
-├── payment_intents/            # Payment processing subdomain
-│   ├── __init__.py
-│   ├── adapter.py              # PaymentAdapter interface
-│   └── README.md
-├── products/                   # Product/pricing subdomain (placeholder)
-│   ├── __init__.py
-│   ├── adapter.py              # ProductAdapter interface
-│   └── README.md
-└── providers/                  # Provider implementations
-    ├── __init__.py
-    └── stripe.py               # Stripe implementation
+â”œâ”€â”€ __init__.py
+â”œâ”€â”€ apps.py                      # Django AppConfig
+â”œâ”€â”€ adapter.py                   # Main adapter (composes subdomain adapters)
+â”œâ”€â”€ factory.py                   # Provider selection factory
+â”œâ”€â”€ customers/                   # Customer management subdomain
+â”‚   â”œâ”€â”€ __init__.py
+â”‚   â”œâ”€â”€ adapter.py              # CustomerAdapter interface
+â”‚   â””â”€â”€ README.md
+â”œâ”€â”€ subscriptions/              # Subscription management subdomain
+â”‚   â”œâ”€â”€ __init__.py
+â”‚   â”œâ”€â”€ adapter.py              # SubscriptionAdapter interface
+â”‚   â””â”€â”€ README.md
+â”œâ”€â”€ payment_intents/            # Payment processing subdomain
+â”‚   â”œâ”€â”€ __init__.py
+â”‚   â”œâ”€â”€ adapter.py              # PaymentAdapter interface
+â”‚   â””â”€â”€ README.md
+â”œâ”€â”€ products/                   # Product/pricing subdomain (placeholder)
+â”‚   â”œâ”€â”€ __init__.py
+â”‚   â”œâ”€â”€ adapter.py              # ProductAdapter interface
+â”‚   â””â”€â”€ README.md
+â””â”€â”€ providers/                  # Provider implementations
+    â”œâ”€â”€ __init__.py
+    â””â”€â”€ stripe.py               # Stripe implementation
 ```
 
 ## Design Pattern
@@ -261,7 +261,7 @@ from decimal import Decimal
 
 # Create payment intent
 payment_intent = provider.create_payment_intent(
-    amount=Decimal('500'),  # £5.00 (in pence)
+    amount=Decimal('500'),  # Â£5.00 (in pence)
     currency='gbp',
     customer_id='cus_123',
     metadata={'order_id': 'ord_456'}
@@ -494,3 +494,78 @@ def test_subscription_creation():
 - Add caching layer for frequently accessed data
 - Add support for multiple concurrent providers
 - Add provider capability detection (e.g., some providers may not support certain features)
+## Expanded Stripe Billing Surface
+
+The Stripe provider exposes the common application billing flows directly through the payment provider interface:
+
+```python
+from swap_layer.billing.factory import get_payment_provider
+
+billing = get_payment_provider()
+
+product = billing.create_product("Pro", description="Team plan")
+price = billing.create_price(
+    product_id=product["id"],
+    amount=2500,
+    currency="usd",
+    recurring={"interval": "month"},
+    lookup_key="pro_monthly",
+)
+
+session = billing.create_checkout_session(
+    customer_id="cus_123",
+    price_id=price["id"],
+    success_url="https://app.example.com/billing/success",
+    cancel_url="https://app.example.com/billing/cancel",
+    allow_promotion_codes=True,
+    automatic_tax={"enabled": True},
+)
+```
+
+### Metered usage
+
+For usage-based billing with Stripe Billing Meters:
+
+```python
+meter = billing.create_meter(
+    display_name="Tokens",
+    event_name="tokens_used",
+)
+
+billing.record_usage(
+    event_name="tokens_used",
+    customer_id="cus_123",
+    value=42,
+    identifier="usage-event-123",
+    idempotency_key="usage-event-123",
+)
+```
+
+High-throughput usage ingestion can use Stripe API v2 meter event sessions and streams:
+
+```python
+session = billing.create_meter_event_session()
+billing.create_meter_event_stream(
+    events=[{"event_name": "tokens_used", "payload": {"stripe_customer_id": "cus_123", "value": "42"}}],
+    authentication_token=session["authentication_token"],
+)
+```
+
+### Customer billing operations
+
+The provider also supports customer portal sessions, refunds, coupons, promotion codes, tax rates, invoice create/finalize/pay/void actions, subscription pause/resume, and webhook dispatch:
+
+```python
+portal = billing.create_billing_portal_session("cus_123", return_url="https://app.example.com/account")
+refund = billing.create_refund(payment_intent_id="pi_123", amount=500)
+coupon = billing.create_coupon(percent_off=20, name="Launch discount")
+promo = billing.create_promotion_code(coupon_id=coupon["id"], code="LAUNCH20")
+tax_rate = billing.create_tax_rate("VAT", 20, country="GB")
+
+verified = billing.verify_webhook_signature(payload, signature)
+result = billing.dispatch_webhook_event(
+    verified,
+    {"invoice.payment_succeeded": handle_invoice_paid},
+    processed_event_ids=seen_event_ids,
+)
+```

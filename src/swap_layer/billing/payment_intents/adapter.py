@@ -68,17 +68,10 @@ class PaymentAdapter:
         customer_id: str | None = None,
         payment_method_id: str | None = None,
         metadata: dict[str, Any] | None = None,
+        idempotency_key: str | None = None,
+        **extra_params: Any,
     ) -> dict[str, Any]:
-        """
-        Create a payment intent for a one-time payment.
-
-        Args:
-            amount: Amount in the currency's smallest unit (e.g., cents)
-            currency: Three-letter currency code (e.g., 'gbp', 'usd')
-
-        Returns:
-            Dict with keys: id, amount, currency, status, client_secret
-        """
+        """Create a payment intent for a one-time payment."""
         pass
 
     @abstractmethod
@@ -113,16 +106,12 @@ class PaymentAdapter:
         cancel_url: str | None = None,
         mode: str = "subscription",
         metadata: dict[str, Any] | None = None,
+        line_items: list[dict[str, Any]] | None = None,
+        quantity: int = 1,
+        idempotency_key: str | None = None,
+        **extra_params: Any,
     ) -> dict[str, Any]:
-        """
-        Create a checkout session for hosted payment page.
-
-        Args:
-            mode: 'subscription' or 'payment'
-
-        Returns:
-            Dict with keys: id, url, customer_id, mode
-        """
+        """Create a checkout session for hosted payment page."""
         pass
 
     @abstractmethod
@@ -156,10 +145,121 @@ class PaymentAdapter:
         """
         pass
 
+    # Billing Portal
+    @abstractmethod
+    def create_billing_portal_session(
+        self, customer_id: str, return_url: str | None = None, **kwargs: Any
+    ) -> dict[str, Any]:
+        pass
+
+    # Refunds
+    @abstractmethod
+    def create_refund(
+        self,
+        payment_intent_id: str | None = None,
+        charge_id: str | None = None,
+        amount: Decimal | None = None,
+        reason: str | None = None,
+        metadata: dict[str, Any] | None = None,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        pass
+
+    @abstractmethod
+    def get_refund(self, refund_id: str) -> dict[str, Any]:
+        pass
+
+    @abstractmethod
+    def list_refunds(
+        self,
+        payment_intent_id: str | None = None,
+        charge_id: str | None = None,
+        limit: int = 10,
+    ) -> list[dict[str, Any]]:
+        pass
+
+    # Metered Usage
+    @abstractmethod
+    def create_meter(self, display_name: str, event_name: str, **kwargs: Any) -> dict[str, Any]:
+        pass
+
+    @abstractmethod
+    def get_meter(self, meter_id: str) -> dict[str, Any]:
+        pass
+
+    @abstractmethod
+    def list_meters(self, limit: int = 10, status: str | None = None) -> list[dict[str, Any]]:
+        pass
+
+    @abstractmethod
+    def create_meter_event(
+        self,
+        event_name: str,
+        customer_id: str | None = None,
+        value: Decimal | int | str | None = None,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        pass
+
+    @abstractmethod
+    def record_usage(self, *args: Any, **kwargs: Any) -> dict[str, Any]:
+        pass
+
+    @abstractmethod
+    def create_meter_event_session(self) -> dict[str, Any]:
+        pass
+
+    @abstractmethod
+    def create_meter_event_stream(
+        self, events: list[dict[str, Any]], authentication_token: str | None = None
+    ) -> dict[str, Any]:
+        pass
+
+    # Discounts and Tax
+    @abstractmethod
+    def create_coupon(self, **kwargs: Any) -> dict[str, Any]:
+        pass
+
+    @abstractmethod
+    def get_coupon(self, coupon_id: str) -> dict[str, Any]:
+        pass
+
+    @abstractmethod
+    def delete_coupon(self, coupon_id: str) -> dict[str, Any]:
+        pass
+
+    @abstractmethod
+    def create_promotion_code(self, coupon_id: str, **kwargs: Any) -> dict[str, Any]:
+        pass
+
+    @abstractmethod
+    def create_tax_rate(self, display_name: str, percentage: Decimal, **kwargs: Any) -> dict[str, Any]:
+        pass
+
+    @abstractmethod
+    def list_tax_rates(self, active: bool | None = None, limit: int = 10) -> list[dict[str, Any]]:
+        pass
+
+    # Invoice Actions
+    @abstractmethod
+    def create_invoice(self, customer_id: str, **kwargs: Any) -> dict[str, Any]:
+        pass
+
+    @abstractmethod
+    def finalize_invoice(self, invoice_id: str, **kwargs: Any) -> dict[str, Any]:
+        pass
+
+    @abstractmethod
+    def pay_invoice(self, invoice_id: str, **kwargs: Any) -> dict[str, Any]:
+        pass
+
+    @abstractmethod
+    def void_invoice(self, invoice_id: str, **kwargs: Any) -> dict[str, Any]:
+        pass
     # Webhooks
     @abstractmethod
     def verify_webhook_signature(
-        self, payload: bytes, signature: str, webhook_secret: str
+        self, payload: bytes, signature: str, webhook_secret: str | None = None, thin: bool = False
     ) -> dict[str, Any]:
         """
         Verify and parse a webhook payload.
@@ -167,4 +267,12 @@ class PaymentAdapter:
         Returns:
             Dict with keys: type, data (the event object)
         """
+        pass
+    @abstractmethod
+    def dispatch_webhook_event(
+        self,
+        event: dict[str, Any],
+        handlers: dict[str, Any],
+        processed_event_ids: set[str] | None = None,
+    ) -> dict[str, Any]:
         pass

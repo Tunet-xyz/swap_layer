@@ -23,16 +23,22 @@ class StripeIdentityVerificationProvider(IdentityVerificationProviderAdapter):
     def __init__(self, secret_key: str | None = None, webhook_secret: str | None = None):
         secret_key = (
             secret_key
-            or getattr(settings, "STRIPE_IDENTITY_SECRET_KEY", None)
-            or getattr(settings, "STRIPE_SECRET_KEY", None)
+            or (
+                getattr(settings, "STRIPE_IDENTITY_SECRET_KEY", None)
+                if settings.configured
+                else None
+            )
+            or (getattr(settings, "STRIPE_SECRET_KEY", None) if settings.configured else None)
         )
         if not secret_key:
             raise ValueError("Stripe secret key not configured")
 
         self._client = stripe.StripeClient(secret_key, max_network_retries=2)
         self.secret_key = secret_key
-        self.webhook_secret = webhook_secret or getattr(
-            settings, "STRIPE_IDENTITY_WEBHOOK_SECRET", None
+        self.webhook_secret = webhook_secret or (
+            getattr(settings, "STRIPE_IDENTITY_WEBHOOK_SECRET", None)
+            if settings.configured
+            else None
         )
 
     def get_vendor_client(self) -> Any:
