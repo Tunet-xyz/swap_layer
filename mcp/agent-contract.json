@@ -1,0 +1,128 @@
+{
+  "schemaVersion": "tunet.opensource-agent-mcp.v1",
+  "offering": {
+    "id": "swap_layer",
+    "name": "SwapLayer",
+    "packageName": "SwapLayer",
+    "status": "production",
+    "license": "MIT",
+    "purpose": "Provider-agnostic Django infrastructure layer for email, billing, SMS, storage, identity, and verification.",
+    "audiences": ["django-developer", "platform-engineer", "customer-agent", "integration-agent", "maintainer-agent"]
+  },
+  "server": {
+    "name": "swap-layer-public-contract-mcp",
+    "title": "SwapLayer Public Agent Contract",
+    "version": "0.1.0",
+    "transport": "stdio",
+    "required": true,
+    "hostedEndpoint": "https://github.com/Tunet-xyz/swap_layer/tree/main/mcp",
+    "runtimeServer": "swaplayer-mcp"
+  },
+  "instructions": "Agents should assume they do not have access to a user's application source code unless explicitly granted. Use public docs, the installed Python package, swaplayer-mcp, and user-approved Django settings. Never request or expose provider secrets.",
+  "publicAccess": {
+    "mcpEndpoint": "swaplayer-mcp when installed with SwapLayer[mcp]",
+    "pythonPackage": "pip install SwapLayer or pip install SwapLayer[mcp]",
+    "pythonApi": ["get_provider(service)", "SwapLayerSettings(...)", "validate_swaplayer_config()"],
+    "cli": ["swaplayer-mcp"],
+    "docsUrl": "https://github.com/Tunet-xyz/swap_layer/blob/main/docs/README.md",
+    "pypiUrl": "https://pypi.org/project/SwapLayer/",
+    "repositoryUrl": "https://github.com/Tunet-xyz/swap_layer",
+    "supportedOperationModes": ["mcp-tools", "python-api", "cli", "browser-docs"],
+    "browserAutomation": {
+      "allowed": true,
+      "requiresAuthenticatedUserSession": false,
+      "preferredFor": ["reading documentation", "opening GitHub issues", "reviewing PyPI metadata"],
+      "mustNotDependOn": ["private source code", "local repository paths", "unredacted Django settings", "provider dashboards without user approval"]
+    }
+  },
+  "resources": [
+    {
+      "uri": "opensource://swap_layer/overview",
+      "name": "overview",
+      "title": "Offering Overview",
+      "description": "What SwapLayer does and how agents should explain it.",
+      "mimeType": "text/markdown",
+      "content": "# SwapLayer\n\nSwapLayer is an anti-vendor-lock-in framework for Django. It gives one interface over email, payments/billing, SMS, storage, identity/SSO, and identity verification providers. Agents can help developers choose providers, generate safe configuration, inspect redacted setup, test non-production integrations, and prepare migration plans. Production transactions should use the application Python API and human-approved operational workflows, not autonomous MCP calls."
+    },
+    {
+      "uri": "opensource://swap_layer/public-apis",
+      "name": "public-apis",
+      "title": "Public APIs And Tools",
+      "description": "Public package APIs, CLI, and MCP runtime tools available to agents.",
+      "mimeType": "application/json",
+      "data": {
+        "pythonApis": ["get_provider(service)", "SwapLayerSettings(...)", "validate_swaplayer_config()"],
+        "mcpRuntimeTools": ["swaplayer_get_config", "swaplayer_list_providers", "swaplayer_send_test_email", "swaplayer_send_test_sms", "swaplayer_check_storage", "swaplayer_get_provider_info", "swaplayer_generate_code", "swaplayer_get_usage_examples", "swaplayer_setup_quickstart"],
+        "cli": ["swaplayer-mcp"],
+        "docs": ["docs/README.md", "docs/mcp.md", "docs/email.md", "docs/billing.md", "docs/sms.md", "docs/storage.md", "docs/identity-platform.md", "docs/identity-verification.md"],
+        "agentAccess": {
+          "canUse": ["installed package APIs", "runtime MCP tools", "public GitHub/PyPI docs", "redacted user-provided configuration"],
+          "cannotUse": ["private source code", "unredacted secrets", "provider dashboards without user approval", "production payment or identity operations through MCP"]
+        }
+      }
+    },
+    {
+      "uri": "opensource://swap_layer/workflows",
+      "name": "workflows",
+      "title": "Agent Workflow Catalog",
+      "description": "Safe workflows an agent can perform or prepare for SwapLayer users.",
+      "mimeType": "application/json",
+      "data": [
+        {"id": "choose_provider", "goal": "Compare providers and recommend a fit for a service/use case.", "modes": ["mcp-tools", "browser-docs"], "approval": "not required for read-only guidance"},
+        {"id": "generate_configuration", "goal": "Generate Django settings, env placeholders, and install commands.", "modes": ["mcp-tools"], "approval": "human must add real credentials"},
+        {"id": "test_non_production_integration", "goal": "Send test email/SMS or check storage with approved test credentials.", "modes": ["mcp-tools", "python-api"], "approval": "required before external test messages or uploads"},
+        {"id": "plan_provider_migration", "goal": "Prepare migration guidance and data/identifier caveats.", "modes": ["mcp-tools", "browser-docs"], "approval": "required before production cutover"},
+        {"id": "generate_usage_code", "goal": "Generate package usage examples for common workflows.", "modes": ["mcp-tools"], "approval": "user reviews before committing"}
+      ]
+    },
+    {
+      "uri": "opensource://swap_layer/browser-surfaces",
+      "name": "browser-surfaces",
+      "title": "Browser-Visible Surfaces",
+      "description": "Public browser surfaces agents can use without source-code access.",
+      "mimeType": "application/json",
+      "data": {
+        "entrypoints": ["https://github.com/Tunet-xyz/swap_layer", "https://pypi.org/project/SwapLayer/"],
+        "agentAssumptions": ["agent can read public docs and issue pages", "agent can ask before opening provider dashboards", "agent cannot assume access to the user's Django project files"],
+        "verification": ["confirm config uses documented provider names", "confirm secrets are placeholders or redacted", "confirm tests use approved test credentials"]
+      }
+    },
+    {
+      "uri": "opensource://swap_layer/security-and-audit",
+      "name": "security-and-audit",
+      "title": "Security And Audit Rules",
+      "description": "Safety expectations for agent operation.",
+      "mimeType": "application/json",
+      "data": {
+        "secretHandling": "never expose API keys, tokens, client secrets, passwords, account SIDs, auth tokens, or live provider credentials",
+        "productionGuardrails": ["do not process payments through MCP", "do not create/delete production customers through MCP", "do not perform identity/session operations through MCP"],
+        "humanApprovalRequiredFor": ["sending test messages", "storage test uploads", "configured provider changes", "production migration", "provider dashboard access"],
+        "auditHints": ["record workflow", "record service/provider choices", "record dry-run vs executed test", "redact credentials"]
+      }
+    }
+  ],
+  "tools": [
+    {"name": "describe_offering", "title": "Describe SwapLayer", "description": "Explain SwapLayer, supported service families, and safe agent operating model.", "executionMode": "contract", "inputSchema": {"type": "object", "properties": {}}, "annotations": {"readOnlyHint": true, "destructiveHint": false}},
+    {"name": "list_public_capabilities", "title": "List Public Capabilities", "description": "List package APIs, docs, CLI commands, and MCP runtime tools.", "executionMode": "contract", "inputSchema": {"type": "object", "properties": {"surface": {"type": "string", "enum": ["all", "python-api", "mcp-tools", "cli", "browser-docs"]}}}, "annotations": {"readOnlyHint": true, "destructiveHint": false}},
+    {"name": "map_workflow_to_tools", "title": "Map Workflow To Tools", "description": "Map a user goal to safe SwapLayer MCP tools, Python APIs, docs, approvals, and verification.", "executionMode": "contract", "inputSchema": {"type": "object", "properties": {"workflow": {"type": "string"}}, "required": ["workflow"]}, "annotations": {"readOnlyHint": true, "destructiveHint": false}},
+    {"name": "prepare_provider_setup", "title": "Prepare Provider Setup", "description": "Prepare install command, settings template, env placeholders, and verification steps.", "executionMode": "runtime-mcp-or-contract", "mapsTo": ["swaplayer_setup_quickstart", "swaplayer_get_provider_info"], "inputSchema": {"type": "object", "properties": {"service": {"type": "string"}, "provider": {"type": "string"}, "projectType": {"type": "string", "enum": ["new", "existing"]}}, "required": ["service", "provider"]}, "annotations": {"readOnlyHint": true, "destructiveHint": false}},
+    {"name": "plan_provider_migration", "title": "Plan Provider Migration", "description": "Create a migration checklist between providers without touching production data.", "executionMode": "runtime-mcp-or-contract", "inputSchema": {"type": "object", "properties": {"service": {"type": "string"}, "fromProvider": {"type": "string"}, "toProvider": {"type": "string"}}, "required": ["service", "fromProvider", "toProvider"]}, "annotations": {"readOnlyHint": true, "destructiveHint": false}},
+    {"name": "operate_browser_docs", "title": "Operate Browser Docs", "description": "Guide a user through public docs, PyPI, GitHub issues, or provider docs in a browser.", "executionMode": "browser-session-optional", "inputSchema": {"type": "object", "properties": {"task": {"type": "string"}, "targetUrl": {"type": "string"}}, "required": ["task"]}, "annotations": {"readOnlyHint": true, "destructiveHint": false, "openWorldHint": true}}
+  ],
+  "prompts": [
+    {"name": "agent_onboarding", "title": "SwapLayer Agent Onboarding", "description": "Orient an agent before helping a developer use SwapLayer.", "arguments": [{"name": "user_goal", "description": "What the user wants to do with SwapLayer.", "required": true}], "template": "You are helping a developer with SwapLayer for: {user_goal}. Use public docs, package APIs, and swaplayer-mcp tools. Do not ask for secrets. Prefer placeholders, dry-run guidance, and human approval before any external test or production migration."}
+  ],
+  "security": {
+    "tenantScoped": false,
+    "auditRequired": true,
+    "defaultMode": "read-and-generate-first",
+    "approvalRequiredFor": ["external_test", "provider_change", "production_migration", "provider_dashboard_access"]
+  },
+  "acceptanceChecklist": [
+    "Agents can discover SwapLayer capabilities without source-code access.",
+    "Runtime MCP tools are listed with safety scope and production limits.",
+    "Setup workflows use placeholders or redacted values.",
+    "Browser workflows rely on public docs, PyPI, GitHub, or approved provider dashboards.",
+    "Production transactions remain outside public MCP automation scope."
+  ]
+}

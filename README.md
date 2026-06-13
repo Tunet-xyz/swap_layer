@@ -193,6 +193,10 @@ Perfect for AI-powered development workflows! **[→ MCP Documentation](docs/mcp
 
 ---
 
+
+## Public Agent MCP Contract
+
+SwapLayer now includes a public agent-operability contract in [`mcp/`](mcp/). It describes what external agents can safely discover and operate through published package APIs, `swaplayer-mcp`, public docs, and browser-visible surfaces without requiring source-code access or secrets.
 ## License
 
 MIT — Copyright (c) 2024-2026 Tunet Ltd. See [LICENSE](LICENSE).
