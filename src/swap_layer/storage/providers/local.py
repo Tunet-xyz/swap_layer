@@ -5,8 +5,6 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, BinaryIO
 
-from django.conf import settings
-
 from ..adapter import (
     StorageCopyError,
     StorageDeleteError,
@@ -16,6 +14,17 @@ from ..adapter import (
     StorageProviderAdapter,
     StorageUploadError,
 )
+
+
+def _get_django_setting(name: str, default: str) -> str:
+    try:
+        from django.conf import settings
+    except ImportError:
+        return default
+
+    if not settings.configured:
+        return default
+    return getattr(settings, name, default)
 
 
 class LocalFileStorageProvider(StorageProviderAdapter):
@@ -32,8 +41,8 @@ class LocalFileStorageProvider(StorageProviderAdapter):
             base_path: Base directory for file storage (defaults to MEDIA_ROOT)
             base_url: Base URL for accessing files (defaults to MEDIA_URL)
         """
-        self.base_path = Path(base_path or getattr(settings, "MEDIA_ROOT", "media"))
-        self.base_url = base_url or getattr(settings, "MEDIA_URL", "/media/")
+        self.base_path = Path(base_path or _get_django_setting("MEDIA_ROOT", "media"))
+        self.base_url = base_url or _get_django_setting("MEDIA_URL", "/media/")
 
         # Ensure base path exists
         self.base_path.mkdir(parents=True, exist_ok=True)

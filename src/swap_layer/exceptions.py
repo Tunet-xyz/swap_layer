@@ -6,7 +6,13 @@ Provides rich, actionable error messages that guide developers to solutions.
 
 from typing import Any
 
-from django.core.exceptions import ImproperlyConfigured
+try:
+    from django.core.exceptions import ImproperlyConfigured
+except ImportError:  # pragma: no cover - exercised in environments without Django
+    class ImproperlyConfigured(Exception):
+        """Fallback used when Django is not installed."""
+
+        pass
 
 
 def _mask_secret(value: str, show_prefix: int = 4, show_suffix: int = 4) -> str:

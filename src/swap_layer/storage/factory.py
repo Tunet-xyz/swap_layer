@@ -54,22 +54,32 @@ def get_storage_provider() -> StorageProviderAdapter:
 
             return DjangoStorageAdapter()
     else:
-        # Fallback to legacy Django settings for backward compatibility
-        from django.conf import settings as django_settings
+        # Fallback to legacy Django settings for backward compatibility when
+        # Django exists; otherwise keep local storage usable in plain Python.
+        try:
+            from django.conf import settings as django_settings
+        except ImportError:
+            django_settings = None
 
-        provider = getattr(django_settings, "STORAGE_PROVIDER", "local").lower()
+        if django_settings is not None and django_settings.configured:
+            provider = getattr(django_settings, "STORAGE_PROVIDER", "local").lower()
+        else:
+            provider = "local"
 
     if provider == "gcs":
-        from django.conf import settings as django_settings
-
         from .providers.gcs import GCSStorageProvider
 
+        try:
+            from django.conf import settings as django_settings
+        except ImportError:
+            django_settings = None
+
         return GCSStorageProvider(
-            bucket_name=getattr(django_settings, 'GCS_BUCKET_NAME', ''),
-            credentials_path=getattr(django_settings, 'GCS_CREDENTIALS_PATH', None),
-            project_id=getattr(django_settings, 'GCS_PROJECT_ID', None),
-            location=getattr(django_settings, 'GCS_LOCATION', 'europe-west1'),
-            storage_class=getattr(django_settings, 'GCS_STORAGE_CLASS', 'STANDARD'),
+            bucket_name=getattr(django_settings, "GCS_BUCKET_NAME", ""),
+            credentials_path=getattr(django_settings, "GCS_CREDENTIALS_PATH", None),
+            project_id=getattr(django_settings, "GCS_PROJECT_ID", None),
+            location=getattr(django_settings, "GCS_LOCATION", "europe-west1"),
+            storage_class=getattr(django_settings, "GCS_STORAGE_CLASS", "STANDARD"),
         )
     elif provider == "django":
         from .providers.django_storage import DjangoStorageAdapter

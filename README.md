@@ -1,5 +1,5 @@
 # SwapLayer
-### The Anti-Vendor-Lock-in Framework for Django
+### The Anti-Vendor-Lock-in Framework for Python Apps
 
 **One Interface. Any Provider. Zero Rewrites.**
 
@@ -9,7 +9,7 @@ Part of the [Tunet](https://github.com/Tunet-xyz) ecosystem — alongside [Sessi
 
 ## What is SwapLayer?
 
-SwapLayer is a **unified infrastructure layer** for Django that protects you from vendor lock-in.
+SwapLayer is a **unified infrastructure layer** for Python apps that protects you from vendor lock-in. It now has a framework-neutral core with Django and FastAPI integration adapters.
 
 Instead of coupling your code directly to Stripe, PayPal, Square, AWS, or Twilio, you write against **one consistent interface** and swap providers by changing a single configuration line.
 
@@ -39,6 +39,13 @@ customer = payments.create_customer(email='user@example.com')
 SwapLayer has optional dependencies - install only what you need:
 
 ```bash
+# Core package
+pip install swaplayer
+
+# Framework adapters
+pip install swaplayer[django]        # Django integration
+pip install swaplayer[fastapi]       # FastAPI integration
+
 # Install with specific providers
 pip install swaplayer[stripe]        # Stripe billing
 pip install swaplayer[paypal]        # PayPal billing
@@ -51,6 +58,8 @@ pip install swaplayer[all]
 ```
 
 **Available extras:**
+- `django` - Django settings/admin/model integrations
+- `fastapi` - FastAPI configuration adapter
 - `stripe` - Stripe payment processing
 - `paypal` - PayPal payment processing
 - `square` - Square payment processing

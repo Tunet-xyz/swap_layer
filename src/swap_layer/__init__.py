@@ -1,5 +1,5 @@
 """
-SwapLayer - Swap Providers with Zero Vendor Lock-in. For Django SaaS.
+SwapLayer - Swap providers with zero vendor lock-in.
 """
 
 from typing import Any
@@ -28,7 +28,10 @@ from .identity.verification.factory import get_identity_verification_provider
 # Export settings management
 from .settings import (
     SwapLayerSettings,
+    configure,
     get_swaplayer_settings,
+    reset_swaplayer_settings,
+    set_swaplayer_settings,
     validate_swaplayer_config,
 )
 from .storage.factory import get_storage_provider
@@ -93,7 +96,10 @@ __all__ = [
     "get_identity_verification_provider",
     # Settings management
     "SwapLayerSettings",
+    "configure",
     "get_swaplayer_settings",
+    "set_swaplayer_settings",
+    "reset_swaplayer_settings",
     "validate_swaplayer_config",
     # Exceptions
     "SwapLayerError",

@@ -5,7 +5,19 @@ Provides a structured, validated, and developer-friendly way to manage
 SwapLayer configuration across all modules.
 
 Usage:
-    # In your Django settings.py
+    # In any Python application
+    from swap_layer.settings import SwapLayerSettings, configure
+
+    configure(SwapLayerSettings(
+        billing={
+            'provider': 'stripe',
+            'stripe': {
+                'secret_key': os.environ['STRIPE_SECRET_KEY'],
+            }
+        },
+    ))
+
+    # Or, in your Django settings.py
     from swap_layer.settings import SwapLayerSettings
 
     SWAPLAYER = SwapLayerSettings(
@@ -34,12 +46,15 @@ from pydantic import ValidationError as PydanticValidationError
 
 from .exceptions import (
     ErrorContext,
+    ConfigurationError,
     ProviderConfigMismatchError,
     StripeKeyError,
     TwilioConfigError,
     WorkOSConfigError,
     format_startup_validation_errors,
 )
+
+_settings_cache: "SwapLayerSettings | None" = None
 
 # ============================================================================
 # Module Configuration Classes
@@ -385,7 +400,22 @@ class SwapLayerSettings(BaseModel):
             PAYMENT_PROVIDER = 'stripe'
             STRIPE_SECRET_KEY = 'sk_...'
         """
-        from django.conf import settings
+        try:
+            from django.conf import settings
+        except ImportError as exc:
+            raise ConfigurationError(
+                "Django is not installed.",
+                hint="Install SwapLayer with the Django extra: pip install 'SwapLayer[django]'",
+            ) from exc
+
+        if not settings.configured:
+            raise ConfigurationError(
+                "Django settings are not configured.",
+                hint=(
+                    "Configure Django before using the Django adapter, or call "
+                    "swap_layer.configure(...) with a SwapLayerSettings instance."
+                ),
+            )
 
         # Check for new SWAPLAYER config
         if hasattr(settings, "SWAPLAYER"):
@@ -559,22 +589,78 @@ class SwapLayerSettings(BaseModel):
 # ============================================================================
 
 
+def configure(
+    settings: SwapLayerSettings | dict[str, Any] | None = None,
+    **kwargs: Any,
+) -> SwapLayerSettings:
+    """
+    Configure SwapLayer for plain Python or framework integrations.
+
+    Args:
+        settings: A SwapLayerSettings instance or dictionary.
+        **kwargs: Settings fields used when ``settings`` is omitted.
+
+    Returns:
+        The configured SwapLayerSettings instance.
+    """
+    if settings is None:
+        resolved = SwapLayerSettings(**kwargs)
+    elif isinstance(settings, SwapLayerSettings):
+        if kwargs:
+            raise TypeError("Pass either a SwapLayerSettings instance or keyword settings, not both.")
+        resolved = settings
+    elif isinstance(settings, dict):
+        if kwargs:
+            settings = {**settings, **kwargs}
+        resolved = SwapLayerSettings(**settings)
+    else:
+        raise TypeError("settings must be a SwapLayerSettings instance, a dict, or None.")
+
+    set_swaplayer_settings(resolved)
+    return resolved
+
+
+def set_swaplayer_settings(settings: SwapLayerSettings | dict[str, Any]) -> SwapLayerSettings:
+    """Set the process-local SwapLayer settings instance."""
+    global _settings_cache
+    _settings_cache = (
+        settings if isinstance(settings, SwapLayerSettings) else SwapLayerSettings(**settings)
+    )
+    return _settings_cache
+
+
+def reset_swaplayer_settings() -> None:
+    """Clear the process-local SwapLayer settings cache."""
+    global _settings_cache
+    _settings_cache = None
+
+
 def get_swaplayer_settings() -> SwapLayerSettings:
     """
-    Get the SwapLayer settings instance from Django settings.
+    Get the active SwapLayer settings instance.
 
     Returns:
         SwapLayerSettings instance
 
-    Raises:
-        ImproperlyConfigured: If SwapLayer is not configured in Django settings
+    If no explicit settings have been configured, this falls back to Django
+    settings when Django is installed and configured, then to environment
+    variables.
     """
-    from django.conf import settings
+    if _settings_cache is not None:
+        return _settings_cache
 
-    if not hasattr(settings, "_swaplayer_settings_cache"):
-        settings._swaplayer_settings_cache = SwapLayerSettings.from_django()
+    try:
+        from django.conf import settings as django_settings
+    except ImportError:
+        return SwapLayerSettings.from_env()
 
-    return settings._swaplayer_settings_cache
+    if not django_settings.configured:
+        return SwapLayerSettings.from_env()
+
+    if not hasattr(django_settings, "_swaplayer_settings_cache"):
+        django_settings._swaplayer_settings_cache = SwapLayerSettings.from_django()
+
+    return django_settings._swaplayer_settings_cache
 
 
 def validate_swaplayer_config() -> dict[str, Any]:

@@ -8,11 +8,11 @@ packages = ["src/swap_layer"]
 [project]
 name = "SwapLayer"
 version = "0.6.0"
-description = "Swap providers with zero vendor lock-in. For Django SaaS."
+description = "Swap providers with zero vendor lock-in for Python apps, with Django and FastAPI adapters."
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
-keywords = ["django", "saas", "providers", "stripe", "paypal", "square", "twilio", "aws", "infrastructure", "anti-vendor-lock-in"]
+keywords = ["python", "django", "fastapi", "saas", "providers", "stripe", "paypal", "square", "twilio", "aws", "infrastructure", "anti-vendor-lock-in"]
 authors = [
   { name = "Tunet Ltd", email = "alex@tunet.xyz" },
 ]
@@ -20,6 +20,7 @@ classifiers = [
   "Framework :: Django",
   "Framework :: Django :: 4.2",
   "Framework :: Django :: 5.0",
+  "Framework :: FastAPI",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
@@ -29,7 +30,6 @@ classifiers = [
   "Intended Audience :: Developers",
 ]
 dependencies = [
-  "Django>=4.2",
   "pydantic>=2.0.0",
   "requests>=2.28.0",
   "tenacity>=8.0.0",
@@ -43,6 +43,8 @@ Issues = "https://github.com/Tunet-xyz/swap_layer/issues"
 Changelog = "https://github.com/Tunet-xyz/swap_layer/blob/main/CHANGELOG.md"
 
 [project.optional-dependencies]
+django = ["Django>=4.2"]
+fastapi = ["fastapi>=0.100.0"]
 stripe = ["stripe>=15.2.0"]
 paypal = []
 square = []
@@ -53,6 +55,8 @@ sms = ["twilio>=8.0.0"]
 identity = ["workos>=6.0.0", "Authlib>=1.3.0"]
 mcp = ["mcp>=0.9.0"]
 all = [
+  "Django>=4.2",
+  "fastapi>=0.100.0",
   "stripe>=15.2.0",
   "boto3>=1.26.0",
   "django-storages[s3,azure]>=1.13",
@@ -64,6 +68,8 @@ all = [
   "mcp>=0.9.0",
 ]
 dev = [
+  "Django>=4.2",
+  "fastapi>=0.100.0",
   "pytest>=7.0.0",
   "pytest-cov>=4.0.0",
   "pytest-asyncio>=0.21.0",
