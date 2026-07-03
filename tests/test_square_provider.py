@@ -159,7 +159,9 @@ def test_verify_webhook_signature_checks_hmac():
     payload = b'{"event_id":"evt-1","type":"payment.created","data":{"id":"PAY-123"}}'
     signed_payload = provider.webhook_notification_url.encode("utf-8") + payload
     signature = base64.b64encode(
-        hmac.new(provider.webhook_signature_key.encode("utf-8"), signed_payload, hashlib.sha256).digest()
+        hmac.new(
+            provider.webhook_signature_key.encode("utf-8"), signed_payload, hashlib.sha256
+        ).digest()
     ).decode("utf-8")
 
     event = provider.verify_webhook_signature(payload, signature)

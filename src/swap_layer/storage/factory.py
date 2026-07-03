@@ -43,11 +43,11 @@ def get_storage_provider() -> StorageProviderAdapter:
             from .providers.gcs import GCSStorageProvider
 
             return GCSStorageProvider(
-                bucket_name=getattr(settings.storage, 'bucket_name', ''),
-                credentials_path=getattr(settings.storage, 'credentials_path', None),
-                project_id=getattr(settings.storage, 'project_id', None),
-                location=getattr(settings.storage, 'location', 'europe-west1'),
-                storage_class=getattr(settings.storage, 'storage_class', 'STANDARD'),
+                bucket_name=getattr(settings.storage, "bucket_name", ""),
+                credentials_path=getattr(settings.storage, "credentials_path", None),
+                project_id=getattr(settings.storage, "project_id", None),
+                location=getattr(settings.storage, "location", "europe-west1"),
+                storage_class=getattr(settings.storage, "storage_class", "STANDARD"),
             )
         elif provider == "django":
             from .providers.django_storage import DjangoStorageAdapter

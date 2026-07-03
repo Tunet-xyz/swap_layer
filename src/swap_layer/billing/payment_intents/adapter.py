@@ -233,7 +233,9 @@ class PaymentAdapter:
         pass
 
     @abstractmethod
-    def create_tax_rate(self, display_name: str, percentage: Decimal, **kwargs: Any) -> dict[str, Any]:
+    def create_tax_rate(
+        self, display_name: str, percentage: Decimal, **kwargs: Any
+    ) -> dict[str, Any]:
         pass
 
     @abstractmethod
@@ -256,6 +258,7 @@ class PaymentAdapter:
     @abstractmethod
     def void_invoice(self, invoice_id: str, **kwargs: Any) -> dict[str, Any]:
         pass
+
     # Webhooks
     @abstractmethod
     def verify_webhook_signature(
@@ -268,6 +271,7 @@ class PaymentAdapter:
             Dict with keys: type, data (the event object)
         """
         pass
+
     @abstractmethod
     def dispatch_webhook_event(
         self,

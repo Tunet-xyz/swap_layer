@@ -61,7 +61,7 @@ class TestWorkOSClient(unittest.TestCase):
         self.mock_sdk_client = MagicMock()
         self.sdk_patcher = patch(
             "swap_layer.identity.platform.providers.workos.client.WorkOSSDKClient",
-            return_value=self.mock_sdk_client
+            return_value=self.mock_sdk_client,
         )
         self.sdk_patcher.start()
         self.provider = WorkOSClient(app_name="default")
@@ -130,7 +130,9 @@ class TestWorkOSClient(unittest.TestCase):
         # Add invalid sealed session to mock request
         self.mock_request.session = {"workos_sealed_session": "invalid_sealed_value"}
         # Make load_sealed_session raise an exception
-        self.mock_sdk_client.user_management.load_sealed_session.side_effect = Exception("Invalid session")
+        self.mock_sdk_client.user_management.load_sealed_session.side_effect = Exception(
+            "Invalid session"
+        )
 
         result = self.provider.get_logout_url(
             request=self.mock_request, return_to="https://example.com/fallback"
@@ -144,7 +146,7 @@ class TestWorkOSClient(unittest.TestCase):
         # Add WorkOS sealed session
         self.mock_request.session = {
             "workos_sealed_session": "sealed_session_value",
-            "other_data": "should_remain"
+            "other_data": "should_remain",
         }
 
         # Clear session
@@ -152,7 +154,7 @@ class TestWorkOSClient(unittest.TestCase):
 
         # WorkOS sealed session should be removed
         self.assertNotIn("workos_sealed_session", self.mock_request.session)
-        
+
         # Other data should remain
         self.assertIn("other_data", self.mock_request.session)
 
@@ -245,7 +247,7 @@ class TestAuth0Client(unittest.TestCase):
         self.assertNotIn("_oauth_state", self.mock_request.session)
         self.assertNotIn("_oauth_token", self.mock_request.session)
         self.assertNotIn("auth0_user_id", self.mock_request.session)
-        
+
         # Other data should remain
         self.assertIn("other_data", self.mock_request.session)
 

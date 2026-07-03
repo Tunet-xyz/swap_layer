@@ -323,6 +323,7 @@ def test_server_has_13_tools():
     """Verify the server exposes all 13 tools (9 original + 4 onboarding)."""
     try:
         import asyncio
+
         from swap_layer.mcp import create_mcp_server
 
         server = create_mcp_server()

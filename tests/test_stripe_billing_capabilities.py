@@ -34,13 +34,16 @@ def test_create_product_and_price():
     provider._client.v1.prices.create.return_value = price
 
     assert provider.create_product("Pro", description="Pro plan")["id"] == "prod_123"
-    assert provider.create_price(
-        "prod_123",
-        Decimal("2500"),
-        "usd",
-        recurring={"interval": "month"},
-        lookup_key="pro_monthly",
-    )["id"] == "price_123"
+    assert (
+        provider.create_price(
+            "prod_123",
+            Decimal("2500"),
+            "usd",
+            recurring={"interval": "month"},
+            lookup_key="pro_monthly",
+        )["id"]
+        == "price_123"
+    )
 
     provider._client.v1.products.create.assert_called_once_with(
         params={"name": "Pro", "description": "Pro plan"}, options=None
@@ -135,7 +138,9 @@ def test_portal_refund_coupon_tax_and_invoice_helpers():
         metadata={},
     )
     provider._client.v1.refunds.create.return_value = refund
-    assert provider.create_refund(payment_intent_id="pi_123", amount=Decimal("500"))["id"] == "re_123"
+    assert (
+        provider.create_refund(payment_intent_id="pi_123", amount=Decimal("500"))["id"] == "re_123"
+    )
 
     coupon = MagicMock(
         id="coupon_123",

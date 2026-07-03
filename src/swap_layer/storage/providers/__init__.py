@@ -20,8 +20,10 @@ def __getattr__(name: str):
     """Lazy import providers only when accessed."""
     if name == "LocalFileStorageProvider":
         from .local import LocalFileStorageProvider
+
         return LocalFileStorageProvider
     elif name == "DjangoStorageAdapter":
         from .django_storage import DjangoStorageAdapter
+
         return DjangoStorageAdapter
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

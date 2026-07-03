@@ -203,7 +203,9 @@ class StripePaymentProvider(PaymentProviderAdapter):
                 "automatic_tax": automatic_tax,
                 "discounts": discounts,
             }
-            params.update({key: value for key, value in optional_params.items() if value is not None})
+            params.update(
+                {key: value for key, value in optional_params.items() if value is not None}
+            )
             params.update(extra_params)
 
             subscription = self._client.v1.subscriptions.create(
@@ -393,6 +395,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
         if not idempotency_key:
             return None
         return {"idempotency_key": idempotency_key}
+
     # One-time Payments
     def create_payment_intent(
         self,
@@ -547,7 +550,9 @@ class StripePaymentProvider(PaymentProviderAdapter):
             "mode": session.mode,
             "payment_status": session.payment_status,
             "subscription_id": session.subscription if hasattr(session, "subscription") else None,
-            "payment_intent_id": session.payment_intent if hasattr(session, "payment_intent") else None,
+            "payment_intent_id": session.payment_intent
+            if hasattr(session, "payment_intent")
+            else None,
             "metadata": session.metadata if hasattr(session, "metadata") else {},
         }
 
@@ -1068,7 +1073,9 @@ class StripePaymentProvider(PaymentProviderAdapter):
         return {
             "id": promotion_code.id,
             "code": promotion_code.code,
-            "coupon_id": promotion_code.coupon.id if hasattr(promotion_code.coupon, "id") else promotion_code.coupon,
+            "coupon_id": promotion_code.coupon.id
+            if hasattr(promotion_code.coupon, "id")
+            else promotion_code.coupon,
             "active": promotion_code.active,
             "metadata": getattr(promotion_code, "metadata", {}),
         }
@@ -1139,7 +1146,9 @@ class StripePaymentProvider(PaymentProviderAdapter):
         )
         return self._normalize_invoice(invoice)
 
-    def finalize_invoice(self, invoice_id: str, idempotency_key: str | None = None) -> dict[str, Any]:
+    def finalize_invoice(
+        self, invoice_id: str, idempotency_key: str | None = None
+    ) -> dict[str, Any]:
         """Finalize a draft invoice."""
         invoice = self._client.v1.invoices.finalize_invoice(
             invoice_id,
@@ -1210,6 +1219,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
             "country": getattr(tax_rate, "country", None),
             "metadata": getattr(tax_rate, "metadata", {}),
         }
+
     # Webhooks
     def verify_webhook_signature(
         self,

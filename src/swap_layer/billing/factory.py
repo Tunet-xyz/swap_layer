@@ -75,8 +75,12 @@ def get_payment_provider() -> PaymentProviderAdapter:
             return SquarePaymentProvider(
                 access_token=getattr(django_settings, "SQUARE_ACCESS_TOKEN", None),
                 location_id=getattr(django_settings, "SQUARE_LOCATION_ID", None),
-                webhook_signature_key=getattr(django_settings, "SQUARE_WEBHOOK_SIGNATURE_KEY", None),
-                webhook_notification_url=getattr(django_settings, "SQUARE_WEBHOOK_NOTIFICATION_URL", None),
+                webhook_signature_key=getattr(
+                    django_settings, "SQUARE_WEBHOOK_SIGNATURE_KEY", None
+                ),
+                webhook_notification_url=getattr(
+                    django_settings, "SQUARE_WEBHOOK_NOTIFICATION_URL", None
+                ),
                 sandbox=sandbox,
                 api_version=getattr(django_settings, "SQUARE_API_VERSION", "2026-05-20"),
             )

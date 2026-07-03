@@ -80,6 +80,7 @@ class TestBillingConfig:
         config = BillingConfig(provider="stripe", stripe=StripeConfig(secret_key="sk_test_123"))
         assert config.provider == "stripe"
         assert config.stripe.secret_key == "sk_test_123"
+
     def test_paypal_config_required_when_provider_is_paypal(self):
         """Test that PayPal config is required when using PayPal provider."""
         with pytest.raises(ProviderConfigMismatchError):
@@ -94,6 +95,7 @@ class TestBillingConfig:
         assert config.provider == "paypal"
         assert config.paypal.client_id == "paypal-client"
         assert config.paypal.sandbox is True
+
     def test_square_config_required_when_provider_is_square(self):
         """Test that Square config is required when using Square provider."""
         with pytest.raises(ProviderConfigMismatchError):
@@ -109,6 +111,7 @@ class TestBillingConfig:
         assert config.square.access_token == "square-token"
         assert config.square.location_id == "LOC-123"
         assert config.square.api_version == "2026-05-20"
+
 
 class TestCommunicationsConfig:
     def test_twilio_config_required_when_provider_is_twilio(self):
@@ -234,6 +237,7 @@ class TestEnvironmentVariables:
         settings = SwapLayerSettings.from_env()
         assert settings.billing.provider == "stripe"
         assert settings.billing.stripe.secret_key == "sk_test_123"
+
     def test_from_env_paypal_billing(self, monkeypatch):
         """Test loading PayPal billing config from environment."""
         monkeypatch.setenv("SWAPLAYER_BILLING_PROVIDER", "paypal")
@@ -247,13 +251,17 @@ class TestEnvironmentVariables:
         assert settings.billing.paypal.client_id == "paypal-client"
         assert settings.billing.paypal.webhook_id == "WH-123"
         assert settings.billing.paypal.sandbox is False
+
     def test_from_env_square_billing(self, monkeypatch):
         """Test loading Square billing config from environment."""
         monkeypatch.setenv("SWAPLAYER_BILLING_PROVIDER", "square")
         monkeypatch.setenv("SWAPLAYER_BILLING_SQUARE_ACCESS_TOKEN", "square-token")
         monkeypatch.setenv("SWAPLAYER_BILLING_SQUARE_LOCATION_ID", "LOC-123")
         monkeypatch.setenv("SWAPLAYER_BILLING_SQUARE_WEBHOOK_SIGNATURE_KEY", "sig-key")
-        monkeypatch.setenv("SWAPLAYER_BILLING_SQUARE_WEBHOOK_NOTIFICATION_URL", "https://app.example.com/square/webhook")
+        monkeypatch.setenv(
+            "SWAPLAYER_BILLING_SQUARE_WEBHOOK_NOTIFICATION_URL",
+            "https://app.example.com/square/webhook",
+        )
         monkeypatch.setenv("SWAPLAYER_BILLING_SQUARE_SANDBOX", "false")
 
         settings = SwapLayerSettings.from_env()
@@ -261,7 +269,10 @@ class TestEnvironmentVariables:
         assert settings.billing.square.access_token == "square-token"
         assert settings.billing.square.location_id == "LOC-123"
         assert settings.billing.square.webhook_signature_key == "sig-key"
-        assert settings.billing.square.webhook_notification_url == "https://app.example.com/square/webhook"
+        assert (
+            settings.billing.square.webhook_notification_url
+            == "https://app.example.com/square/webhook"
+        )
         assert settings.billing.square.sandbox is False
 
     def test_from_env_communications_sms(self, monkeypatch):

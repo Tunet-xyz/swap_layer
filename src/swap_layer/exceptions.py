@@ -9,6 +9,7 @@ from typing import Any
 try:
     from django.core.exceptions import ImproperlyConfigured
 except ImportError:  # pragma: no cover - exercised in environments without Django
+
     class ImproperlyConfigured(Exception):
         """Fallback used when Django is not installed."""
 

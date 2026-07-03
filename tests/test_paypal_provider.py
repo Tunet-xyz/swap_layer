@@ -131,9 +131,7 @@ def test_metered_usage_is_explicitly_unsupported():
 
 def test_verify_webhook_signature_uses_paypal_verification_api():
     provider = make_provider()
-    provider.session.request = Mock(
-        return_value=DummyResponse({"verification_status": "SUCCESS"})
-    )
+    provider.session.request = Mock(return_value=DummyResponse({"verification_status": "SUCCESS"}))
     event_payload = b"""{
         "id": "WH-EVENT-1",
         "event_type": "BILLING.SUBSCRIPTION.ACTIVATED",

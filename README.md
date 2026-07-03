@@ -144,12 +144,14 @@ Square supports provider-agnostic customers, payments, catalog products/prices, 
 
 | Module | Status | Description |
 |--------|--------|-------------|
-| **Email** | ✅ Production | SMTP, SendGrid, Mailgun, SES |
-| **Payments** | ✅ Production | Stripe, PayPal, Square |
-| **SMS** | ✅ Production | Twilio, AWS SNS |
-| **Storage** | ✅ Production | S3, Azure, GCS, Local — with scoped tenant isolation |
-| **Identity** | ✅ Production | OAuth/SSO (WorkOS, Auth0), KYC Verification (Stripe Identity) |
-| **MCP Server** | ✅ Production | AI Assistant Integration |
+| **Email** | Production | Direct SMTP plus Django-anymail for SendGrid, Mailgun, SES, Postmark, and similar providers |
+| **Payments** | Production | Stripe, PayPal, and Square provider adapters |
+| **SMS** | Production | Twilio and AWS SNS provider adapters |
+| **Storage** | Production | Local files, direct GCS, and Django-storage backends for S3/Azure/GCS |
+| **Identity** | Production | OAuth/SSO via WorkOS/Auth0 plus Stripe Identity verification |
+| **MCP Server** | Production | Runtime `swaplayer-mcp` plus public-agent contract in `mcp/` |
+
+Provider parity is explicit rather than implied: Stripe remains the richest billing adapter; PayPal and Square raise validation errors for unsupported Stripe-specific concepts. Cloud storage providers other than direct GCS are reached through Django's storage backend layer.
 
 ---
 

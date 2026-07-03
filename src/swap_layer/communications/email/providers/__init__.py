@@ -23,8 +23,10 @@ def __getattr__(name: str):
     """Lazy import providers only when accessed."""
     if name == "SMTPEmailProvider":
         from .smtp import SMTPEmailProvider
+
         return SMTPEmailProvider
     elif name == "DjangoEmailAdapter":
         from .django_email import DjangoEmailAdapter
+
         return DjangoEmailAdapter
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

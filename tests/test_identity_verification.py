@@ -106,7 +106,9 @@ class TestStripeProvider(unittest.TestCase):
         self.verification_sessions.create.side_effect = error
 
         with self.assertRaises(IdentityVerificationValidationError):
-            self.provider.create_verification_session(user=self.mock_user, verification_type="invalid")
+            self.provider.create_verification_session(
+                user=self.mock_user, verification_type="invalid"
+            )
 
     def test_get_verification_session_success(self):
         """Test successful retrieval of verification session."""

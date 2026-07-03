@@ -12,6 +12,7 @@ from typing import Any
 
 try:
     import mcp.types as types
+
     from mcp.server import Server
 
     MCP_AVAILABLE = True
@@ -84,7 +85,6 @@ storage.save('uploads/photo.jpg', file_bytes)
 - **Consistent error handling** — all providers raise the same exception hierarchy
 - **Security** — API keys are automatically redacted from error messages and logs
 """,
-
     "philosophy": """# SwapLayer Design Philosophy
 
 ## The Problem: Vendor Lock-in
@@ -125,7 +125,6 @@ doesn't change at all.
 5. **Secrets stay secret** — sensitive values are never included in error messages or logs
 6. **Standard dict returns** — all providers return plain Python dicts (no proprietary objects)
 """,
-
     "architecture": """# SwapLayer Architecture
 
 ## Provider Adapter Pattern
@@ -208,7 +207,6 @@ SWAPLAYER = SwapLayerSettings(
 Pydantic validates the configuration at import time and raises descriptive errors for
 any missing or invalid fields.
 """,
-
     "installation": """# SwapLayer Installation
 
 ## Base install
@@ -281,7 +279,6 @@ swaplayer-mcp
 python -m swap_layer.mcp
 ```
 """,
-
     "django-integration": """# SwapLayer Django Integration
 
 ## Setup
@@ -380,7 +377,6 @@ def test_welcome_email_sent():
     mock_provider.send_email.assert_called_once()
 ```
 """,
-
     "security": """# SwapLayer Security Features
 
 ## Automatic secret redaction
@@ -427,7 +423,6 @@ All exceptions include context without leaking secrets.
 The `swaplayer_get_config` MCP tool strips all sensitive keys before returning configuration
 data. API keys and tokens are never transmitted over MCP connections.
 """,
-
     "providers": """# SwapLayer Providers Overview
 
 ## Email (6 providers)
@@ -478,7 +473,6 @@ data. API keys and tokens are never transmitted over MCP connections.
 | `stripe` | `stripe` | Stripe-native apps, integrated billing + KYC |
 | `persona` | none | Advanced KYC/AML workflows, compliance-focused |
 """,
-
     "faq": """# SwapLayer Frequently Asked Questions
 
 **Q: Does SwapLayer replace the provider's native SDK?**
@@ -528,7 +522,11 @@ _PROVIDER_COMPARISONS: dict[str, dict[str, Any]] = {
         "providers": {
             "django": {
                 "best_for": "Development and simple SMTP setups",
-                "pros": ["Zero extra dependencies", "Uses Django's built-in email system", "Easy local dev with console backend"],
+                "pros": [
+                    "Zero extra dependencies",
+                    "Uses Django's built-in email system",
+                    "Easy local dev with console backend",
+                ],
                 "cons": ["No analytics or bounce handling", "Limited deliverability features"],
                 "pip_extra": "none (base SwapLayer)",
                 "credentials_needed": "Standard Django EMAIL_* settings",
@@ -536,7 +534,12 @@ _PROVIDER_COMPARISONS: dict[str, dict[str, Any]] = {
             },
             "sendgrid": {
                 "best_for": "Production transactional email with analytics",
-                "pros": ["Excellent deliverability", "Rich analytics and tracking", "Template management", "Bounce/unsubscribe handling"],
+                "pros": [
+                    "Excellent deliverability",
+                    "Rich analytics and tracking",
+                    "Template management",
+                    "Bounce/unsubscribe handling",
+                ],
                 "cons": ["Paid service (free tier available)", "US-based (GDPR considerations)"],
                 "pip_extra": "SwapLayer[email]",
                 "credentials_needed": "SENDGRID_API_KEY",
@@ -544,7 +547,12 @@ _PROVIDER_COMPARISONS: dict[str, dict[str, Any]] = {
             },
             "mailgun": {
                 "best_for": "Developer-friendly email with EU data residency option",
-                "pros": ["EU region available", "Good deliverability", "Simple API", "Generous free tier"],
+                "pros": [
+                    "EU region available",
+                    "Good deliverability",
+                    "Simple API",
+                    "Generous free tier",
+                ],
                 "cons": ["Slightly fewer analytics features than SendGrid"],
                 "pip_extra": "SwapLayer[email]",
                 "credentials_needed": "MAILGUN_API_KEY + MAILGUN_DOMAIN",
@@ -552,8 +560,16 @@ _PROVIDER_COMPARISONS: dict[str, dict[str, Any]] = {
             },
             "ses": {
                 "best_for": "AWS-native applications at high volume",
-                "pros": ["Very low cost at scale", "Native AWS integration", "High deliverability when warmed up"],
-                "cons": ["Requires SES sandbox exit process", "Less beginner-friendly", "Setup overhead"],
+                "pros": [
+                    "Very low cost at scale",
+                    "Native AWS integration",
+                    "High deliverability when warmed up",
+                ],
+                "cons": [
+                    "Requires SES sandbox exit process",
+                    "Less beginner-friendly",
+                    "Setup overhead",
+                ],
                 "pip_extra": "SwapLayer[aws]",
                 "credentials_needed": "AWS_ACCESS_KEY_ID + AWS_SECRET_ACCESS_KEY + AWS region",
                 "recommended_when": "You're already on AWS and need cost-effective high-volume email",
@@ -566,7 +582,13 @@ _PROVIDER_COMPARISONS: dict[str, dict[str, Any]] = {
         "providers": {
             "stripe": {
                 "best_for": "SaaS subscriptions, advanced billing, developer experience",
-                "pros": ["Best-in-class subscription management", "Excellent docs", "Billing portal", "Tax calculation", "Stripe Identity for KYC"],
+                "pros": [
+                    "Best-in-class subscription management",
+                    "Excellent docs",
+                    "Billing portal",
+                    "Tax calculation",
+                    "Stripe Identity for KYC",
+                ],
                 "cons": ["Not available in all countries", "Can be expensive for high volume"],
                 "pip_extra": "SwapLayer[stripe]",
                 "credentials_needed": "STRIPE_SECRET_KEY + STRIPE_PUBLISHABLE_KEY",
@@ -574,15 +596,26 @@ _PROVIDER_COMPARISONS: dict[str, dict[str, Any]] = {
             },
             "paypal": {
                 "best_for": "Consumer payments, global reach, buyer trust",
-                "pros": ["Widely trusted by consumers", "Available in 200+ countries", "No credit card needed for buyers"],
-                "cons": ["Less developer-friendly than Stripe", "Higher fees for some transaction types"],
+                "pros": [
+                    "Widely trusted by consumers",
+                    "Available in 200+ countries",
+                    "No credit card needed for buyers",
+                ],
+                "cons": [
+                    "Less developer-friendly than Stripe",
+                    "Higher fees for some transaction types",
+                ],
                 "pip_extra": "none (base SwapLayer)",
                 "credentials_needed": "PAYPAL_CLIENT_ID + PAYPAL_CLIENT_SECRET",
                 "recommended_when": "Your customers are consumers who prefer PayPal, or you need global coverage",
             },
             "square": {
                 "best_for": "Businesses with in-person and online sales",
-                "pros": ["Excellent in-person POS integration", "Good online payments", "Invoicing"],
+                "pros": [
+                    "Excellent in-person POS integration",
+                    "Good online payments",
+                    "Invoicing",
+                ],
                 "cons": ["US/Canada focused", "Less subscription-focused than Stripe"],
                 "pip_extra": "none (base SwapLayer)",
                 "credentials_needed": "SQUARE_ACCESS_TOKEN + SQUARE_LOCATION_ID",
@@ -596,7 +629,12 @@ _PROVIDER_COMPARISONS: dict[str, dict[str, Any]] = {
         "providers": {
             "twilio": {
                 "best_for": "Reliability, global coverage, rich features",
-                "pros": ["Best deliverability globally", "Excellent developer experience", "Two-way messaging", "Verify API for OTP"],
+                "pros": [
+                    "Best deliverability globally",
+                    "Excellent developer experience",
+                    "Two-way messaging",
+                    "Verify API for OTP",
+                ],
                 "cons": ["Higher cost than SNS", "Not AWS-native"],
                 "pip_extra": "SwapLayer[sms]",
                 "credentials_needed": "TWILIO_ACCOUNT_SID + TWILIO_AUTH_TOKEN + TWILIO_FROM_NUMBER",
@@ -605,7 +643,11 @@ _PROVIDER_COMPARISONS: dict[str, dict[str, Any]] = {
             "sns": {
                 "best_for": "AWS-native apps, cost-effective at scale",
                 "pros": ["Lower cost at volume", "Native AWS integration", "No per-number cost"],
-                "cons": ["Less feature-rich than Twilio", "One-way by default", "Deliverability can vary by region"],
+                "cons": [
+                    "Less feature-rich than Twilio",
+                    "One-way by default",
+                    "Deliverability can vary by region",
+                ],
                 "pip_extra": "SwapLayer[aws]",
                 "credentials_needed": "AWS_ACCESS_KEY_ID + AWS_SECRET_ACCESS_KEY + AWS region",
                 "recommended_when": "You're already on AWS and send high-volume one-way notifications",
@@ -626,7 +668,12 @@ _PROVIDER_COMPARISONS: dict[str, dict[str, Any]] = {
             },
             "s3": {
                 "best_for": "AWS-native apps, most popular cloud storage",
-                "pros": ["Industry standard", "Excellent durability and availability", "Large ecosystem", "CDN integration via CloudFront"],
+                "pros": [
+                    "Industry standard",
+                    "Excellent durability and availability",
+                    "Large ecosystem",
+                    "CDN integration via CloudFront",
+                ],
                 "cons": ["AWS account required", "Complex IAM permissions"],
                 "pip_extra": "SwapLayer[aws]",
                 "credentials_needed": "AWS_ACCESS_KEY_ID + AWS_SECRET_ACCESS_KEY + S3_BUCKET_NAME",
@@ -634,7 +681,11 @@ _PROVIDER_COMPARISONS: dict[str, dict[str, Any]] = {
             },
             "azure": {
                 "best_for": "Microsoft / Azure ecosystem",
-                "pros": ["Native Azure integration", "Good compliance certifications", "Azure CDN integration"],
+                "pros": [
+                    "Native Azure integration",
+                    "Good compliance certifications",
+                    "Azure CDN integration",
+                ],
                 "cons": ["Azure account required"],
                 "pip_extra": "SwapLayer[azure]",
                 "credentials_needed": "AZURE_STORAGE_ACCOUNT + AZURE_STORAGE_KEY + AZURE_CONTAINER_NAME",
@@ -656,15 +707,28 @@ _PROVIDER_COMPARISONS: dict[str, dict[str, Any]] = {
         "providers": {
             "workos": {
                 "best_for": "Enterprise SSO, SCIM directory sync, B2B SaaS",
-                "pros": ["SAML, OIDC, Magic Link out of the box", "SCIM user provisioning", "Admin portal included", "Audit log"],
-                "cons": ["Paid (pricing per connection)", "Enterprise-focused (overkill for consumer apps)"],
+                "pros": [
+                    "SAML, OIDC, Magic Link out of the box",
+                    "SCIM user provisioning",
+                    "Admin portal included",
+                    "Audit log",
+                ],
+                "cons": [
+                    "Paid (pricing per connection)",
+                    "Enterprise-focused (overkill for consumer apps)",
+                ],
                 "pip_extra": "SwapLayer[identity]",
                 "credentials_needed": "WORKOS_API_KEY + WORKOS_CLIENT_ID",
                 "recommended_when": "Building B2B SaaS that needs enterprise SSO (Google Workspace, Okta, Azure AD)",
             },
             "auth0": {
                 "best_for": "Consumer auth, social login, broad protocol support",
-                "pros": ["Social login (Google, GitHub, etc.)", "MFA out of the box", "Flexible rules/actions", "Large community"],
+                "pros": [
+                    "Social login (Google, GitHub, etc.)",
+                    "MFA out of the box",
+                    "Flexible rules/actions",
+                    "Large community",
+                ],
                 "cons": ["Can get expensive at scale", "Complexity grows with features"],
                 "pip_extra": "SwapLayer[identity]",
                 "credentials_needed": "AUTH0_DOMAIN + AUTH0_CLIENT_ID + AUTH0_CLIENT_SECRET",
@@ -678,7 +742,11 @@ _PROVIDER_COMPARISONS: dict[str, dict[str, Any]] = {
         "providers": {
             "stripe": {
                 "best_for": "Apps already using Stripe for payments",
-                "pros": ["Tight Stripe integration", "Simple setup if already using Stripe billing", "Good document verification"],
+                "pros": [
+                    "Tight Stripe integration",
+                    "Simple setup if already using Stripe billing",
+                    "Good document verification",
+                ],
                 "cons": ["Less advanced KYC/AML workflows than Persona"],
                 "pip_extra": "SwapLayer[stripe]",
                 "credentials_needed": "STRIPE_SECRET_KEY (same as billing)",
@@ -686,7 +754,12 @@ _PROVIDER_COMPARISONS: dict[str, dict[str, Any]] = {
             },
             "persona": {
                 "best_for": "Advanced KYC/AML compliance workflows",
-                "pros": ["Highly configurable verification flows", "AML screening", "Compliance-focused", "Good global coverage"],
+                "pros": [
+                    "Highly configurable verification flows",
+                    "AML screening",
+                    "Compliance-focused",
+                    "Good global coverage",
+                ],
                 "cons": ["More setup required", "Separate vendor from payments"],
                 "pip_extra": "none (uses Persona API directly)",
                 "credentials_needed": "PERSONA_API_KEY",
@@ -699,7 +772,11 @@ _PROVIDER_COMPARISONS: dict[str, dict[str, Any]] = {
 
 _TROUBLESHOOT_SCENARIOS: dict[str, dict[str, Any]] = {
     "missing_config": {
-        "symptoms": ["SwapLayerError: SWAPLAYER setting not found", "ModuleNotConfiguredError", "AttributeError: 'NoneType' object has no attribute"],
+        "symptoms": [
+            "SwapLayerError: SWAPLAYER setting not found",
+            "ModuleNotConfiguredError",
+            "AttributeError: 'NoneType' object has no attribute",
+        ],
         "cause": "The SWAPLAYER setting is not defined in Django settings.py",
         "solution": """Add the SWAPLAYER setting to your settings.py:
 
@@ -720,7 +797,11 @@ django.setup()
 ```""",
     },
     "missing_package": {
-        "symptoms": ["ImportError: No module named 'stripe'", "ImportError: No module named 'twilio'", "ImportError: No module named 'sendgrid'"],
+        "symptoms": [
+            "ImportError: No module named 'stripe'",
+            "ImportError: No module named 'twilio'",
+            "ImportError: No module named 'sendgrid'",
+        ],
         "cause": "The provider's SDK package is not installed",
         "solution": """Install the appropriate SwapLayer extra for your provider:
 
@@ -737,7 +818,12 @@ django.setup()
 Or install everything: `pip install 'SwapLayer[all]'`""",
     },
     "invalid_credentials": {
-        "symptoms": ["ProviderError: Authentication failed", "stripe.error.AuthenticationError", "TwilioConfigError", "StripeKeyError"],
+        "symptoms": [
+            "ProviderError: Authentication failed",
+            "stripe.error.AuthenticationError",
+            "TwilioConfigError",
+            "StripeKeyError",
+        ],
         "cause": "API key, token, or credentials are wrong or expired",
         "solution": """Check your credentials:
 
@@ -779,7 +865,11 @@ SWAPLAYER = SwapLayerSettings(
 ```""",
     },
     "django_not_setup": {
-        "symptoms": ["django.core.exceptions.ImproperlyConfigured", "Apps aren't loaded yet", "django.setup() not called"],
+        "symptoms": [
+            "django.core.exceptions.ImproperlyConfigured",
+            "Apps aren't loaded yet",
+            "django.setup() not called",
+        ],
         "cause": "Django application registry isn't initialized before SwapLayer is used",
         "solution": """Ensure Django is set up before using SwapLayer:
 
@@ -1397,9 +1487,7 @@ def create_mcp_server() -> Any:
         ]
 
     @server.get_prompt()
-    async def get_prompt(
-        name: str, arguments: dict[str, str] | None
-    ) -> types.GetPromptResult:
+    async def get_prompt(name: str, arguments: dict[str, str] | None) -> types.GetPromptResult:
         """Return a SwapLayer onboarding prompt."""
         args = arguments or {}
 
@@ -1447,8 +1535,8 @@ def create_mcp_server() -> Any:
                                 f"1. Call swaplayer_compare_providers(service='{service}'"
                                 + (f", use_case='{requirements}'" if requirements else "")
                                 + ") to get a comparison\n"
-                                f"2. Recommend the best provider for my situation\n"
-                                f"3. Explain what I'd need to do to switch providers later if needed"
+                                "2. Recommend the best provider for my situation\n"
+                                "3. Explain what I'd need to do to switch providers later if needed"
                             ),
                         ),
                     )
@@ -1491,6 +1579,7 @@ def create_mcp_server() -> Any:
 # ---------------------------------------------------------------------------
 # Existing operational tool implementations
 # ---------------------------------------------------------------------------
+
 
 async def _get_config(service: str) -> dict[str, Any]:
     """Get SwapLayer configuration."""
@@ -1634,17 +1723,44 @@ async def _get_provider_info(service: str, provider: str) -> dict[str, Any]:
         "payments": {
             "stripe": {
                 "description": "Stripe payment processing and advanced billing",
-                "capabilities": ["customers", "subscriptions", "payment_intents", "products", "billing_meters", "coupons", "tax_rates", "billing_portal"],
+                "capabilities": [
+                    "customers",
+                    "subscriptions",
+                    "payment_intents",
+                    "products",
+                    "billing_meters",
+                    "coupons",
+                    "tax_rates",
+                    "billing_portal",
+                ],
                 "setup": "Requires STRIPE_SECRET_KEY",
             },
             "paypal": {
                 "description": "PayPal payments, orders, subscriptions, invoicing, and refunds",
-                "capabilities": ["customers", "subscriptions", "orders", "products", "plans", "invoices", "refunds", "webhooks"],
+                "capabilities": [
+                    "customers",
+                    "subscriptions",
+                    "orders",
+                    "products",
+                    "plans",
+                    "invoices",
+                    "refunds",
+                    "webhooks",
+                ],
                 "setup": "Requires PAYPAL_CLIENT_ID and PAYPAL_CLIENT_SECRET",
             },
             "square": {
                 "description": "Square payments, catalog, subscriptions, checkout links, invoicing, and refunds",
-                "capabilities": ["customers", "payments", "catalog", "subscriptions", "checkout_links", "invoices", "refunds", "webhooks"],
+                "capabilities": [
+                    "customers",
+                    "payments",
+                    "catalog",
+                    "subscriptions",
+                    "checkout_links",
+                    "invoices",
+                    "refunds",
+                    "webhooks",
+                ],
                 "setup": "Requires SQUARE_ACCESS_TOKEN and SQUARE_LOCATION_ID",
             },
         },
@@ -2424,6 +2540,7 @@ session = verification.create_verification_session(
 # Onboarding tool implementations (no Django required)
 # ---------------------------------------------------------------------------
 
+
 async def _explain(topic: str) -> dict[str, Any]:
     """Explain a SwapLayer concept."""
     if topic not in _EXPLAIN_TOPICS:
@@ -2538,9 +2655,13 @@ async def _get_migration_guide(
     known = valid_providers[service]
     warnings = []
     if from_provider not in known:
-        warnings.append(f"'{from_provider}' is not a recognised provider for {service}. Known: {known}")
+        warnings.append(
+            f"'{from_provider}' is not a recognised provider for {service}. Known: {known}"
+        )
     if to_provider not in known:
-        warnings.append(f"'{to_provider}' is not a recognised provider for {service}. Known: {known}")
+        warnings.append(
+            f"'{to_provider}' is not a recognised provider for {service}. Known: {known}"
+        )
 
     # Data migration notes by service
     data_notes: dict[str, str] = {
@@ -2600,20 +2721,20 @@ async def _get_migration_guide(
         "",
         "   ```python",
         "   # settings.py — BEFORE",
-        f"   SWAPLAYER = SwapLayerSettings(",
+        "   SWAPLAYER = SwapLayerSettings(",
         f"       {service}={{",
         f"           'provider': '{from_provider}',",
         f"           '{from_provider}': {{ ... old credentials ... }}",
-        f"       }}",
-        f"   )",
+        "       }",
+        "   )",
         "",
         "   # settings.py — AFTER",
-        f"   SWAPLAYER = SwapLayerSettings(",
+        "   SWAPLAYER = SwapLayerSettings(",
         f"       {service}={{",
         f"           'provider': '{to_provider}',",
         f"           '{to_provider}': {{ ... new credentials ... }}",
-        f"       }}",
-        f"   )",
+        "       }",
+        "   )",
         "   ```",
         "",
         "### Step 5 — Application code changes",
@@ -2621,7 +2742,7 @@ async def _get_migration_guide(
         "   the same methods regardless of provider. Zero lines of application code change.",
         "",
         "### Step 6 — Test",
-        f"   Use `swaplayer_send_test_email` / `swaplayer_check_storage` / etc. "
+        "   Use `swaplayer_send_test_email` / `swaplayer_check_storage` / etc. "
         "to verify the new provider works.",
         "",
         "### Step 7 — Data migration",

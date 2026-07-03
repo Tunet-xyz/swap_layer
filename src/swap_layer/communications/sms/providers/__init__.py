@@ -20,8 +20,10 @@ def __getattr__(name: str):
     """Lazy import providers only when accessed."""
     if name == "TwilioSMSProvider":
         from .twilio_sms import TwilioSMSProvider
+
         return TwilioSMSProvider
     elif name == "SNSSMSProvider":
         from .sns import SNSSMSProvider
+
         return SNSSMSProvider
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

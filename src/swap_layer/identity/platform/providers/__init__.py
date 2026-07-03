@@ -20,8 +20,10 @@ def __getattr__(name: str):
     """Lazy import providers only when accessed."""
     if name == "Auth0Client":
         from .auth0.client import Auth0Client
+
         return Auth0Client
     elif name == "WorkOSClient":
         from .workos.client import WorkOSClient
+
         return WorkOSClient
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

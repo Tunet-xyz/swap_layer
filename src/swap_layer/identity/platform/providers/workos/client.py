@@ -9,9 +9,43 @@ from typing import Any
 
 from django.conf import settings
 from workos import WorkOSClient as WorkOSSDKClient
-from workos.session import seal_session_from_auth_response
+from workos.session import Session
 
 from ...adapter import AuthProviderAdapter
+
+
+def _seal_auth_response(response: Any, user: Any, cookie_password: str) -> str:
+    """Seal a WorkOS auth response across SDK versions."""
+    sealed_session = getattr(response, "sealed_session", None)
+    if sealed_session:
+        return str(sealed_session)
+
+    try:
+        from workos.session import seal_session_from_auth_response
+    except ImportError:
+        seal_session_from_auth_response = None
+
+    user_data = user.to_dict()
+    impersonator = response.impersonator.to_dict() if response.impersonator else None
+
+    if seal_session_from_auth_response is not None:
+        return seal_session_from_auth_response(
+            access_token=response.access_token,
+            refresh_token=response.refresh_token,
+            user=user_data,
+            impersonator=impersonator,
+            cookie_password=cookie_password,
+        )
+
+    return Session.seal_data(
+        {
+            "access_token": response.access_token,
+            "refresh_token": response.refresh_token,
+            "user": user_data,
+            "impersonator": impersonator,
+        },
+        cookie_password,
+    )
 
 
 class WorkOSClient(AuthProviderAdapter):
@@ -89,16 +123,7 @@ class WorkOSClient(AuthProviderAdapter):
 
         user = response.user
 
-        # Explicitly seal the session after authentication (v6+ pattern)
-        sealed_session = seal_session_from_auth_response(
-            access_token=response.access_token,
-            refresh_token=response.refresh_token,
-            user=user.to_dict(),
-            impersonator=(
-                response.impersonator.to_dict() if response.impersonator else None
-            ),
-            cookie_password=self._cookie_password,
-        )
+        sealed_session = _seal_auth_response(response, user, self._cookie_password)
 
         return {
             "id": user.id,
@@ -139,10 +164,10 @@ class WorkOSClient(AuthProviderAdapter):
     def clear_session(self, request) -> None:
         """
         Clear WorkOS-specific session data.
-        
+
         Removes the sealed session from Django's session storage to ensure
         the user is fully logged out and won't be automatically re-authenticated.
-        
+
         Args:
             request: Django HTTP request containing session to clear
         """

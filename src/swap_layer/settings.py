@@ -45,8 +45,8 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 from pydantic import ValidationError as PydanticValidationError
 
 from .exceptions import (
-    ErrorContext,
     ConfigurationError,
+    ErrorContext,
     ProviderConfigMismatchError,
     StripeKeyError,
     TwilioConfigError,
@@ -76,7 +76,6 @@ class StripeConfig(BaseModel):
         return v
 
 
-
 class PayPalConfig(BaseModel):
     """PayPal payment provider configuration."""
 
@@ -85,15 +84,20 @@ class PayPalConfig(BaseModel):
     webhook_id: str | None = Field(None, description="PayPal webhook ID for signature verification")
     sandbox: bool = Field(True, description="Use the PayPal sandbox API")
 
+
 class SquareConfig(BaseModel):
     """Square payment provider configuration."""
 
     access_token: str = Field(..., description="Square access token")
     location_id: str = Field(..., description="Square location ID")
     webhook_signature_key: str | None = Field(None, description="Square webhook signature key")
-    webhook_notification_url: str | None = Field(None, description="Square webhook notification URL")
+    webhook_notification_url: str | None = Field(
+        None, description="Square webhook notification URL"
+    )
     sandbox: bool = Field(True, description="Use the Square sandbox API")
     api_version: str = Field("2026-05-20", description="Square API version header")
+
+
 class TwilioConfig(BaseModel):
     """Twilio SMS provider configuration."""
 
@@ -130,7 +134,9 @@ class SNSConfig(BaseModel):
 class BillingConfig(BaseModel):
     """Billing module configuration."""
 
-    provider: Literal["stripe", "paypal", "square"] = Field("stripe", description="Payment provider to use")
+    provider: Literal["stripe", "paypal", "square"] = Field(
+        "stripe", description="Payment provider to use"
+    )
     stripe: StripeConfig | None = Field(None, description="Stripe configuration")
     paypal: PayPalConfig | None = Field(None, description="PayPal configuration")
     square: SquareConfig | None = Field(None, description="Square configuration")
@@ -461,8 +467,12 @@ class SwapLayerSettings(BaseModel):
                 config["billing"]["square"] = {
                     "access_token": settings.SQUARE_ACCESS_TOKEN,
                     "location_id": getattr(settings, "SQUARE_LOCATION_ID", None),
-                    "webhook_signature_key": getattr(settings, "SQUARE_WEBHOOK_SIGNATURE_KEY", None),
-                    "webhook_notification_url": getattr(settings, "SQUARE_WEBHOOK_NOTIFICATION_URL", None),
+                    "webhook_signature_key": getattr(
+                        settings, "SQUARE_WEBHOOK_SIGNATURE_KEY", None
+                    ),
+                    "webhook_notification_url": getattr(
+                        settings, "SQUARE_WEBHOOK_NOTIFICATION_URL", None
+                    ),
                     "sandbox": sandbox,
                     "api_version": getattr(settings, "SQUARE_API_VERSION", "2026-05-20"),
                 }
@@ -607,7 +617,9 @@ def configure(
         resolved = SwapLayerSettings(**kwargs)
     elif isinstance(settings, SwapLayerSettings):
         if kwargs:
-            raise TypeError("Pass either a SwapLayerSettings instance or keyword settings, not both.")
+            raise TypeError(
+                "Pass either a SwapLayerSettings instance or keyword settings, not both."
+            )
         resolved = settings
     elif isinstance(settings, dict):
         if kwargs:

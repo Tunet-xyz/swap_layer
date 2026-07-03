@@ -34,11 +34,11 @@ class AuthProviderAdapter(ABC):
     def clear_session(self, request) -> None:
         """
         Clear provider-specific session data.
-        
+
         This should be called before redirecting to the logout URL to ensure
-        all provider-specific session data (tokens, sealed sessions, etc.) 
+        all provider-specific session data (tokens, sealed sessions, etc.)
         is removed from the Django session.
-        
+
         Args:
             request: Django HTTP request containing session to clear
         """

@@ -32,10 +32,9 @@ Usage:
     )
 """
 
-import io
 import logging
 from datetime import timedelta
-from typing import Any, BinaryIO, Optional
+from typing import Any, BinaryIO
 
 from ...adapter import (
     StorageCopyError,
@@ -50,7 +49,7 @@ from ...adapter import (
 logger = logging.getLogger(__name__)
 
 
-def _get_storage_client(credentials_path: Optional[str] = None, project_id: Optional[str] = None):
+def _get_storage_client(credentials_path: str | None = None, project_id: str | None = None):
     """
     Create a GCS client with the given credentials.
 
@@ -59,9 +58,7 @@ def _get_storage_client(credentials_path: Optional[str] = None, project_id: Opti
     from google.cloud import storage
 
     if credentials_path:
-        return storage.Client.from_service_account_json(
-            credentials_path, project=project_id
-        )
+        return storage.Client.from_service_account_json(credentials_path, project=project_id)
     return storage.Client(project=project_id)
 
 
@@ -79,8 +76,8 @@ class GCSStorageProvider(StorageProviderAdapter):
     def __init__(
         self,
         bucket_name: str,
-        credentials_path: Optional[str] = None,
-        project_id: Optional[str] = None,
+        credentials_path: str | None = None,
+        project_id: str | None = None,
         location: str = "europe-west1",
         storage_class: str = "STANDARD",
     ):
@@ -150,11 +147,11 @@ class GCSStorageProvider(StorageProviderAdapter):
                 blob.metadata = metadata
 
             # Handle file-like objects with seek support
-            if hasattr(file_data, 'seek'):
+            if hasattr(file_data, "seek"):
                 file_data.seek(0)
 
             # Determine upload method based on input type
-            if hasattr(file_data, 'read'):
+            if hasattr(file_data, "read"):
                 blob.upload_from_file(
                     file_data,
                     content_type=content_type,
@@ -162,7 +159,7 @@ class GCSStorageProvider(StorageProviderAdapter):
             else:
                 blob.upload_from_string(
                     file_data,
-                    content_type=content_type or 'application/octet-stream',
+                    content_type=content_type or "application/octet-stream",
                 )
 
             if public:
@@ -172,11 +169,11 @@ class GCSStorageProvider(StorageProviderAdapter):
             blob.reload()
 
             return {
-                'url': blob.public_url if public else f"gs://{self.bucket_name}/{file_path}",
-                'file_path': file_path,
-                'size': blob.size,
-                'content_type': blob.content_type,
-                'etag': blob.etag,
+                "url": blob.public_url if public else f"gs://{self.bucket_name}/{file_path}",
+                "file_path": file_path,
+                "size": blob.size,
+                "content_type": blob.content_type,
+                "etag": blob.etag,
             }
 
         except Exception as e:
@@ -197,12 +194,14 @@ class GCSStorageProvider(StorageProviderAdapter):
             blob = self.bucket.blob(file_path)
 
             if not blob.exists():
-                raise StorageFileNotFoundError(f"File not found: gs://{self.bucket_name}/{file_path}")
+                raise StorageFileNotFoundError(
+                    f"File not found: gs://{self.bucket_name}/{file_path}"
+                )
 
             if destination:
                 blob.download_to_filename(destination)
                 # Still return the bytes for consistency
-                with open(destination, 'rb') as f:
+                with open(destination, "rb") as f:
                     return f.read()
             else:
                 return blob.download_as_bytes()
@@ -226,13 +225,15 @@ class GCSStorageProvider(StorageProviderAdapter):
             blob = self.bucket.blob(file_path)
 
             if not blob.exists():
-                raise StorageFileNotFoundError(f"File not found: gs://{self.bucket_name}/{file_path}")
+                raise StorageFileNotFoundError(
+                    f"File not found: gs://{self.bucket_name}/{file_path}"
+                )
 
             blob.delete()
 
             return {
-                'deleted': True,
-                'file_path': file_path,
+                "deleted": True,
+                "file_path": file_path,
             }
 
         except StorageFileNotFoundError:
@@ -261,17 +262,17 @@ class GCSStorageProvider(StorageProviderAdapter):
         blob.reload()
 
         return {
-            'size': blob.size,
-            'content_type': blob.content_type,
-            'last_modified': blob.updated,
-            'created': blob.time_created,
-            'etag': blob.etag,
-            'metadata': blob.metadata or {},
-            'storage_class': blob.storage_class,
-            'crc32c': blob.crc32c,
-            'md5_hash': blob.md5_hash,
-            'generation': blob.generation,
-            'metageneration': blob.metageneration,
+            "size": blob.size,
+            "content_type": blob.content_type,
+            "last_modified": blob.updated,
+            "created": blob.time_created,
+            "etag": blob.etag,
+            "metadata": blob.metadata or {},
+            "storage_class": blob.storage_class,
+            "crc32c": blob.crc32c,
+            "md5_hash": blob.md5_hash,
+            "generation": blob.generation,
+            "metageneration": blob.metageneration,
         }
 
     def list_files(
@@ -295,13 +296,15 @@ class GCSStorageProvider(StorageProviderAdapter):
 
         results = []
         for blob in blobs:
-            results.append({
-                'file_path': blob.name,
-                'size': blob.size,
-                'last_modified': blob.updated,
-                'etag': blob.etag,
-                'content_type': blob.content_type,
-            })
+            results.append(
+                {
+                    "file_path": blob.name,
+                    "size": blob.size,
+                    "last_modified": blob.updated,
+                    "etag": blob.etag,
+                    "content_type": blob.content_type,
+                }
+            )
 
         return results
 
@@ -309,9 +312,7 @@ class GCSStorageProvider(StorageProviderAdapter):
     # URL Generation
     # ═══════════════════════════════════════════════════════════════════
 
-    def get_file_url(
-        self, file_path: str, expiration: timedelta | None = None
-    ) -> str:
+    def get_file_url(self, file_path: str, expiration: timedelta | None = None) -> str:
         """
         Get a URL to access a file.
 
@@ -368,11 +369,11 @@ class GCSStorageProvider(StorageProviderAdapter):
         )
 
         return {
-            'url': url,
-            'method': 'PUT',
-            'file_path': file_path,
-            'content_type': content_type,
-            'expiration_seconds': int(expiration.total_seconds()),
+            "url": url,
+            "method": "PUT",
+            "file_path": file_path,
+            "content_type": content_type,
+            "expiration_seconds": int(expiration.total_seconds()),
         }
 
     # ═══════════════════════════════════════════════════════════════════
@@ -407,9 +408,9 @@ class GCSStorageProvider(StorageProviderAdapter):
             )
 
             return {
-                'source_path': source_path,
-                'destination_path': destination_path,
-                'etag': new_blob.etag if new_blob else None,
+                "source_path": source_path,
+                "destination_path": destination_path,
+                "etag": new_blob.etag if new_blob else None,
             }
 
         except StorageFileNotFoundError:
@@ -445,8 +446,8 @@ class GCSStorageProvider(StorageProviderAdapter):
             source_blob.delete()
 
             return {
-                'source_path': source_path,
-                'destination_path': destination_path,
+                "source_path": source_path,
+                "destination_path": destination_path,
             }
 
         except StorageFileNotFoundError:
@@ -477,14 +478,16 @@ class GCSStorageProvider(StorageProviderAdapter):
                 blob.delete()
                 deleted.append(file_path)
             except Exception as e:
-                errors.append({
-                    'file_path': file_path,
-                    'error': str(e),
-                })
+                errors.append(
+                    {
+                        "file_path": file_path,
+                        "error": str(e),
+                    }
+                )
 
         return {
-            'deleted': deleted,
-            'errors': errors,
+            "deleted": deleted,
+            "errors": errors,
         }
 
     # ═══════════════════════════════════════════════════════════════════
@@ -526,11 +529,11 @@ class GCSStorageProvider(StorageProviderAdapter):
             blob.reload()
 
             return {
-                'url': f"gs://{self.bucket_name}/{file_path}",
-                'file_path': file_path,
-                'size': blob.size,
-                'content_type': blob.content_type,
-                'etag': blob.etag,
+                "url": f"gs://{self.bucket_name}/{file_path}",
+                "file_path": file_path,
+                "size": blob.size,
+                "content_type": blob.content_type,
+                "etag": blob.etag,
             }
 
         except Exception as e:
@@ -563,11 +566,9 @@ class GCSStorageProvider(StorageProviderAdapter):
         except StorageFileNotFoundError:
             raise
         except Exception as e:
-            raise StorageDownloadError(
-                f"Failed to download '{file_path}' as bytes: {e}"
-            ) from e
+            raise StorageDownloadError(f"Failed to download '{file_path}' as bytes: {e}") from e
 
-    def download_as_text(self, file_path: str, encoding: str = 'utf-8') -> str:
+    def download_as_text(self, file_path: str, encoding: str = "utf-8") -> str:
         """
         Download file content as text string.
 
@@ -591,9 +592,7 @@ class GCSStorageProvider(StorageProviderAdapter):
         except StorageFileNotFoundError:
             raise
         except Exception as e:
-            raise StorageDownloadError(
-                f"Failed to download '{file_path}' as text: {e}"
-            ) from e
+            raise StorageDownloadError(f"Failed to download '{file_path}' as text: {e}") from e
 
     def update_metadata(
         self,
@@ -615,9 +614,7 @@ class GCSStorageProvider(StorageProviderAdapter):
         blob = self.bucket.blob(file_path)
 
         if not blob.exists():
-            raise StorageFileNotFoundError(
-                f"File not found: gs://{self.bucket_name}/{file_path}"
-            )
+            raise StorageFileNotFoundError(f"File not found: gs://{self.bucket_name}/{file_path}")
 
         blob.reload()
 
@@ -630,8 +627,8 @@ class GCSStorageProvider(StorageProviderAdapter):
         blob.patch()
 
         return {
-            'file_path': file_path,
-            'metadata': updated_metadata,
+            "file_path": file_path,
+            "metadata": updated_metadata,
         }
 
     # ═══════════════════════════════════════════════════════════════════
@@ -640,9 +637,9 @@ class GCSStorageProvider(StorageProviderAdapter):
 
     def create_bucket(
         self,
-        bucket_name: Optional[str] = None,
-        location: Optional[str] = None,
-        storage_class: Optional[str] = None,
+        bucket_name: str | None = None,
+        location: str | None = None,
+        storage_class: str | None = None,
     ) -> dict[str, Any]:
         """
         Create a new GCS bucket.
@@ -665,13 +662,13 @@ class GCSStorageProvider(StorageProviderAdapter):
         new_bucket = self.client.create_bucket(bucket, location=loc)
 
         return {
-            'name': new_bucket.name,
-            'location': new_bucket.location,
-            'storage_class': new_bucket.storage_class,
-            'created': new_bucket.time_created,
+            "name": new_bucket.name,
+            "location": new_bucket.location,
+            "storage_class": new_bucket.storage_class,
+            "created": new_bucket.time_created,
         }
 
-    def delete_bucket(self, bucket_name: Optional[str] = None, force: bool = False) -> dict[str, Any]:
+    def delete_bucket(self, bucket_name: str | None = None, force: bool = False) -> dict[str, Any]:
         """
         Delete a GCS bucket.
 
@@ -693,17 +690,17 @@ class GCSStorageProvider(StorageProviderAdapter):
         bucket.delete()
 
         return {
-            'deleted': True,
-            'bucket_name': name,
+            "deleted": True,
+            "bucket_name": name,
         }
 
-    def bucket_exists(self, bucket_name: Optional[str] = None) -> bool:
+    def bucket_exists(self, bucket_name: str | None = None) -> bool:
         """Check if a bucket exists."""
         name = bucket_name or self.bucket_name
         bucket = self.client.bucket(name)
         return bucket.exists()
 
-    def get_bucket_metadata(self, bucket_name: Optional[str] = None) -> dict[str, Any]:
+    def get_bucket_metadata(self, bucket_name: str | None = None) -> dict[str, Any]:
         """
         Get bucket metadata.
 
@@ -714,10 +711,10 @@ class GCSStorageProvider(StorageProviderAdapter):
         bucket = self.client.get_bucket(name)
 
         return {
-            'name': bucket.name,
-            'location': bucket.location,
-            'storage_class': bucket.storage_class,
-            'created': bucket.time_created,
-            'versioning_enabled': bucket.versioning_enabled,
-            'labels': bucket.labels or {},
+            "name": bucket.name,
+            "location": bucket.location,
+            "storage_class": bucket.storage_class,
+            "created": bucket.time_created,
+            "versioning_enabled": bucket.versioning_enabled,
+            "labels": bucket.labels or {},
         }
