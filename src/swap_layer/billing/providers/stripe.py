@@ -396,6 +396,27 @@ class StripePaymentProvider(PaymentProviderAdapter):
             return None
         return {"idempotency_key": idempotency_key}
 
+    @staticmethod
+    def _auto_paging_items(collection: Any) -> list[Any]:
+        """Consume every object from a Stripe ListObject, with a safe test fallback."""
+        auto_paging_iter = getattr(collection, "auto_paging_iter", None)
+        if callable(auto_paging_iter):
+            return list(auto_paging_iter())
+        return list(getattr(collection, "data", []))
+
+    @staticmethod
+    def _catalog_value(value: Any, name: str, default: Any = None) -> Any:
+        if isinstance(value, dict):
+            return value.get(name, default)
+        return getattr(value, name, default)
+
+    @classmethod
+    def _catalog_id(cls, value: Any) -> str | None:
+        if isinstance(value, str):
+            return value
+        identifier = cls._catalog_value(value, "id")
+        return identifier if isinstance(identifier, str) else None
+
     # One-time Payments
     def create_payment_intent(
         self,
@@ -700,6 +721,14 @@ class StripePaymentProvider(PaymentProviderAdapter):
         products = self._client.v1.products.list(params=params)
         return [self._normalize_product(product) for product in products.data]
 
+    def list_all_products(self, active: bool | None = None) -> list[dict[str, Any]]:
+        """List the complete Stripe product catalog using SDK auto-pagination."""
+        params: dict[str, Any] = {"limit": 100}
+        if active is not None:
+            params["active"] = active
+        products = self._client.v1.products.list(params=params)
+        return [self._normalize_product(product) for product in self._auto_paging_items(products)]
+
     def create_price(
         self,
         product_id: str,
@@ -744,35 +773,156 @@ class StripePaymentProvider(PaymentProviderAdapter):
         """Retrieve a price from Stripe."""
         return self._normalize_price(self._client.v1.prices.retrieve(price_id))
 
-    def list_prices(self, product_id: str | None = None, limit: int = 10) -> list[dict[str, Any]]:
+    def update_price(
+        self,
+        price_id: str,
+        *,
+        active: bool | None = None,
+        metadata: dict[str, Any] | None = None,
+        nickname: str | None = None,
+        lookup_key: str | None = None,
+        transfer_lookup_key: bool | None = None,
+        idempotency_key: str | None = None,
+    ) -> dict[str, Any]:
+        """Update the mutable fields of a Stripe price."""
+        params = {
+            key: value
+            for key, value in {
+                "active": active,
+                "metadata": metadata,
+                "nickname": nickname,
+                "lookup_key": lookup_key,
+                "transfer_lookup_key": transfer_lookup_key,
+            }.items()
+            if value is not None
+        }
+        price = self._client.v1.prices.update(
+            price_id,
+            params=params,
+            options=self._request_options(idempotency_key),
+        )
+        return self._normalize_price(price)
+
+    def replace_price(
+        self,
+        replaced_price_id: str,
+        *,
+        product_id: str,
+        amount: Decimal,
+        currency: str,
+        lookup_key: str,
+        recurring: dict[str, Any] | None = None,
+        metadata: dict[str, Any] | None = None,
+        nickname: str | None = None,
+        tax_behavior: str | None = None,
+        billing_scheme: str | None = None,
+        idempotency_key: str | None = None,
+        **extra_params: Any,
+    ) -> dict[str, Any]:
+        """Create an immutable-price successor and transfer its stable lookup key.
+
+        The previous price is deliberately left active. Archival and subscription
+        migration require separate, explicit operations.
+        """
+        replacement = self.create_price(
+            product_id=product_id,
+            amount=amount,
+            currency=currency,
+            recurring=recurring,
+            metadata=metadata,
+            lookup_key=lookup_key,
+            nickname=nickname,
+            tax_behavior=tax_behavior,
+            billing_scheme=billing_scheme,
+            idempotency_key=idempotency_key,
+            transfer_lookup_key=True,
+            **extra_params,
+        )
+        replacement["replaces_price_id"] = replaced_price_id
+        replacement["previous_price_archived"] = False
+        return replacement
+
+    def list_prices(
+        self,
+        product_id: str | None = None,
+        limit: int = 10,
+        active: bool | None = None,
+        lookup_keys: list[str] | None = None,
+    ) -> list[dict[str, Any]]:
         """List prices from Stripe."""
         params: dict[str, Any] = {"limit": limit}
         if product_id:
             params["product"] = product_id
+        if active is not None:
+            params["active"] = active
+        if lookup_keys:
+            params["lookup_keys"] = lookup_keys
         prices = self._client.v1.prices.list(params=params)
         return [self._normalize_price(price) for price in prices.data]
 
+    def list_all_prices(
+        self,
+        product_id: str | None = None,
+        active: bool | None = None,
+        lookup_keys: list[str] | None = None,
+    ) -> list[dict[str, Any]]:
+        """List the complete Stripe price catalog using SDK auto-pagination."""
+        params: dict[str, Any] = {"limit": 100}
+        if product_id:
+            params["product"] = product_id
+        if active is not None:
+            params["active"] = active
+        if lookup_keys:
+            params["lookup_keys"] = lookup_keys
+        prices = self._client.v1.prices.list(params=params)
+        return [self._normalize_price(price) for price in self._auto_paging_items(prices)]
+
     def _normalize_product(self, product) -> dict[str, Any]:
+        metadata = self._catalog_value(product, "metadata", {})
         return {
-            "id": product.id,
-            "name": product.name,
-            "description": getattr(product, "description", None),
-            "active": getattr(product, "active", None),
-            "metadata": getattr(product, "metadata", {}),
-            "created": getattr(product, "created", None),
+            "id": self._catalog_value(product, "id"),
+            "name": self._catalog_value(product, "name"),
+            "description": self._catalog_value(product, "description"),
+            "active": self._catalog_value(product, "active"),
+            "unit_label": self._catalog_value(product, "unit_label"),
+            "tax_code": self._catalog_value(product, "tax_code"),
+            "statement_descriptor": self._catalog_value(product, "statement_descriptor"),
+            "default_price_id": self._catalog_id(
+                self._catalog_value(product, "default_price")
+            ),
+            "metadata": dict(metadata) if isinstance(metadata, dict) else {},
+            "created": self._catalog_value(product, "created"),
         }
 
     def _normalize_price(self, price) -> dict[str, Any]:
+        metadata = self._catalog_value(price, "metadata", {})
+        recurring_value = self._catalog_value(price, "recurring")
+        recurring = None
+        if recurring_value is not None:
+            recurring = {
+                "interval": self._catalog_value(recurring_value, "interval"),
+                "interval_count": self._catalog_value(recurring_value, "interval_count"),
+                "usage_type": self._catalog_value(recurring_value, "usage_type"),
+                "meter_id": self._catalog_id(
+                    self._catalog_value(recurring_value, "meter")
+                ),
+            }
+        unit_amount = self._catalog_value(price, "unit_amount")
         return {
-            "id": price.id,
-            "product_id": price.product,
-            "amount": getattr(price, "unit_amount", None),
-            "currency": price.currency,
-            "recurring": getattr(price, "recurring", None),
-            "lookup_key": getattr(price, "lookup_key", None),
-            "nickname": getattr(price, "nickname", None),
-            "active": getattr(price, "active", None),
-            "metadata": getattr(price, "metadata", {}),
+            "id": self._catalog_value(price, "id"),
+            "product_id": self._catalog_id(self._catalog_value(price, "product")),
+            "amount": unit_amount,
+            "unit_amount": unit_amount,
+            "unit_amount_decimal": self._catalog_value(price, "unit_amount_decimal"),
+            "currency": self._catalog_value(price, "currency"),
+            "recurring": recurring,
+            "lookup_key": self._catalog_value(price, "lookup_key"),
+            "nickname": self._catalog_value(price, "nickname"),
+            "active": self._catalog_value(price, "active"),
+            "tax_behavior": self._catalog_value(price, "tax_behavior"),
+            "billing_scheme": self._catalog_value(price, "billing_scheme"),
+            "metadata": dict(metadata) if isinstance(metadata, dict) else {},
+            "created": self._catalog_value(price, "created"),
         }
 
     # Metered Usage and Billing Meters
@@ -815,6 +965,14 @@ class StripePaymentProvider(PaymentProviderAdapter):
             params["status"] = status
         meters = self._client.v1.billing.meters.list(params=params)
         return [self._normalize_meter(meter) for meter in meters.data]
+
+    def list_all_meters(self, status: str | None = None) -> list[dict[str, Any]]:
+        """List the complete Stripe billing-meter catalog."""
+        params: dict[str, Any] = {"limit": 100}
+        if status:
+            params["status"] = status
+        meters = self._client.v1.billing.meters.list(params=params)
+        return [self._normalize_meter(meter) for meter in self._auto_paging_items(meters)]
 
     def update_meter(
         self,
@@ -906,12 +1064,18 @@ class StripePaymentProvider(PaymentProviderAdapter):
         return {"submitted": True, "event_count": len(events)}
 
     def _normalize_meter(self, meter) -> dict[str, Any]:
+        aggregation = self._catalog_value(meter, "default_aggregation")
+        customer_mapping = self._catalog_value(meter, "customer_mapping")
+        value_settings = self._catalog_value(meter, "value_settings")
         return {
-            "id": meter.id,
-            "display_name": getattr(meter, "display_name", None),
-            "event_name": getattr(meter, "event_name", None),
-            "status": getattr(meter, "status", None),
-            "created": getattr(meter, "created", None),
+            "id": self._catalog_value(meter, "id"),
+            "display_name": self._catalog_value(meter, "display_name"),
+            "event_name": self._catalog_value(meter, "event_name"),
+            "status": self._catalog_value(meter, "status"),
+            "aggregation": self._catalog_value(aggregation, "formula"),
+            "customer_key": self._catalog_value(customer_mapping, "event_payload_key"),
+            "value_key": self._catalog_value(value_settings, "event_payload_key"),
+            "created": self._catalog_value(meter, "created"),
         }
 
     def _normalize_meter_event(self, meter_event) -> dict[str, Any]:
@@ -923,6 +1087,161 @@ class StripePaymentProvider(PaymentProviderAdapter):
             "timestamp": getattr(meter_event, "timestamp", None),
             "created": getattr(meter_event, "created", None),
             "livemode": getattr(meter_event, "livemode", None),
+        }
+
+    # Catalog Administration and Stripe Entitlements
+    def create_entitlement_feature(
+        self,
+        *,
+        name: str,
+        lookup_key: str,
+        metadata: dict[str, Any] | None = None,
+        idempotency_key: str | None = None,
+    ) -> dict[str, Any]:
+        params: dict[str, Any] = {"name": name, "lookup_key": lookup_key}
+        if metadata is not None:
+            params["metadata"] = metadata
+        feature = self._client.v1.entitlements.features.create(
+            params=params,
+            options=self._request_options(idempotency_key),
+        )
+        return self._normalize_entitlement_feature(feature)
+
+    def update_entitlement_feature(
+        self,
+        feature_id: str,
+        *,
+        name: str | None = None,
+        metadata: dict[str, Any] | None = None,
+        active: bool | None = None,
+        idempotency_key: str | None = None,
+    ) -> dict[str, Any]:
+        params = {
+            key: value
+            for key, value in {"name": name, "metadata": metadata, "active": active}.items()
+            if value is not None
+        }
+        feature = self._client.v1.entitlements.features.update(
+            feature_id,
+            params=params,
+            options=self._request_options(idempotency_key),
+        )
+        return self._normalize_entitlement_feature(feature)
+
+    def list_all_entitlement_features(
+        self, *, archived: bool | None = None
+    ) -> list[dict[str, Any]]:
+        params: dict[str, Any] = {"limit": 100}
+        if archived is not None:
+            params["archived"] = archived
+        features = self._client.v1.entitlements.features.list(params=params)
+        return [
+            self._normalize_entitlement_feature(feature)
+            for feature in self._auto_paging_items(features)
+        ]
+
+    def attach_entitlement_feature(
+        self,
+        product_id: str,
+        feature_id: str,
+        *,
+        idempotency_key: str | None = None,
+    ) -> dict[str, Any]:
+        attachment = self._client.v1.products.features.create(
+            product_id,
+            params={"entitlement_feature": feature_id},
+            options=self._request_options(idempotency_key),
+        )
+        return self._normalize_product_feature(attachment, product_id)
+
+    def detach_entitlement_feature(
+        self,
+        product_id: str,
+        attachment_id: str,
+        *,
+        idempotency_key: str | None = None,
+    ) -> dict[str, Any]:
+        attachment = self._client.v1.products.features.delete(
+            product_id,
+            attachment_id,
+            params=None,
+            options=self._request_options(idempotency_key),
+        )
+        return self._normalize_product_feature(attachment, product_id)
+
+    def list_all_product_features(self, product_id: str) -> list[dict[str, Any]]:
+        attachments = self._client.v1.products.features.list(
+            product_id,
+            params={"limit": 100},
+        )
+        return [
+            self._normalize_product_feature(attachment, product_id)
+            for attachment in self._auto_paging_items(attachments)
+        ]
+
+    def discover_catalog(self) -> dict[str, list[dict[str, Any]]]:
+        """Discover provider catalog state without reading customers or transactions."""
+        meters = self.list_all_meters()
+        products = self.list_all_products()
+        prices = self.list_all_prices()
+        features = self.list_all_entitlement_features()
+        product_features = [
+            attachment
+            for product in products
+            for attachment in self.list_all_product_features(product["id"])
+        ]
+
+        meter_events = {
+            meter["id"]: meter["event_name"]
+            for meter in meters
+            if meter.get("id") and meter.get("event_name")
+        }
+        feature_lookup_keys = {
+            feature["id"]: feature["lookup_key"]
+            for feature in features
+            if feature.get("id") and feature.get("lookup_key")
+        }
+        for price in prices:
+            recurring = price.get("recurring")
+            if isinstance(recurring, dict):
+                recurring["meter_event"] = meter_events.get(recurring.get("meter_id"))
+        for attachment in product_features:
+            attachment["feature_lookup_key"] = feature_lookup_keys.get(
+                attachment.get("feature_id")
+            )
+
+        return {
+            "meters": sorted(meters, key=lambda item: str(item.get("id") or "")),
+            "features": sorted(features, key=lambda item: str(item.get("id") or "")),
+            "products": sorted(products, key=lambda item: str(item.get("id") or "")),
+            "product_features": sorted(
+                product_features,
+                key=lambda item: (
+                    str(item.get("product_id") or ""),
+                    str(item.get("id") or ""),
+                ),
+            ),
+            "prices": sorted(prices, key=lambda item: str(item.get("id") or "")),
+        }
+
+    def _normalize_entitlement_feature(self, feature: Any) -> dict[str, Any]:
+        metadata = self._catalog_value(feature, "metadata", {})
+        return {
+            "id": self._catalog_value(feature, "id"),
+            "name": self._catalog_value(feature, "name"),
+            "lookup_key": self._catalog_value(feature, "lookup_key"),
+            "active": self._catalog_value(feature, "active"),
+            "metadata": dict(metadata) if isinstance(metadata, dict) else {},
+        }
+
+    def _normalize_product_feature(
+        self, attachment: Any, product_id: str
+    ) -> dict[str, Any]:
+        entitlement_feature = self._catalog_value(attachment, "entitlement_feature")
+        return {
+            "id": self._catalog_value(attachment, "id"),
+            "product_id": product_id,
+            "feature_id": self._catalog_id(entitlement_feature),
         }
 
     # Billing Portal, Refunds, Discounts, Tax, and Invoice Actions

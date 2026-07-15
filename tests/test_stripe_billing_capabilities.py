@@ -10,6 +10,12 @@ def make_provider():
     return provider
 
 
+def page(*items):
+    result = MagicMock()
+    result.auto_paging_iter.return_value = iter(items)
+    return result
+
+
 def test_create_product_and_price():
     provider = make_provider()
     product = MagicMock()
@@ -118,6 +124,151 @@ def test_create_meter_and_record_usage():
         "value": "42",
     }
     assert call.kwargs["options"] == {"idempotency_key": "usage-1"}
+
+
+def test_discover_catalog_auto_pages_and_normalizes_entitlements():
+    provider = make_provider()
+    provider._client.v1.billing.meters.list.return_value = page(
+        {
+            "id": "mtr_123",
+            "display_name": "Monthly active users",
+            "event_name": "monthly_active_users",
+            "status": "active",
+            "default_aggregation": {"formula": "sum"},
+            "customer_mapping": {"event_payload_key": "stripe_customer_id"},
+            "value_settings": {"event_payload_key": "active_users"},
+        }
+    )
+    provider._client.v1.products.list.return_value = page(
+        {
+            "id": "prod_123",
+            "name": "Starter",
+            "description": "Starter tier",
+            "active": True,
+            "unit_label": "seat",
+            "tax_code": "txcd_10103001",
+            "statement_descriptor": "TUNET",
+            "metadata": {"tunet_product_id": "starter"},
+        }
+    )
+    provider._client.v1.prices.list.return_value = page(
+        {
+            "id": "price_123",
+            "product": "prod_123",
+            "unit_amount": 1900,
+            "unit_amount_decimal": "1900",
+            "currency": "gbp",
+            "recurring": {
+                "interval": "month",
+                "interval_count": 1,
+                "usage_type": "metered",
+                "meter": "mtr_123",
+            },
+            "lookup_key": "tunet.example.starter.gbp.monthly",
+            "nickname": "Starter monthly",
+            "active": True,
+            "tax_behavior": "exclusive",
+            "billing_scheme": "per_unit",
+            "metadata": {"tunet_price_id": "gbp-monthly"},
+        }
+    )
+    provider._client.v1.entitlements.features.list.return_value = page(
+        {
+            "id": "ent_123",
+            "name": "Core access",
+            "lookup_key": "core-access",
+            "active": True,
+            "metadata": {},
+        }
+    )
+    provider._client.v1.products.features.list.return_value = page(
+        {"id": "prodft_123", "entitlement_feature": "ent_123"}
+    )
+
+    catalog = provider.discover_catalog()
+
+    assert catalog["meters"][0]["value_key"] == "active_users"
+    assert catalog["products"][0]["tax_code"] == "txcd_10103001"
+    assert catalog["prices"][0]["recurring"]["meter_event"] == "monthly_active_users"
+    assert catalog["product_features"][0]["feature_lookup_key"] == "core-access"
+    provider._client.v1.products.list.assert_called_once_with(params={"limit": 100})
+    provider._client.v1.prices.list.assert_called_once_with(params={"limit": 100})
+
+
+def test_update_and_replace_price_keep_archival_explicit():
+    provider = make_provider()
+    provider._client.v1.prices.update.return_value = {
+        "id": "price_old",
+        "product": "prod_123",
+        "unit_amount": 1500,
+        "currency": "gbp",
+        "active": False,
+        "metadata": {},
+    }
+    provider._client.v1.prices.create.return_value = {
+        "id": "price_new",
+        "product": "prod_123",
+        "unit_amount": 1900,
+        "currency": "gbp",
+        "active": True,
+        "lookup_key": "tunet.example.starter.gbp.monthly",
+        "metadata": {},
+    }
+
+    updated = provider.update_price(
+        "price_old",
+        active=False,
+        idempotency_key="archive-price-old",
+    )
+    replacement = provider.replace_price(
+        "price_old",
+        product_id="prod_123",
+        amount=Decimal("1900"),
+        currency="gbp",
+        lookup_key="tunet.example.starter.gbp.monthly",
+        recurring={"interval": "month"},
+        idempotency_key="replace-price-old",
+    )
+
+    assert updated["active"] is False
+    assert replacement["replaces_price_id"] == "price_old"
+    assert replacement["previous_price_archived"] is False
+    create_call = provider._client.v1.prices.create.call_args
+    assert create_call.kwargs["params"]["transfer_lookup_key"] is True
+    assert create_call.kwargs["options"] == {"idempotency_key": "replace-price-old"}
+
+
+def test_entitlement_feature_mutations_use_stripe_services():
+    provider = make_provider()
+    provider._client.v1.entitlements.features.create.return_value = {
+        "id": "ent_123",
+        "name": "Core access",
+        "lookup_key": "core-access",
+        "active": True,
+        "metadata": {},
+    }
+    provider._client.v1.products.features.create.return_value = {
+        "id": "prodft_123",
+        "entitlement_feature": "ent_123",
+    }
+
+    feature = provider.create_entitlement_feature(
+        name="Core access",
+        lookup_key="core-access",
+        idempotency_key="feature-core-access",
+    )
+    attachment = provider.attach_entitlement_feature(
+        "prod_123",
+        feature["id"],
+        idempotency_key="attach-core-access",
+    )
+
+    assert feature["lookup_key"] == "core-access"
+    assert attachment == {
+        "id": "prodft_123",
+        "product_id": "prod_123",
+        "feature_id": "ent_123",
+    }
 
 
 def test_portal_refund_coupon_tax_and_invoice_helpers():

@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-07-15
+
+### Added
+- Added Stripe catalog-admin discovery for billing meters, products, prices, and Entitlements features.
+- Added complete auto-paginated Stripe catalog listing helpers.
+- Added mutable price updates and guarded immutable price replacement with lookup-key transfer.
+- Added Stripe Entitlements feature and product-feature attachment operations.
+
+### Changed
+- Expanded normalized Stripe catalog objects with the fields required for desired-state reconciliation.
+
 ## [0.6.0] - 2026-06-10
 
 ### Added

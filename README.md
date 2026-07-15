@@ -138,6 +138,28 @@ SWAPLAYER = SwapLayerSettings(
 ```
 
 Square supports provider-agnostic customers, payments, catalog products/prices, subscriptions, checkout payment links, invoices, refunds, and webhook verification. Stripe remains the richest provider for metered usage, coupons/promotion codes, tax-rate management, and the hosted billing portal.
+
+### Stripe Catalog Administration
+
+SwapLayer is the single Stripe integration boundary for catalog discovery and mutation. Control
+planes can use the Stripe provider to auto-page the full products, prices, billing-meter, and
+Entitlements catalog, then create or update resources without importing Stripe directly:
+
+```python
+from swap_layer.billing.providers.stripe import StripePaymentProvider
+
+stripe_billing = StripePaymentProvider(secret_key=os.environ["STRIPE_SECRET_KEY"])
+catalog = stripe_billing.discover_catalog()
+
+stripe_billing.update_price(
+    "price_...",
+    nickname="Professional monthly",
+    idempotency_key="catalog-professional-monthly",
+)
+```
+
+Immutable monetary or recurrence changes use `replace_price()`. It transfers the stable lookup
+key to a new price and deliberately leaves the previous price and existing subscriptions untouched.
 ---
 
 ## Features

@@ -504,7 +504,7 @@ A: Not directly through the standard API. One provider is active per service. Fo
 multi-provider setups, instantiate providers directly from their factory functions.
 
 **Q: Is SwapLayer production-ready?**
-A: Yes. SwapLayer is used in production Django SaaS applications. Version 0.6.0 covers
+A: Yes. SwapLayer is used in production Django SaaS applications. Version 0.7.0 covers
 email, payments, SMS, storage, identity, and verification.
 
 **Q: Does SwapLayer work with Django REST Framework?**
