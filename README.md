@@ -3,7 +3,7 @@
 
 **One Interface. Any Provider. Zero Rewrites.**
 
-Part of the [Tunet](https://github.com/Tunet-xyz) ecosystem — alongside [SessionArmor](https://github.com/Tunet-xyz/session_armor) and [GeoCanon](https://github.com/Tunet-xyz/geo_canon).
+Part of the [Tunet](https://tunet.xyz/engineering/) ecosystem — alongside [SessionArmor](https://github.com/Tunet-xyz/session_armor) and [GeoCanon](https://github.com/Tunet-xyz/GeoCanon). See the [SwapLayer product page](https://tunet.xyz/engineering/swap-layer/) for the public capability overview.
 
 ---
 

@@ -14,9 +14,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added complete auto-paginated Stripe catalog listing helpers.
 - Added mutable price updates and guarded immutable price replacement with lookup-key transfer.
 - Added Stripe Entitlements feature and product-feature attachment operations.
+- Added a framework-neutral configuration core with thin Django and FastAPI adapters.
+- Added the public agent-operability contract and expanded `swaplayer-mcp` guidance surfaces.
 
 ### Changed
 - Expanded normalized Stripe catalog objects with the fields required for desired-state reconciliation.
+- Stabilized optional-provider imports and normalized provider behavior for installed-package use.
 
 ## [0.6.0] - 2026-06-10
 

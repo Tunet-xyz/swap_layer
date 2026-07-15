@@ -170,7 +170,10 @@ STRIPE_PUBLIC_KEY = os.environ.get('STRIPE_PUBLIC_KEY')
 
 **Providers:**
 - Stripe (full implementation)
-- PayPal, Square (future)
+- PayPal (products, plans, subscriptions, checkout orders, invoices, refunds, and webhooks)
+- Square (customers, payments, catalog products/prices, subscriptions, payment links, invoices, refunds, and webhooks)
+
+Provider parity is explicit: Stripe exposes the broadest billing surface, while PayPal and Square raise clear validation errors for unsupported Stripe-specific concepts.
 
 **Key Operations:** 21 methods including:
 - Customer management
@@ -265,7 +268,8 @@ STRIPE_PUBLIC_KEY = os.environ.get('STRIPE_PUBLIC_KEY')
 | Stripe Identity | ✅ | Identity Verification |
 | Onfido | 🚧 | Identity Verification |
 | Stripe | ✅ | Payments |
-| PayPal | 🚧 | Payments |
+| PayPal | ✅ | Payments |
+| Square | ✅ | Payments |
 | SMTP | ✅ | Email |
 | SendGrid | ✅ | Email |
 | Mailgun | 🚧 | Email |
@@ -286,7 +290,7 @@ Switch providers by changing one configuration setting:
 # Before: Using Stripe
 PAYMENT_PROVIDER = 'stripe'
 
-# After: Switching to PayPal (once implemented)
+# After: Switching to PayPal
 PAYMENT_PROVIDER = 'paypal'
 ```
 

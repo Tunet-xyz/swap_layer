@@ -23,9 +23,11 @@ Handles payment processing and related operations:
 - Webhook verification
 
 ### 4. **Products** (`swap_layer.payments.products`)
-Product catalog and pricing management (placeholder for future implementation):
-- Product management
-- Pricing configuration
+Product catalog and pricing management:
+- Create and list products and prices through the common billing interface
+- Discover Stripe meters, products, prices, and Entitlements features
+- Update mutable Stripe prices or replace immutable prices with explicit archival controls
+- Attach and detach Stripe Entitlements features from products
 - [Documentation](./products/README.md)
 
 ## Architecture
@@ -412,7 +414,7 @@ All provider implementations return data in a standardized format:
 
 ## Adding a New Provider
 
-PayPal is now included. To add another payment provider:
+Stripe, PayPal, and Square are included. To add another payment provider:
 
 1. Create a new file in `providers/`.
 2. Implement the `PaymentProviderAdapter` interface.
@@ -482,12 +484,10 @@ def test_subscription_creation():
 
 ## Future Enhancements
 
-- Add support for Square
 - Add support for Braintree
-- Implement provider-agnostic webhook routing
 - Add caching layer for frequently accessed data
 - Add support for multiple concurrent providers
-- Add provider capability detection (e.g., some providers may not support certain features)
+- Expand machine-readable provider capability discovery
 ## Expanded Stripe Billing Surface
 
 The Stripe provider exposes the common application billing flows directly through the payment provider interface:

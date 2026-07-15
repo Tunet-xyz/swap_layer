@@ -37,6 +37,7 @@ dependencies = [
 
 [project.urls]
 Homepage = "https://github.com/Tunet-xyz/swap_layer"
+Product = "https://tunet.xyz/engineering/swap-layer/"
 Documentation = "https://github.com/Tunet-xyz/swap_layer/blob/main/docs/README.md"
 Repository = "https://github.com/Tunet-xyz/swap_layer"
 Issues = "https://github.com/Tunet-xyz/swap_layer/issues"
