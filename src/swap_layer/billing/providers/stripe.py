@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Any
 
@@ -1222,6 +1223,87 @@ class StripePaymentProvider(PaymentProviderAdapter):
                 ),
             ),
             "prices": sorted(prices, key=lambda item: str(item.get("id") or "")),
+        }
+
+    @classmethod
+    def _invoice_line_price_id(cls, line: Any) -> str | None:
+        """Extract the price id from an invoice line across Stripe API versions."""
+        price_id = cls._catalog_id(cls._catalog_value(line, "price"))
+        if price_id:
+            return price_id
+        pricing = cls._catalog_value(line, "pricing")
+        if pricing is None:
+            return None
+        details = cls._catalog_value(pricing, "price_details")
+        if details is None:
+            return None
+        return cls._catalog_id(cls._catalog_value(details, "price"))
+
+    def discover_revenue(self, *, month: str) -> dict[str, Any]:
+        """Aggregate one calendar month of paid-invoice revenue per price lookup key.
+
+        Args:
+            month: Calendar month in ``YYYY-MM`` form, interpreted in UTC against
+                invoice creation time.
+
+        Returns provider-neutral aggregates only: each line carries a price lookup
+        key, a currency, and the summed paid amount in minor units. Aggregation
+        happens before this method returns, so no customer, invoice, or payment
+        identifiers cross the boundary. Lines whose price has no lookup key are
+        summed under ``lookup_key: None`` so unattributable revenue stays visible
+        instead of silently disappearing.
+        """
+        if len(month) != 7:
+            raise PaymentValidationError(f"Revenue month must use the YYYY-MM form, got: {month!r}")
+        try:
+            start = datetime.strptime(month, "%Y-%m").replace(tzinfo=timezone.utc)
+        except ValueError as exc:
+            raise PaymentValidationError(
+                f"Revenue month must use the YYYY-MM form, got: {month!r}"
+            ) from exc
+        end = start.replace(
+            year=start.year + (1 if start.month == 12 else 0),
+            month=1 if start.month == 12 else start.month + 1,
+        )
+
+        lookup_keys = {
+            price["id"]: price.get("lookup_key")
+            for price in self.list_all_prices()
+            if price.get("id")
+        }
+
+        totals: dict[tuple[str | None, str], int] = {}
+        invoices = self._client.v1.invoices.list(
+            params={
+                "status": "paid",
+                "created": {"gte": int(start.timestamp()), "lt": int(end.timestamp())},
+                "limit": 100,
+            }
+        )
+        for invoice in self._auto_paging_items(invoices):
+            lines = self._catalog_value(invoice, "lines")
+            if lines is None:
+                continue
+            line_items = lines if isinstance(lines, list) else self._auto_paging_items(lines)
+            for line in line_items:
+                amount = self._catalog_value(line, "amount")
+                currency = self._catalog_value(line, "currency")
+                if isinstance(amount, bool) or not isinstance(amount, int) or not currency:
+                    continue
+                key = (
+                    lookup_keys.get(self._invoice_line_price_id(line)),
+                    str(currency).lower(),
+                )
+                totals[key] = totals.get(key, 0) + amount
+
+        return {
+            "month": month,
+            "lines": [
+                {"lookup_key": lookup_key, "currency": currency, "amount_minor": amount}
+                for (lookup_key, currency), amount in sorted(
+                    totals.items(), key=lambda item: (str(item[0][0] or ""), item[0][1])
+                )
+            ],
         }
 
     def _normalize_entitlement_feature(self, feature: Any) -> dict[str, Any]:

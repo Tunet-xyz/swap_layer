@@ -353,3 +353,77 @@ def test_webhook_dispatch_dedupes_and_calls_handler():
     assert result == {"handled": True, "duplicate": False, "event_id": "evt_123", "result": "ok"}
     assert duplicate == {"handled": False, "duplicate": True, "event_id": "evt_123"}
     assert calls == ["evt_123"]
+
+
+def test_discover_revenue_aggregates_paid_invoices_by_lookup_key():
+    provider = make_provider()
+    provider._client.v1.prices.list.return_value = page(
+        {"id": "price_pro", "lookup_key": "tunet.micro.career.professional.usd.monthly"},
+        {"id": "price_exec", "lookup_key": "tunet.micro.career.executive.usd.monthly"},
+        {"id": "price_unkeyed", "lookup_key": None},
+    )
+    first_invoice = MagicMock()
+    first_invoice.lines = page(
+        {"amount": 2400, "currency": "usd", "price": {"id": "price_pro"}},
+        {"amount": 4900, "currency": "usd", "price": "price_exec"},
+    )
+    second_invoice = MagicMock()
+    second_invoice.lines = page(
+        # Modern API shape: price arrives through pricing.price_details.
+        {
+            "amount": 2400,
+            "currency": "usd",
+            "pricing": {"price_details": {"price": "price_pro"}},
+        },
+        # Unkeyed and unknown prices aggregate under lookup_key None.
+        {"amount": 500, "currency": "usd", "price": "price_unkeyed"},
+        {"amount": 300, "currency": "usd", "price": "price_deleted"},
+        # Malformed lines are dropped, never guessed.
+        {"amount": None, "currency": "usd", "price": "price_pro"},
+        {"amount": 100, "currency": None, "price": "price_pro"},
+    )
+    provider._client.v1.invoices.list.return_value = page(first_invoice, second_invoice)
+
+    report = provider.discover_revenue(month="2026-07")
+
+    params = provider._client.v1.invoices.list.call_args.kwargs["params"]
+    assert params["status"] == "paid"
+    assert params["limit"] == 100
+    # July 2026 in UTC: [2026-07-01, 2026-08-01).
+    assert params["created"] == {"gte": 1782864000, "lt": 1785542400}
+    assert report == {
+        "month": "2026-07",
+        "lines": [
+            {"lookup_key": None, "currency": "usd", "amount_minor": 800},
+            {
+                "lookup_key": "tunet.micro.career.executive.usd.monthly",
+                "currency": "usd",
+                "amount_minor": 4900,
+            },
+            {
+                "lookup_key": "tunet.micro.career.professional.usd.monthly",
+                "currency": "usd",
+                "amount_minor": 4800,
+            },
+        ],
+    }
+
+
+def test_discover_revenue_handles_december_rollover_and_rejects_bad_months():
+    from swap_layer.billing.adapter import PaymentValidationError
+
+    provider = make_provider()
+    provider._client.v1.prices.list.return_value = page()
+    provider._client.v1.invoices.list.return_value = page()
+
+    report = provider.discover_revenue(month="2026-12")
+    params = provider._client.v1.invoices.list.call_args.kwargs["params"]
+    # December 2026 in UTC: [2026-12-01, 2027-01-01).
+    assert params["created"] == {"gte": 1796083200, "lt": 1798761600}
+    assert report == {"month": "2026-12", "lines": []}
+
+    try:
+        provider.discover_revenue(month="2026-7")
+        raise AssertionError("expected PaymentValidationError")
+    except PaymentValidationError as exc:
+        assert "YYYY-MM" in str(exc)

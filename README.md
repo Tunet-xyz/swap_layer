@@ -160,6 +160,18 @@ stripe_billing.update_price(
 
 Immutable monetary or recurrence changes use `replace_price()`. It transfers the stable lookup
 key to a new price and deliberately leaves the previous price and existing subscriptions untouched.
+
+Control planes can also read aggregate revenue without ever touching customer data.
+`discover_revenue(month="YYYY-MM")` sums one calendar month of paid-invoice amounts per price
+lookup key and returns only `{lookup_key, currency, amount_minor}` lines — aggregation happens
+inside SwapLayer, so no customer, invoice, or payment identifiers cross the boundary:
+
+```python
+revenue = stripe_billing.discover_revenue(month="2026-07")
+# {"month": "2026-07", "lines": [
+#   {"lookup_key": "tunet.micro.career.professional.usd.monthly", "currency": "usd", "amount_minor": 4800},
+# ]}
+```
 ---
 
 ## Features

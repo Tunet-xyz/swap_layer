@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added Stripe revenue discovery: `discover_revenue(month=...)` aggregates one calendar month of paid-invoice revenue per price lookup key, in minor units per currency. Aggregation happens inside the boundary, so no customer, invoice, or payment identifiers are returned; revenue from unkeyed or unknown prices is summed under a `None` lookup key instead of disappearing.
+
 ## [0.7.0] - 2026-07-15
 
 ### Added
