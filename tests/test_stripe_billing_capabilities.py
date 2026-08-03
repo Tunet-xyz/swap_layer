@@ -195,6 +195,17 @@ def test_discover_catalog_auto_pages_and_normalizes_entitlements():
     provider._client.v1.prices.list.assert_called_once_with(params={"limit": 100})
 
 
+def test_catalog_metadata_accepts_stripe_object_containers():
+    class StripeLikeMetadata:
+        def to_dict(self):
+            return {"tunet_offering_id": "micro-career", "tunet_product_id": "professional"}
+
+    assert StripePaymentProvider._catalog_dict(StripeLikeMetadata()) == {
+        "tunet_offering_id": "micro-career",
+        "tunet_product_id": "professional",
+    }
+
+
 def test_update_and_replace_price_keep_archival_explicit():
     provider = make_provider()
     provider._client.v1.prices.update.return_value = {

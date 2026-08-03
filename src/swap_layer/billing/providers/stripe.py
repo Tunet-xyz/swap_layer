@@ -410,6 +410,17 @@ class StripePaymentProvider(PaymentProviderAdapter):
             return value.get(name, default)
         return getattr(value, name, default)
 
+    @staticmethod
+    def _catalog_dict(value: Any) -> dict[str, Any]:
+        """Normalize plain mappings and StripeObject containers to a dictionary."""
+        if isinstance(value, dict):
+            return dict(value)
+        to_dict = getattr(value, "to_dict", None)
+        if callable(to_dict):
+            normalized = to_dict()
+            return dict(normalized) if isinstance(normalized, dict) else {}
+        return {}
+
     @classmethod
     def _catalog_id(cls, value: Any) -> str | None:
         if isinstance(value, str):
@@ -890,7 +901,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
             "default_price_id": self._catalog_id(
                 self._catalog_value(product, "default_price")
             ),
-            "metadata": dict(metadata) if isinstance(metadata, dict) else {},
+            "metadata": self._catalog_dict(metadata),
             "created": self._catalog_value(product, "created"),
         }
 
@@ -921,7 +932,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
             "active": self._catalog_value(price, "active"),
             "tax_behavior": self._catalog_value(price, "tax_behavior"),
             "billing_scheme": self._catalog_value(price, "billing_scheme"),
-            "metadata": dict(metadata) if isinstance(metadata, dict) else {},
+            "metadata": self._catalog_dict(metadata),
             "created": self._catalog_value(price, "created"),
         }
 
@@ -1231,7 +1242,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
             "name": self._catalog_value(feature, "name"),
             "lookup_key": self._catalog_value(feature, "lookup_key"),
             "active": self._catalog_value(feature, "active"),
-            "metadata": dict(metadata) if isinstance(metadata, dict) else {},
+            "metadata": self._catalog_dict(metadata),
         }
 
     def _normalize_product_feature(
