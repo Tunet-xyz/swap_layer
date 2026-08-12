@@ -339,6 +339,23 @@ session = provider.get_checkout_session(session_id='cs_123')
 
 ### Webhooks
 
+SwapLayer also exposes provider-neutral webhook endpoint lifecycle operations. Stripe
+creation returns the signing secret once; move that value directly to an approved
+secret manager and never log or persist the creation response:
+
+```python
+endpoint = provider.create_webhook_endpoint(
+    "https://api.example.com/webhooks/stripe",
+    ["checkout.session.completed", "customer.subscription.updated"],
+    metadata={"tunet_product_id": "example"},
+)
+secret_manager.add_version("example-stripe-webhook-secret", endpoint.pop("secret"))
+```
+
+`list_webhook_endpoints()` and `get_webhook_endpoint()` deliberately omit signing
+secrets. Updating an endpoint does not rotate its secret; deletion is always an
+explicit call.
+
 ```python
 # In your webhook view
 def payment_webhook(request):

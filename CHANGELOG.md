@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added provider-neutral webhook endpoint lifecycle operations and Stripe discovery,
+  create, update, and explicit delete support with a one-time signing-secret boundary.
+
 ## [0.7.0] - 2026-07-15
 
 ### Added

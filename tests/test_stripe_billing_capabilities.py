@@ -364,3 +364,84 @@ def test_webhook_dispatch_dedupes_and_calls_handler():
     assert result == {"handled": True, "duplicate": False, "event_id": "evt_123", "result": "ok"}
     assert duplicate == {"handled": False, "duplicate": True, "event_id": "evt_123"}
     assert calls == ["evt_123"]
+
+
+def test_webhook_endpoint_lifecycle_and_secret_boundary():
+    provider = make_provider()
+    created = {
+        "id": "we_123",
+        "url": "https://example.test/webhooks/stripe",
+        "enabled_events": ["checkout.session.completed"],
+        "status": "enabled",
+        "description": "Example checkout lifecycle",
+        "metadata": {"tunet_product_id": "example"},
+        "connect": False,
+        "livemode": False,
+        "secret": "whsec_once",
+    }
+    provider._client.v1.webhook_endpoints.create.return_value = created
+    provider._client.v1.webhook_endpoints.retrieve.return_value = created
+    provider._client.v1.webhook_endpoints.list.return_value = page(created)
+    provider._client.v1.webhook_endpoints.update.return_value = {
+        **created,
+        "enabled_events": [
+            "checkout.session.completed",
+            "customer.subscription.updated",
+        ],
+    }
+    provider._client.v1.webhook_endpoints.delete.return_value = {
+        "id": "we_123",
+        "deleted": True,
+    }
+
+    creation = provider.create_webhook_endpoint(
+        created["url"],
+        created["enabled_events"],
+        description=created["description"],
+        metadata=created["metadata"],
+        idempotency_key="webhook-example",
+    )
+    retrieved = provider.get_webhook_endpoint("we_123")
+    discovered = provider.list_webhook_endpoints()
+    updated = provider.update_webhook_endpoint(
+        "we_123",
+        enabled_events=[
+            "checkout.session.completed",
+            "customer.subscription.updated",
+        ],
+        idempotency_key="webhook-example-update",
+    )
+    deleted = provider.delete_webhook_endpoint("we_123")
+
+    assert creation["secret"] == "whsec_once"
+    assert "secret" not in retrieved
+    assert "secret" not in discovered[0]
+    assert "secret" not in updated
+    assert deleted == {"id": "we_123", "deleted": True}
+    provider._client.v1.webhook_endpoints.create.assert_called_once_with(
+        params={
+            "url": created["url"],
+            "enabled_events": created["enabled_events"],
+            "connect": False,
+            "description": created["description"],
+            "metadata": created["metadata"],
+        },
+        options={"idempotency_key": "webhook-example"},
+    )
+    provider._client.v1.webhook_endpoints.list.assert_called_once_with(params={"limit": 100})
+
+
+def test_webhook_endpoint_requires_url_events_and_changes():
+    provider = make_provider()
+
+    for action in (
+        lambda: provider.create_webhook_endpoint("", ["checkout.session.completed"]),
+        lambda: provider.create_webhook_endpoint("https://example.test/webhooks/stripe", []),
+        lambda: provider.update_webhook_endpoint("we_123"),
+    ):
+        try:
+            action()
+        except Exception as exc:
+            assert "Webhook" in str(exc) or "webhook" in str(exc)
+        else:
+            raise AssertionError("Expected webhook endpoint validation to fail")

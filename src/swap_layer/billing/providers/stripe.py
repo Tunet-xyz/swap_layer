@@ -1551,6 +1551,127 @@ class StripePaymentProvider(PaymentProviderAdapter):
         }
 
     # Webhooks
+    def _normalize_webhook_endpoint(
+        self, endpoint: Any, *, include_secret: bool = False
+    ) -> dict[str, Any]:
+        normalized = {
+            "id": self._catalog_value(endpoint, "id"),
+            "url": self._catalog_value(endpoint, "url"),
+            "enabled_events": list(self._catalog_value(endpoint, "enabled_events", []) or []),
+            "status": self._catalog_value(endpoint, "status"),
+            "api_version": self._catalog_value(endpoint, "api_version"),
+            "description": self._catalog_value(endpoint, "description"),
+            "metadata": self._catalog_dict(self._catalog_value(endpoint, "metadata", {})),
+            "connect": bool(self._catalog_value(endpoint, "connect", False)),
+            "application": self._catalog_id(self._catalog_value(endpoint, "application")),
+            "created": self._catalog_value(endpoint, "created"),
+            "livemode": self._catalog_value(endpoint, "livemode"),
+        }
+        if include_secret:
+            normalized["secret"] = self._catalog_value(endpoint, "secret")
+        return normalized
+
+    def create_webhook_endpoint(
+        self,
+        url: str,
+        enabled_events: list[str],
+        *,
+        description: str | None = None,
+        metadata: dict[str, str] | None = None,
+        connect: bool = False,
+        api_version: str | None = None,
+        idempotency_key: str | None = None,
+    ) -> dict[str, Any]:
+        """Create a Stripe webhook endpoint and return its one-time signing secret."""
+        if not url.strip():
+            raise PaymentValidationError("Webhook endpoint URL is required")
+        if not enabled_events:
+            raise PaymentValidationError("At least one webhook event is required")
+        params: dict[str, Any] = {
+            "url": url,
+            "enabled_events": list(enabled_events),
+            "connect": connect,
+        }
+        if description is not None:
+            params["description"] = description
+        if metadata is not None:
+            params["metadata"] = metadata
+        if api_version is not None:
+            params["api_version"] = api_version
+        options = {"idempotency_key": idempotency_key} if idempotency_key else None
+        try:
+            endpoint = self._client.v1.webhook_endpoints.create(params=params, options=options)
+            return self._normalize_webhook_endpoint(endpoint, include_secret=True)
+        except Exception as exc:
+            self._handle_stripe_error(exc)
+
+    def get_webhook_endpoint(self, endpoint_id: str) -> dict[str, Any]:
+        """Retrieve a Stripe webhook endpoint without exposing a signing secret."""
+        try:
+            endpoint = self._client.v1.webhook_endpoints.retrieve(endpoint_id)
+            return self._normalize_webhook_endpoint(endpoint)
+        except Exception as exc:
+            self._handle_stripe_error(exc)
+
+    def list_webhook_endpoints(self, limit: int = 100) -> list[dict[str, Any]]:
+        """List all Stripe webhook endpoints using SDK auto-pagination."""
+        if limit < 1 or limit > 100:
+            raise PaymentValidationError("Webhook endpoint page size must be between 1 and 100")
+        try:
+            page = self._client.v1.webhook_endpoints.list(params={"limit": limit})
+            return [self._normalize_webhook_endpoint(item) for item in page.auto_paging_iter()]
+        except Exception as exc:
+            self._handle_stripe_error(exc)
+
+    def update_webhook_endpoint(
+        self,
+        endpoint_id: str,
+        *,
+        url: str | None = None,
+        enabled_events: list[str] | None = None,
+        description: str | None = None,
+        metadata: dict[str, str] | None = None,
+        disabled: bool | None = None,
+        idempotency_key: str | None = None,
+    ) -> dict[str, Any]:
+        """Update Stripe webhook routing without changing its signing secret."""
+        params: dict[str, Any] = {}
+        if url is not None:
+            if not url.strip():
+                raise PaymentValidationError("Webhook endpoint URL cannot be empty")
+            params["url"] = url
+        if enabled_events is not None:
+            if not enabled_events:
+                raise PaymentValidationError("At least one webhook event is required")
+            params["enabled_events"] = list(enabled_events)
+        if description is not None:
+            params["description"] = description
+        if metadata is not None:
+            params["metadata"] = metadata
+        if disabled is not None:
+            params["disabled"] = disabled
+        if not params:
+            raise PaymentValidationError("At least one webhook endpoint change is required")
+        options = {"idempotency_key": idempotency_key} if idempotency_key else None
+        try:
+            endpoint = self._client.v1.webhook_endpoints.update(
+                endpoint_id, params=params, options=options
+            )
+            return self._normalize_webhook_endpoint(endpoint)
+        except Exception as exc:
+            self._handle_stripe_error(exc)
+
+    def delete_webhook_endpoint(self, endpoint_id: str) -> dict[str, Any]:
+        """Delete a Stripe webhook endpoint explicitly."""
+        try:
+            deleted = self._client.v1.webhook_endpoints.delete(endpoint_id)
+            return {
+                "id": self._catalog_value(deleted, "id", endpoint_id),
+                "deleted": bool(self._catalog_value(deleted, "deleted", True)),
+            }
+        except Exception as exc:
+            self._handle_stripe_error(exc)
+
     def verify_webhook_signature(
         self,
         payload: bytes,
