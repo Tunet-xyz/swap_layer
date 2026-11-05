@@ -22,7 +22,7 @@ class DjangoEmailAdapter(EmailProviderAdapter):
         from_email: str | None = None,
         cc: list[str] | None = None,
         bcc: list[str] | None = None,
-        reply_to: str | None = None,
+        reply_to: list[str] | str | None = None,
         attachments: list[dict[str, Any]] | None = None,
         headers: dict[str, str] | None = None,
         metadata: dict[str, Any] | None = None,
@@ -48,7 +48,7 @@ class DjangoEmailAdapter(EmailProviderAdapter):
                 to=to,
                 cc=cc,
                 bcc=bcc,
-                reply_to=[reply_to] if reply_to else None,
+                reply_to=[reply_to] if isinstance(reply_to, str) else reply_to,
                 headers=headers,
             )
 

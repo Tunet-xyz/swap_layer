@@ -10,6 +10,7 @@ Add this to your admin.py:
         list_display = ['user', 'identity_provider', 'provider_email', 'last_login_at']
 """
 
+from django.contrib import admin
 from django.utils.html import format_html
 
 
@@ -20,10 +21,11 @@ class OAuthIdentityAdminMixin:
     Adds helpful fields for OAuth identity management.
     """
 
+    @admin.display(description="Provider", ordering="identity_provider")
     def provider_badge(self, obj):
         """Display identity provider badge."""
         if not obj.identity_provider:
-            return format_html('<span style="color: #999;">—</span>')
+            return format_html('<span style="color: #999;">{}</span>', "—")
 
         provider_colors = {
             "workos": "#6363f1",
@@ -37,25 +39,20 @@ class OAuthIdentityAdminMixin:
             obj.identity_provider.upper(),
         )
 
-    provider_badge.short_description = "Provider"
-    provider_badge.admin_order_field = "identity_provider"
-
+    @admin.display(description="Token", ordering="provider_token_expires_at")
     def token_status(self, obj):
         """Display token expiration status."""
         if not obj.provider_token_expires_at:
-            return format_html('<span style="color: #999;">No token</span>')
+            return format_html('<span style="color: #999;">{}</span>', "No token")
 
         from django.utils import timezone
 
         now = timezone.now()
 
         if obj.provider_token_expires_at > now:
-            return format_html('<span style="color: #28a745;">✓ Valid</span>')
+            return format_html('<span style="color: #28a745;">{}</span>', "✓ Valid")
         else:
-            return format_html('<span style="color: #dc3545;">✗ Expired</span>')
-
-    token_status.short_description = "Token"
-    token_status.admin_order_field = "provider_token_expires_at"
+            return format_html('<span style="color: #dc3545;">{}</span>', "✗ Expired")
 
 
 class SSOConnectionAdminMixin:
@@ -65,23 +62,24 @@ class SSOConnectionAdminMixin:
     Adds helpful fields for SSO connection management.
     """
 
+    @admin.display(description="SSO Status", ordering="sso_enabled")
     def sso_status_badge(self, obj):
         """Display SSO enabled status."""
         if obj.sso_enabled:
             return format_html(
-                '<span style="background: #28a745; color: white; padding: 2px 8px; border-radius: 3px; font-size: 11px;">ENABLED</span>'
+                '<span style="background: #28a745; color: white; padding: 2px 8px; border-radius: 3px; font-size: 11px;">{}</span>',
+                "ENABLED",
             )
         return format_html(
-            '<span style="background: #6c757d; color: white; padding: 2px 8px; border-radius: 3px; font-size: 11px;">DISABLED</span>'
+            '<span style="background: #6c757d; color: white; padding: 2px 8px; border-radius: 3px; font-size: 11px;">{}</span>',
+            "DISABLED",
         )
 
-    sso_status_badge.short_description = "SSO Status"
-    sso_status_badge.admin_order_field = "sso_enabled"
-
+    @admin.display(description="SSO Provider")
     def sso_provider_link(self, obj):
         """Display SSO provider with link to dashboard."""
         if not obj.sso_provider or not obj.sso_connection_id:
-            return format_html('<span style="color: #999;">—</span>')
+            return format_html('<span style="color: #999;">{}</span>', "—")
 
         dashboard_urls = {
             "workos": f"https://dashboard.workos.com/connections/{obj.sso_connection_id}",
@@ -96,5 +94,3 @@ class SSOConnectionAdminMixin:
                 obj.sso_provider.upper(),
             )
         return obj.sso_provider.upper() if obj.sso_provider else "—"
-
-    sso_provider_link.short_description = "SSO Provider"

@@ -1,5 +1,7 @@
 from typing import Any
 
+from swap_layer._compat import legacy_setting
+
 from ..adapter import SMSProviderAdapter
 
 
@@ -19,18 +21,16 @@ class SNSSMSProvider(SMSProviderAdapter):
         AWS_SNS_DEFAULT_SENDER_ID = os.environ.get('AWS_SNS_DEFAULT_SENDER_ID')  # Optional
     """
 
-    def __init__(self):
+    def __init__(
+        self, aws_access_key_id: str | None = None, aws_secret_access_key: str | None = None,
+        region_name: str | None = None, sender_id: str | None = None,
+    ):
         """Initialize AWS SNS SMS provider."""
         try:
             import boto3
-            from django.conf import settings
-
-            aws_access_key_id = getattr(settings, "AWS_ACCESS_KEY_ID", None)
-            aws_secret_access_key = getattr(settings, "AWS_SECRET_ACCESS_KEY", None)
-            aws_region_name = getattr(settings, "AWS_REGION_NAME", "us-east-1")
-
-            if not aws_access_key_id or not aws_secret_access_key:
-                raise ValueError("AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY must be configured")
+            aws_access_key_id = aws_access_key_id or legacy_setting("AWS_ACCESS_KEY_ID")
+            aws_secret_access_key = aws_secret_access_key or legacy_setting("AWS_SECRET_ACCESS_KEY")
+            aws_region_name = region_name or legacy_setting("AWS_REGION_NAME", "us-east-1")
 
             self.sns_client = boto3.client(
                 "sns",
@@ -38,7 +38,7 @@ class SNSSMSProvider(SMSProviderAdapter):
                 aws_secret_access_key=aws_secret_access_key,
                 region_name=aws_region_name,
             )
-            self.sender_id = getattr(settings, "AWS_SNS_DEFAULT_SENDER_ID", None)
+            self.sender_id = sender_id or legacy_setting("AWS_SNS_DEFAULT_SENDER_ID")
 
         except ImportError:
             raise ImportError("boto3 library not installed. Run: pip install boto3")
@@ -51,7 +51,7 @@ class SNSSMSProvider(SMSProviderAdapter):
         metadata: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Send an SMS message via AWS SNS."""
-        from sms.adapter import SMSSendError
+        from ..adapter import SMSSendError
 
         try:
             # Set message attributes
@@ -66,7 +66,7 @@ class SNSSMSProvider(SMSProviderAdapter):
             if self.sender_id or from_number:
                 message_attributes["AWS.SNS.SMS.SenderID"] = {
                     "DataType": "String",
-                    "StringValue": from_number or self.sender_id,
+                    "StringValue": from_number or self.sender_id or "",
                 }
 
             # Send message
@@ -234,7 +234,7 @@ class SNSSMSProvider(SMSProviderAdapter):
         AWS SNS automatically manages opt-outs when users reply with STOP.
         This method checks if a number is currently opted out.
         """
-        from sms.adapter import SMSError
+        from ..adapter import SMSError
 
         try:
             response = self.sns_client.check_if_phone_number_is_opted_out(phoneNumber=phone_number)
@@ -254,7 +254,7 @@ class SNSSMSProvider(SMSProviderAdapter):
 
         This allows sending SMS to a number that was previously opted out.
         """
-        from sms.adapter import SMSError
+        from ..adapter import SMSError
 
         try:
             self.sns_client.opt_in_phone_number(phoneNumber=phone_number)

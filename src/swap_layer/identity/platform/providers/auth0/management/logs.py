@@ -2,9 +2,12 @@
 Auth0 Log Management Implementation
 """
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from swap_layer.identity.platform.management.adapter import LogManagementAdapter
+
+if TYPE_CHECKING:
+    from .client import Auth0ManagementClient
 
 
 class Auth0LogManagement(LogManagementAdapter):
@@ -12,7 +15,7 @@ class Auth0LogManagement(LogManagementAdapter):
     Auth0-specific implementation of audit log and event management operations.
     """
 
-    def __init__(self, base_client):
+    def __init__(self, base_client: "Auth0ManagementClient"):
         """
         Initialize with base client for shared functionality.
 
@@ -46,7 +49,7 @@ class Auth0LogManagement(LogManagementAdapter):
             >>> # Get failed login attempts
             >>> logs.list_logs(query='type:f AND date:[2024-01-01 TO 2024-12-31]')
         """
-        params = {}
+        params: dict[str, Any] = {}
 
         # Checkpoint-based pagination (preferred for large datasets)
         if from_id:
@@ -62,7 +65,7 @@ class Auth0LogManagement(LogManagementAdapter):
 
         params.update(kwargs)
 
-        return self.base_client._make_request("GET", "/logs", params=params)
+        return self.base_client._make_list_request("GET", "/logs", params=params)
 
     def get_log(self, log_id: str) -> dict[str, Any]:
         """
@@ -74,7 +77,7 @@ class Auth0LogManagement(LogManagementAdapter):
         Returns:
             Log entry object
         """
-        return self.base_client._make_request("GET", f"/logs/{log_id}")
+        return self.base_client._make_object_request("GET", f"/logs/{log_id}")
 
     def get_user_logs(
         self, user_id: str, page: int = 0, per_page: int = 50, **kwargs

@@ -13,11 +13,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Redact nested credentials from current MCP settings models and omit raw provider
   exception messages from operational MCP responses.
 - Bound legacy Auth0 management HTTP calls with a 30-second timeout.
+- Require an explicit storage security context; isolate Auth0 token caches by
+  tenant and client, and suppress credential-bearing validation input in diagnostics.
 
 ### Fixed
 - Restrict the MCP SDK to its supported 1.x API and test the actual tool registry.
 - Use the storage adapter API in MCP upload probes and the current settings API in
   the WorkOS management factory.
+- Align WorkOS management operations with the shared adapter interfaces and current
+  SDK session API. Reject unsupported user-specific event queries explicitly.
+- Fix standalone Stripe/Twilio initialization, SNS configuration and imports, native
+  GCS settings, and compound environment-variable field names.
+- Normalize Django storage listing and Stripe Identity responses, update promotion
+  codes for the current Stripe API, and preserve positional idempotency arguments.
+- Fix empty admin displays and numeric quota formatting on current Django; preserve
+  display metadata using Django's supported decorators. Full source type checks pass.
 
 ### Added
 - Added provider-neutral webhook endpoint lifecycle operations and Stripe discovery,

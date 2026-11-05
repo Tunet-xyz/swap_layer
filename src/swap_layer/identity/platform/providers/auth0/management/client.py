@@ -8,6 +8,7 @@ Documentation: https://auth0.com/docs/api/management/v2
 """
 
 import logging
+from hashlib import sha256
 from typing import Any
 
 from django.conf import settings
@@ -56,13 +57,13 @@ class Auth0ManagementClient(IdentityManagementClient):
             app_name: Auth0 app configuration name from settings
         """
         self.app_name = app_name
-        self.config = settings.AUTH0_APPS.get(app_name)
+        self.config = getattr(settings, "AUTH0_APPS", {}).get(app_name)
         if not self.config:
             raise ValueError(
                 f"Auth0 configuration for '{app_name}' not found in settings.AUTH0_APPS"
             )
 
-        self.domain = settings.AUTH0_DEVELOPER_DOMAIN
+        self.domain = getattr(settings, "AUTH0_DEVELOPER_DOMAIN", "")
         self.base_url = f"https://{self.domain}/api/v2"
         self.token_url = f"https://{self.domain}/oauth/token"
 
@@ -75,10 +76,11 @@ class Auth0ManagementClient(IdentityManagementClient):
         )
 
         # Token caching
-        self._token_cache_key = f"auth0_mgmt_token_{app_name}"
+        audience = sha256(f"{self.domain}:{self.client_id}".encode()).hexdigest()
+        self._token_cache_key = f"auth0_mgmt_token_{app_name}_{audience}"
 
         # Create resilient session for API requests
-        self._session = None  # Lazily initialized after token fetch
+        self._session: ResilientSession | None = None  # Initialized after token fetch
 
         # Initialize module adapters
         self._users = Auth0UserManagement(self)
@@ -125,7 +127,7 @@ class Auth0ManagementClient(IdentityManagementClient):
         # Check cache first
         cached_token = cache.get(self._token_cache_key)
         if cached_token:
-            return cached_token
+            return str(cached_token)
 
         # Request new token with retry support
         payload = {
@@ -149,6 +151,8 @@ class Auth0ManagementClient(IdentityManagementClient):
             raise
 
         token = data["access_token"]
+        if not isinstance(token, str) or not token:
+            raise ValueError("Auth0 returned an invalid management token")
         expires_in = data.get("expires_in", 86400)  # Default 24 hours
 
         # Cache token (with 5 minute buffer)
@@ -176,7 +180,7 @@ class Auth0ManagementClient(IdentityManagementClient):
 
     def _make_request(
         self, method: str, endpoint: str, params: dict | None = None, json: dict | None = None
-    ) -> dict[str, Any]:
+    ) -> Any:
         """
         Make authenticated request to Management API with automatic retries.
 
@@ -208,18 +212,33 @@ class Auth0ManagementClient(IdentityManagementClient):
             logger.error(f"Auth0 API request failed: {method} {endpoint} - {e}")
             raise
 
+    def _make_object_request(self, *args: Any, **kwargs: Any) -> dict[str, Any]:
+        payload = self._make_request(*args, **kwargs)
+        if not isinstance(payload, dict):
+            raise ValueError("Expected a JSON object from Auth0")
+        return payload
+
+    def _make_list_request(self, *args: Any, **kwargs: Any) -> list[dict[str, Any]]:
+        payload = self._make_request(*args, **kwargs)
+        if not isinstance(payload, list) or any(not isinstance(item, dict) for item in payload):
+            raise ValueError("Expected a JSON array of objects from Auth0")
+        return payload
+
     # ========================================================================
     # Additional Helper Methods
     # ========================================================================
 
-    def get_stats(self) -> dict[str, Any]:
+    def get_stats(self) -> int:
         """
         Get tenant statistics.
 
         Returns:
-            Statistics about active users, logins, etc.
+            Number of active users in the tenant.
         """
-        return self._make_request("GET", "/stats/active-users")
+        value = self._make_request("GET", "/stats/active-users")
+        if not isinstance(value, int) or isinstance(value, bool):
+            raise ValueError("Expected an active-user count from Auth0")
+        return value
 
     def get_daily_stats(self, date_from: str, date_to: str) -> list:
         """
@@ -233,4 +252,4 @@ class Auth0ManagementClient(IdentityManagementClient):
             Daily statistics
         """
         params = {"from": date_from, "to": date_to}
-        return self._make_request("GET", "/stats/daily", params=params)
+        return self._make_list_request("GET", "/stats/daily", params=params)

@@ -59,9 +59,9 @@ def get_payment_provider() -> PaymentProviderAdapter:
             if isinstance(sandbox, str):
                 sandbox = sandbox.lower() not in {"0", "false", "no", "off"}
             return PayPalPaymentProvider(
-                client_id=getattr(django_settings, "PAYPAL_CLIENT_ID", None),
-                client_secret=getattr(django_settings, "PAYPAL_CLIENT_SECRET", None)
-                or getattr(django_settings, "PAYPAL_SECRET", None),
+                client_id=getattr(django_settings, "PAYPAL_CLIENT_ID", ""),
+                client_secret=getattr(django_settings, "PAYPAL_CLIENT_SECRET", "")
+                or getattr(django_settings, "PAYPAL_SECRET", ""),
                 webhook_id=getattr(django_settings, "PAYPAL_WEBHOOK_ID", None),
                 sandbox=sandbox,
             )
@@ -73,8 +73,8 @@ def get_payment_provider() -> PaymentProviderAdapter:
             if isinstance(sandbox, str):
                 sandbox = sandbox.lower() not in {"0", "false", "no", "off"}
             return SquarePaymentProvider(
-                access_token=getattr(django_settings, "SQUARE_ACCESS_TOKEN", None),
-                location_id=getattr(django_settings, "SQUARE_LOCATION_ID", None),
+                access_token=getattr(django_settings, "SQUARE_ACCESS_TOKEN", ""),
+                location_id=getattr(django_settings, "SQUARE_LOCATION_ID", ""),
                 webhook_signature_key=getattr(
                     django_settings, "SQUARE_WEBHOOK_SIGNATURE_KEY", None
                 ),

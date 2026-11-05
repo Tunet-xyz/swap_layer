@@ -4,15 +4,19 @@ WorkOS audit log management operations.
 Handles event/audit log access via the WorkOS Events API.
 """
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
+from swap_layer.identity.platform.management._responses import object_list
 from swap_layer.identity.platform.management.adapter import LogManagementAdapter
+
+if TYPE_CHECKING:
+    from .client import WorkOSManagementClient
 
 
 class WorkOSLogManagement(LogManagementAdapter):
     """WorkOS audit log management implementation."""
 
-    def __init__(self, base_client):
+    def __init__(self, base_client: "WorkOSManagementClient"):
         """Initialize with base management client.
 
         Args:
@@ -21,6 +25,14 @@ class WorkOSLogManagement(LogManagementAdapter):
         self.base_client = base_client
 
     def list_logs(
+        self, page: int = 0, per_page: int = 50, query: str | None = None, **kwargs
+    ) -> list[dict[str, Any]]:
+        if page != 0 or query is not None:
+            raise NotImplementedError("WorkOS events use cursor pagination and event-type filters")
+        kwargs.setdefault("limit", per_page)
+        return object_list(self.list_logs_page(**kwargs).get("data", []))
+
+    def list_logs_page(
         self,
         organization_id: str | None = None,
         events: list[str] | None = None,
@@ -38,7 +50,7 @@ class WorkOSLogManagement(LogManagementAdapter):
         Returns:
             Dict with 'data' (list of events) and 'listMetadata'
         """
-        params = {"limit": limit}
+        params: dict[str, Any] = {"limit": limit}
         if organization_id:
             params["organization_id"] = organization_id
         if events:
@@ -59,7 +71,7 @@ class WorkOSLogManagement(LogManagementAdapter):
         """
         raise NotImplementedError("WorkOS does not support getting individual events by ID")
 
-    def get_user_logs(self, user_id: str, limit: int = 50, **kwargs) -> dict[str, Any]:
+    def get_user_logs(self, user_id: str, page: int = 0, per_page: int = 50, **kwargs) -> list[dict[str, Any]]:
         """Get logs for a specific user.
 
         Args:
@@ -70,17 +82,9 @@ class WorkOSLogManagement(LogManagementAdapter):
         Returns:
             Dict with user's log entries
         """
-        # Filter events related to the user
-        user_events = [
-            "user.created",
-            "user.updated",
-            "user.deleted",
-            "authentication.email_verification_succeeded",
-            "authentication.magic_auth_succeeded",
-            "authentication.password_succeeded",
-            "authentication.sso_succeeded",
-        ]
-        return self.list_logs(events=user_events, limit=limit, **kwargs)
+        # The Events API has no equivalent user filter. Returning all users'
+        # events here would violate this method's promised boundary.
+        raise NotImplementedError("WorkOS Events cannot be queried by user through this adapter")
 
     def filter_logs(
         self,
@@ -102,7 +106,9 @@ class WorkOSLogManagement(LogManagementAdapter):
         Returns:
             Dict with filtered log entries
         """
-        params = {}
+        params: dict[str, Any] = {}
+        if start_date is not None or end_date is not None:
+            raise NotImplementedError("Date filtering is unavailable through this adapter")
         if action:
             params["events"] = [action]
         # WorkOS uses before/after cursor-based pagination, not date ranges

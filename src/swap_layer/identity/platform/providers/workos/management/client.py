@@ -42,10 +42,10 @@ class WorkOSManagementClient(IdentityManagementClient):
             timeout=30,
             max_retries=3,
         )
-        self._users = None
-        self._organizations = None
-        self._roles = None
-        self._logs = None
+        self._users: WorkOSUserManagement | None = None
+        self._organizations: WorkOSOrganizationManagement | None = None
+        self._roles: WorkOSRoleManagement | None = None
+        self._logs: WorkOSLogManagement | None = None
 
     @property
     def users(self) -> WorkOSUserManagement:
@@ -81,6 +81,8 @@ class WorkOSManagementClient(IdentityManagementClient):
         endpoint: str,
         data: dict[str, Any] | None = None,
         params: dict[str, Any] | None = None,
+        *,
+        json: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Make HTTP request to WorkOS API with automatic retries.
 
@@ -96,25 +98,26 @@ class WorkOSManagementClient(IdentityManagementClient):
         Raises:
             WorkOSAPIError: If API request fails after retries
         """
+        if data is not None and json is not None:
+            raise TypeError("Pass data or json, not both")
         try:
             response = self._session._make_request(
                 method=method,
                 endpoint=endpoint,
-                json=data,
+                json=json if json is not None else data,
                 params=params,
             )
-            return response.json()
+            payload = response.json() if response.content else {}
+            if not isinstance(payload, dict):
+                raise ValueError("Expected a JSON object from WorkOS")
+            return payload
         except Exception as e:
-            error_msg = str(e)
+            error_msg = type(e).__name__
             status_code = None
 
             # Extract status code if available
             if hasattr(e, "response") and e.response is not None:
                 status_code = e.response.status_code
-                try:
-                    error_msg = e.response.text
-                except Exception:
-                    error_msg = "Provider response could not be read"
 
             logger.error(f"WorkOS API error: {error_msg}")
             raise WorkOSAPIError(

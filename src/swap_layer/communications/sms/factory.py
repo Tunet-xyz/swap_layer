@@ -36,6 +36,10 @@ def get_sms_provider() -> SMSProviderAdapter:
                 auth_token=sms_config.twilio.auth_token,
                 from_number=sms_config.twilio.from_number,
             )
+        if provider == "sns" and sms_config.sns:
+            from .providers.sns import SNSSMSProvider
+
+            return SNSSMSProvider(**sms_config.sns.model_dump())
     else:
         # Fallback to legacy Django settings for backward compatibility
         from django.conf import settings as django_settings

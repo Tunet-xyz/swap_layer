@@ -3,7 +3,7 @@ import mimetypes
 import shutil
 from datetime import datetime, timedelta
 from pathlib import Path, PureWindowsPath
-from typing import Any, BinaryIO
+from typing import Any, BinaryIO, cast
 
 from ..adapter import (
     StorageCopyError,
@@ -103,7 +103,7 @@ class LocalFileStorageProvider(StorageProviderAdapter):
                 if hasattr(file_data, "read"):
                     shutil.copyfileobj(file_data, f)
                 else:
-                    f.write(file_data)
+                    f.write(cast(bytes, file_data))
 
             # Get file info
             file_size = full_path.stat().st_size
@@ -211,7 +211,7 @@ class LocalFileStorageProvider(StorageProviderAdapter):
         self, prefix: str | None = None, max_results: int = 1000
     ) -> list[dict[str, Any]]:
         """List files in local storage."""
-        results = []
+        results: list[dict[str, Any]] = []
         search_path = self._get_full_path(prefix) if prefix else self.base_path
 
         if not search_path.exists():

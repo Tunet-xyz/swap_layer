@@ -269,8 +269,8 @@ class TestDjangoStorageProvider(unittest.TestCase):
 
         result = self.provider.list_files(prefix="uploads/")
 
-        self.assertEqual(len(result["files"]), 2)
-        self.assertIn("file1.txt", result["files"])
+        self.assertEqual(len(result), 2)
+        self.assertIn("uploads/file1.txt", [item["file_path"] for item in result])
 
     @patch("swap_layer.storage.providers.django_storage.default_storage")
     def test_get_file_url(self, mock_storage):

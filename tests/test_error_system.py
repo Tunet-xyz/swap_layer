@@ -302,7 +302,8 @@ class TestErrorContext:
         context = ErrorContext.build_config_error_context(error, config)
 
         assert "🚨 SWAPLAYER CONFIGURATION ERROR" in context
-        assert "Test error message" in context
+        assert "ValueError: configuration validation failed" in context
+        assert "Test error message" not in context
         assert "📋 Your configuration:" in context
         assert "billing:" in context
         assert "provider: stripe" in context

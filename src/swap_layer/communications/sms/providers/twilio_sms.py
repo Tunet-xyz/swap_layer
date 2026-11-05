@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any
 
-from django.conf import settings
+from swap_layer._compat import legacy_setting
 
 from ..adapter import (
     SMSInvalidPhoneNumberError,
@@ -43,11 +43,11 @@ class TwilioSMSProvider(SMSProviderAdapter):
 
             # Use provided config or fallback to Django settings for backward compatibility
             if account_sid is None:
-                account_sid = getattr(settings, "TWILIO_ACCOUNT_SID", None)
+                account_sid = legacy_setting("TWILIO_ACCOUNT_SID")
             if auth_token is None:
-                auth_token = getattr(settings, "TWILIO_AUTH_TOKEN", None)
+                auth_token = legacy_setting("TWILIO_AUTH_TOKEN")
             if from_number is None:
-                from_number = getattr(settings, "TWILIO_FROM_NUMBER", None)
+                from_number = legacy_setting("TWILIO_FROM_NUMBER")
 
             if not account_sid or not auth_token:
                 raise ValueError("TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN must be configured")
@@ -189,7 +189,7 @@ class TwilioSMSProvider(SMSProviderAdapter):
         """List sent messages from Twilio."""
         try:
             # Build filter parameters
-            filters = {"limit": limit}
+            filters: dict[str, Any] = {"limit": limit}
 
             if start_date:
                 filters["date_sent_after"] = datetime.fromisoformat(start_date)

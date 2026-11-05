@@ -6,7 +6,7 @@ import hmac
 import json
 import uuid
 from decimal import Decimal
-from typing import Any
+from typing import Any, NoReturn
 
 import requests
 
@@ -50,7 +50,7 @@ class SquarePaymentProvider(PaymentProviderAdapter):
     def get_vendor_client(self) -> Any:
         return self.session
 
-    def _unsupported(self, feature: str) -> None:
+    def _unsupported(self, feature: str) -> NoReturn:
         raise PaymentValidationError(f"Square provider does not support {feature}")
 
     def _headers(self) -> dict[str, str]:
@@ -79,7 +79,10 @@ class SquarePaymentProvider(PaymentProviderAdapter):
         self._handle_response(response)
         if response.status_code == 204 or not response.content:
             return {}
-        return response.json()
+        payload = response.json()
+        if not isinstance(payload, dict):
+            raise PaymentError("Expected a JSON object from Square")
+        return payload
 
     def _handle_response(self, response) -> None:
         if response.status_code < 400:
@@ -320,8 +323,12 @@ class SquarePaymentProvider(PaymentProviderAdapter):
         subscription_id: str,
         price_id: str | None = None,
         metadata: dict[str, Any] | None = None,
+        items: list[dict[str, Any]] | None = None,
+        quantity: int | None = None,
         **extra_params: Any,
     ) -> dict[str, Any]:
+        if items is not None or quantity is not None:
+            self._unsupported("subscription item or quantity updates")
         payload = dict(extra_params)
         if price_id:
             payload["plan_variation_id"] = price_id
@@ -481,7 +488,7 @@ class SquarePaymentProvider(PaymentProviderAdapter):
         order_line_items = line_items or [
             {"name": extra_params.pop("name", price_id or "Item"), "quantity": str(quantity)}
         ]
-        payload = {
+        payload: dict[str, Any] = {
             "idempotency_key": self._idempotency_key(idempotency_key),
             "order": {"location_id": self.location_id, "line_items": order_line_items},
             "checkout_options": {},
@@ -692,7 +699,7 @@ class SquarePaymentProvider(PaymentProviderAdapter):
         event_id = event.get("id")
         if processed_event_ids is not None and event_id in processed_event_ids:
             return {"handled": False, "duplicate": True, "event_id": event_id}
-        handler = handlers.get(event.get("type")) or handlers.get("*")
+        handler = handlers.get(str(event.get("type", ""))) or handlers.get("*")
         if handler is None:
             return {"handled": False, "duplicate": False, "event_id": event_id}
         result = handler(event)

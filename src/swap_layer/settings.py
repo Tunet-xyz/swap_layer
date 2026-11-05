@@ -61,7 +61,13 @@ _settings_cache: "SwapLayerSettings | None" = None
 # ============================================================================
 
 
-class StripeConfig(BaseModel):
+class _ConfigModel(BaseModel):
+    """Avoid printing input credentials in Pydantic exception strings."""
+
+    model_config = {"hide_input_in_errors": True}
+
+
+class StripeConfig(_ConfigModel):
     """Stripe payment provider configuration."""
 
     secret_key: str = Field(..., description="Stripe secret key (required)")
@@ -76,7 +82,7 @@ class StripeConfig(BaseModel):
         return v
 
 
-class PayPalConfig(BaseModel):
+class PayPalConfig(_ConfigModel):
     """PayPal payment provider configuration."""
 
     client_id: str = Field(..., description="PayPal REST app client ID")
@@ -85,7 +91,7 @@ class PayPalConfig(BaseModel):
     sandbox: bool = Field(True, description="Use the PayPal sandbox API")
 
 
-class SquareConfig(BaseModel):
+class SquareConfig(_ConfigModel):
     """Square payment provider configuration."""
 
     access_token: str = Field(..., description="Square access token")
@@ -98,7 +104,7 @@ class SquareConfig(BaseModel):
     api_version: str = Field("2026-05-20", description="Square API version header")
 
 
-class TwilioConfig(BaseModel):
+class TwilioConfig(_ConfigModel):
     """Twilio SMS provider configuration."""
 
     account_sid: str = Field(..., description="Twilio Account SID")
@@ -120,7 +126,7 @@ class TwilioConfig(BaseModel):
         return v
 
 
-class SNSConfig(BaseModel):
+class SNSConfig(_ConfigModel):
     """AWS SNS SMS provider configuration."""
 
     aws_access_key_id: str | None = Field(
@@ -131,7 +137,7 @@ class SNSConfig(BaseModel):
     sender_id: str | None = Field(None, description="SMS Sender ID")
 
 
-class BillingConfig(BaseModel):
+class BillingConfig(_ConfigModel):
     """Billing module configuration."""
 
     provider: Literal["stripe", "paypal", "square"] = Field(
@@ -152,7 +158,7 @@ class BillingConfig(BaseModel):
         return self
 
 
-class EmailProviderConfig(BaseModel):
+class EmailProviderConfig(_ConfigModel):
     """Email provider configuration."""
 
     provider: Literal["django", "smtp"] = Field("django", description="Email provider to use")
@@ -160,7 +166,7 @@ class EmailProviderConfig(BaseModel):
     # SMTP uses Django's EMAIL_HOST, EMAIL_PORT, etc.
 
 
-class SMSProviderConfig(BaseModel):
+class SMSProviderConfig(_ConfigModel):
     """SMS provider configuration."""
 
     provider: Literal["twilio", "sns"] = Field("twilio", description="SMS provider to use")
@@ -176,23 +182,34 @@ class SMSProviderConfig(BaseModel):
         return self
 
 
-class CommunicationsConfig(BaseModel):
+class CommunicationsConfig(_ConfigModel):
     """Communications module configuration (email and SMS)."""
 
     email: EmailProviderConfig | None = Field(None, description="Email configuration")
     sms: SMSProviderConfig | None = Field(None, description="SMS configuration")
 
 
-class StorageConfig(BaseModel):
+class StorageConfig(_ConfigModel):
     """Storage module configuration."""
 
-    provider: Literal["local", "django"] = Field("local", description="Storage provider to use")
+    provider: Literal["local", "django", "gcs"] = Field("local", description="Storage provider to use")
     media_root: str | None = Field(None, description="Local storage root directory")
     media_url: str | None = Field("/media/", description="Media URL prefix")
+    bucket_name: str | None = None
+    credentials_path: str | None = None
+    project_id: str | None = None
+    location: str = "europe-west1"
+    storage_class: str = "STANDARD"
     # Django-storages uses DEFAULT_FILE_STORAGE and storage backend settings
 
+    @model_validator(mode="after")
+    def validate_gcs_bucket(self):
+        if self.provider == "gcs" and not self.bucket_name:
+            raise ValueError("GCS storage requires bucket_name")
+        return self
 
-class WorkOSAppConfig(BaseModel):
+
+class WorkOSAppConfig(_ConfigModel):
     """WorkOS application configuration."""
 
     api_key: str = Field(..., description="WorkOS API key")
@@ -207,14 +224,14 @@ class WorkOSAppConfig(BaseModel):
         return v
 
 
-class Auth0AppConfig(BaseModel):
+class Auth0AppConfig(_ConfigModel):
     """Auth0 application configuration."""
 
     client_id: str = Field(..., description="Auth0 client ID")
     client_secret: str = Field(..., description="Auth0 client secret")
 
 
-class IdentityPlatformConfig(BaseModel):
+class IdentityPlatformConfig(_ConfigModel):
     """Identity/OAuth module configuration."""
 
     provider: Literal["workos", "auth0"] = Field("workos", description="Identity provider to use")
@@ -238,7 +255,7 @@ class IdentityPlatformConfig(BaseModel):
         return self
 
 
-class IdentityVerificationConfig(BaseModel):
+class IdentityVerificationConfig(_ConfigModel):
     """Identity verification module configuration."""
 
     provider: Literal["stripe"] = Field("stripe", description="Verification provider to use")
@@ -258,7 +275,7 @@ class IdentityVerificationConfig(BaseModel):
 # ============================================================================
 
 
-class SwapLayerSettings(BaseModel):
+class SwapLayerSettings(_ConfigModel):
     """
     SwapLayer unified settings configuration.
 
@@ -339,6 +356,8 @@ class SwapLayerSettings(BaseModel):
             "webhook_signature_key",
             "location_id",
             "access_token",
+            "bucket_name", "credentials_path", "project_id", "storage_class",
+            "aws_access_key_id", "aws_secret_access_key", "region_name", "sender_id",
         }
 
         config: dict[str, Any] = {}
@@ -352,21 +371,11 @@ class SwapLayerSettings(BaseModel):
             remaining = key[len(prefix) :].lower()
             parts = remaining.split("_")
 
-            # Try to identify known compound field names at the end
-            # Check for 2-word and 3-word compounds
-            compound_field = None
-            if len(parts) >= 3:
-                # Check for 3-word compounds first, e.g. webhook_signature_key
-                last_three = "_".join(parts[-3:])
-                if last_three in known_fields:
-                    compound_field = last_three
-                    parts = parts[:-3] + [compound_field]
-            if compound_field is None and len(parts) >= 2:
-                # Check for 2-word compounds
-                last_two = "_".join(parts[-2:])
-                if last_two in known_fields:
-                    compound_field = last_two
-                    parts = parts[:-2] + [compound_field]
+            for length in range(len(parts), 1, -1):
+                field = "_".join(parts[-length:])
+                if field in known_fields:
+                    parts = parts[:-length] + [field]
+                    break
 
             # Build nested dictionary
             current = config
@@ -425,7 +434,7 @@ class SwapLayerSettings(BaseModel):
 
         # Check for new SWAPLAYER config
         if hasattr(settings, "SWAPLAYER"):
-            swaplayer_config = settings.SWAPLAYER
+            swaplayer_config = getattr(settings, "SWAPLAYER", None)
             if isinstance(swaplayer_config, dict):
                 return cls(**swaplayer_config)
             elif isinstance(swaplayer_config, cls):
@@ -505,6 +514,14 @@ class SwapLayerSettings(BaseModel):
                 "media_root": getattr(settings, "MEDIA_ROOT", None),
                 "media_url": getattr(settings, "MEDIA_URL", "/media/"),
             }
+            if config["storage"]["provider"] == "gcs":
+                config["storage"].update(
+                    bucket_name=getattr(settings, "GCS_BUCKET_NAME", None),
+                    credentials_path=getattr(settings, "GCS_CREDENTIALS_PATH", None),
+                    project_id=getattr(settings, "GCS_PROJECT_ID", None),
+                    location=getattr(settings, "GCS_LOCATION", "europe-west1"),
+                    storage_class=getattr(settings, "GCS_STORAGE_CLASS", "STANDARD"),
+                )
 
         # Identity Platform
         if hasattr(settings, "IDENTITY_PROVIDER"):
@@ -672,7 +689,10 @@ def get_swaplayer_settings() -> SwapLayerSettings:
     if not hasattr(django_settings, "_swaplayer_settings_cache"):
         django_settings._swaplayer_settings_cache = SwapLayerSettings.from_django()
 
-    return django_settings._swaplayer_settings_cache
+    cached = getattr(django_settings, "_swaplayer_settings_cache", None)
+    if not isinstance(cached, SwapLayerSettings):
+        raise ConfigurationError("Django SwapLayer settings cache has an invalid type")
+    return cached
 
 
 def validate_swaplayer_config() -> dict[str, Any]:

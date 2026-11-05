@@ -2,9 +2,12 @@
 Auth0 User Management Implementation
 """
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from swap_layer.identity.platform.management.adapter import UserManagementAdapter
+
+if TYPE_CHECKING:
+    from .client import Auth0ManagementClient
 
 
 class Auth0UserManagement(UserManagementAdapter):
@@ -12,7 +15,7 @@ class Auth0UserManagement(UserManagementAdapter):
     Auth0-specific implementation of user management operations.
     """
 
-    def __init__(self, base_client):
+    def __init__(self, base_client: "Auth0ManagementClient"):
         """
         Initialize with base client for shared functionality.
 
@@ -42,7 +45,7 @@ class Auth0UserManagement(UserManagementAdapter):
         Returns:
             List of user objects
         """
-        params = {"page": page, "per_page": min(per_page, 50), **kwargs}
+        params: dict[str, Any] = {"page": page, "per_page": min(per_page, 50), **kwargs}
 
         if search_query:
             params["q"] = search_query
@@ -51,7 +54,7 @@ class Auth0UserManagement(UserManagementAdapter):
         if fields:
             params["fields"] = ",".join(fields)
 
-        return self.base_client._make_request("GET", "/users", params=params)
+        return self.base_client._make_list_request("GET", "/users", params=params)
 
     def get_user(self, user_id: str) -> dict[str, Any]:
         """
@@ -63,7 +66,7 @@ class Auth0UserManagement(UserManagementAdapter):
         Returns:
             User object
         """
-        return self.base_client._make_request("GET", f"/users/{user_id}")
+        return self.base_client._make_object_request("GET", f"/users/{user_id}")
 
     def create_user(
         self,
@@ -88,7 +91,7 @@ class Auth0UserManagement(UserManagementAdapter):
         Returns:
             Created user object
         """
-        payload = {
+        payload: dict[str, Any] = {
             "email": email,
             "connection": connection,
             "email_verified": email_verified,
@@ -101,7 +104,7 @@ class Auth0UserManagement(UserManagementAdapter):
         if metadata:
             payload["user_metadata"] = metadata
 
-        return self.base_client._make_request("POST", "/users", json=payload)
+        return self.base_client._make_object_request("POST", "/users", json=payload)
 
     def update_user(
         self, user_id: str, email: str | None = None, metadata: dict | None = None, **kwargs
@@ -118,7 +121,7 @@ class Auth0UserManagement(UserManagementAdapter):
         Returns:
             Updated user object
         """
-        payload = {}
+        payload: dict[str, Any] = {}
 
         if email:
             payload["email"] = email
@@ -128,7 +131,7 @@ class Auth0UserManagement(UserManagementAdapter):
 
         payload.update(kwargs)
 
-        return self.base_client._make_request("PATCH", f"/users/{user_id}", json=payload)
+        return self.base_client._make_object_request("PATCH", f"/users/{user_id}", json=payload)
 
     def delete_user(self, user_id: str) -> None:
         """
@@ -137,7 +140,7 @@ class Auth0UserManagement(UserManagementAdapter):
         Args:
             user_id: Auth0 user ID
         """
-        self.base_client._make_request("DELETE", f"/users/{user_id}")
+        self.base_client._make_object_request("DELETE", f"/users/{user_id}")
 
     def search_users(self, query: str, per_page: int = 50, **kwargs) -> list[dict[str, Any]]:
         """

@@ -71,7 +71,9 @@ from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import timedelta
 from enum import Enum
-from typing import Any, BinaryIO
+from typing import Any, BinaryIO, cast
+
+from .adapter import StorageProviderAdapter
 
 logger = logging.getLogger(__name__)
 
@@ -424,7 +426,7 @@ class ScopedStorageProvider:
     rls_context(conn, ctx).
     """
 
-    def __init__(self, provider, context: StorageSecurityContext):
+    def __init__(self, provider: StorageProviderAdapter, context: StorageSecurityContext):
         """
         Args:
             provider: StorageProviderAdapter instance (GCS, S3, local, etc.)
@@ -504,12 +506,12 @@ class ScopedStorageProvider:
 
         # Delegate to provider if it supports upload_from_string, otherwise adapt
         if hasattr(self._provider, "upload_from_string"):
-            return self._provider.upload_from_string(
+            return cast(dict[str, Any], self._provider.upload_from_string(
                 file_path=scoped_path,
                 data=data,
                 content_type=content_type,
                 metadata=metadata,
-            )
+            ))
 
         # Fallback: convert to BinaryIO and use upload_file
         import io
@@ -539,7 +541,7 @@ class ScopedStorageProvider:
         self._audit_log("download_as_bytes", scoped_path)
 
         if hasattr(self._provider, "download_as_bytes"):
-            return self._provider.download_as_bytes(scoped_path)
+            return cast(bytes, self._provider.download_as_bytes(scoped_path))
         return self._provider.download_file(scoped_path)
 
     def download_as_text(self, file_path: str, encoding: str = "utf-8") -> str:
@@ -549,7 +551,7 @@ class ScopedStorageProvider:
         self._audit_log("download_as_text", scoped_path)
 
         if hasattr(self._provider, "download_as_text"):
-            return self._provider.download_as_text(scoped_path, encoding=encoding)
+            return cast(str, self._provider.download_as_text(scoped_path, encoding=encoding))
         return self._provider.download_file(scoped_path).decode(encoding)
 
     def delete_file(self, file_path: str) -> dict[str, Any]:
@@ -638,7 +640,7 @@ class ScopedStorageProvider:
 
 @contextmanager
 def storage_context(
-    provider,
+    provider: StorageProviderAdapter,
     context: StorageSecurityContext | None = None,
 ):
     """
@@ -658,17 +660,13 @@ def storage_context(
 
     Args:
         provider: StorageProviderAdapter instance
-        context: StorageSecurityContext (if None, system context is used with warning)
+        context: Explicit tenant context or StorageSecurityContext.system_context()
 
     Yields:
         ScopedStorageProvider with security enforcement
     """
     if context is None:
-        logger.warning(
-            "Storage operation without security context - "
-            "ensure this is intentional (e.g., system maintenance job)"
-        )
-        context = StorageSecurityContext.system_context(reason="no context provided")
+        raise ValueError("An explicit storage security context is required")
 
     logger.debug(
         f"Storage security context active: "

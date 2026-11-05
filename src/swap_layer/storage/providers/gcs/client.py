@@ -34,7 +34,7 @@ Usage:
 
 import logging
 from datetime import timedelta
-from typing import Any, BinaryIO
+from typing import Any, BinaryIO, cast
 
 from ...adapter import (
     StorageCopyError,
@@ -204,7 +204,7 @@ class GCSStorageProvider(StorageProviderAdapter):
                 with open(destination, "rb") as f:
                     return f.read()
             else:
-                return blob.download_as_bytes()
+                return cast(bytes, blob.download_as_bytes())
 
         except StorageFileNotFoundError:
             raise
@@ -244,7 +244,7 @@ class GCSStorageProvider(StorageProviderAdapter):
     def file_exists(self, file_path: str) -> bool:
         """Check if a file exists in GCS."""
         blob = self.bucket.blob(file_path)
-        return blob.exists()
+        return cast(bool, blob.exists())
 
     def get_file_metadata(self, file_path: str) -> dict[str, Any]:
         """
@@ -332,13 +332,13 @@ class GCSStorageProvider(StorageProviderAdapter):
             raise StorageFileNotFoundError(f"File not found: gs://{self.bucket_name}/{file_path}")
 
         if expiration:
-            return blob.generate_signed_url(
+            return cast(str, blob.generate_signed_url(
                 version="v4",
                 expiration=expiration,
                 method="GET",
-            )
+            ))
         else:
-            return blob.public_url
+            return cast(str, blob.public_url)
 
     def generate_presigned_upload_url(
         self,
@@ -561,7 +561,7 @@ class GCSStorageProvider(StorageProviderAdapter):
                     f"File not found: gs://{self.bucket_name}/{file_path}"
                 )
 
-            return blob.download_as_bytes()
+            return cast(bytes, blob.download_as_bytes())
 
         except StorageFileNotFoundError:
             raise
@@ -587,7 +587,7 @@ class GCSStorageProvider(StorageProviderAdapter):
                     f"File not found: gs://{self.bucket_name}/{file_path}"
                 )
 
-            return blob.download_as_text(encoding=encoding)
+            return cast(str, blob.download_as_text(encoding=encoding))
 
         except StorageFileNotFoundError:
             raise
@@ -698,7 +698,7 @@ class GCSStorageProvider(StorageProviderAdapter):
         """Check if a bucket exists."""
         name = bucket_name or self.bucket_name
         bucket = self.client.bucket(name)
-        return bucket.exists()
+        return cast(bool, bucket.exists())
 
     def get_bucket_metadata(self, bucket_name: str | None = None) -> dict[str, Any]:
         """

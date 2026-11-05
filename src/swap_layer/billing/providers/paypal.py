@@ -1,6 +1,6 @@
 import json
 from decimal import Decimal
-from typing import Any
+from typing import Any, NoReturn
 
 import requests
 
@@ -41,7 +41,7 @@ class PayPalPaymentProvider(PaymentProviderAdapter):
     def get_vendor_client(self) -> Any:
         return self.session
 
-    def _unsupported(self, feature: str) -> None:
+    def _unsupported(self, feature: str) -> NoReturn:
         raise PaymentValidationError(f"PayPal provider does not support {feature}")
 
     def _auth_headers(self) -> dict[str, str]:
@@ -64,7 +64,7 @@ class PayPalPaymentProvider(PaymentProviderAdapter):
         method: str,
         path: str,
         *,
-        json: dict[str, Any] | None = None,
+        json: dict[str, Any] | list[dict[str, Any]] | None = None,
         idempotency_key: str | None = None,
     ) -> dict[str, Any]:
         headers = self._auth_headers()
@@ -80,7 +80,10 @@ class PayPalPaymentProvider(PaymentProviderAdapter):
         self._handle_response(response)
         if response.status_code == 204 or not response.content:
             return {}
-        return response.json()
+        payload = response.json()
+        if not isinstance(payload, dict):
+            raise PaymentError("Expected a JSON object from PayPal")
+        return payload
 
     def _handle_response(self, response) -> None:
         if response.status_code < 400:
@@ -117,7 +120,8 @@ class PayPalPaymentProvider(PaymentProviderAdapter):
     def _find_approval_url(payload: dict[str, Any]) -> str | None:
         for link in payload.get("links", []):
             if link.get("rel") in {"approve", "payer-action"}:
-                return link.get("href")
+                href = link.get("href")
+                return href if isinstance(href, str) else None
         return None
 
     # Customer Management
@@ -286,9 +290,13 @@ class PayPalPaymentProvider(PaymentProviderAdapter):
         subscription_id: str,
         price_id: str | None = None,
         metadata: dict[str, Any] | None = None,
+        items: list[dict[str, Any]] | None = None,
+        quantity: int | None = None,
         **extra_params: Any,
     ) -> dict[str, Any]:
-        patches = []
+        if items is not None or quantity is not None:
+            self._unsupported("subscription item or quantity updates")
+        patches: list[dict[str, Any]] = []
         if price_id:
             patches.append({"op": "replace", "path": "/plan_id", "value": price_id})
         if metadata and (metadata.get("custom_id") or metadata.get("id")):
@@ -612,7 +620,7 @@ class PayPalPaymentProvider(PaymentProviderAdapter):
         event_id = event.get("id")
         if processed_event_ids is not None and event_id in processed_event_ids:
             return {"handled": False, "duplicate": True, "event_id": event_id}
-        handler = handlers.get(event.get("type")) or handlers.get("*")
+        handler = handlers.get(str(event.get("type", ""))) or handlers.get("*")
         if handler is None:
             return {"handled": False, "duplicate": False, "event_id": event_id}
         result = handler(event)

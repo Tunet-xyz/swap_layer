@@ -5,17 +5,21 @@ Handles role listing and assignment via the WorkOS Roles API.
 Note: Role creation is done via the WorkOS Dashboard, not the API.
 """
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
+from swap_layer.identity.platform.management._responses import object_list
 from swap_layer.identity.platform.management.adapter import RoleManagementAdapter
 
 from .organizations import WorkOSAPIError
+
+if TYPE_CHECKING:
+    from .client import WorkOSManagementClient
 
 
 class WorkOSRoleManagement(RoleManagementAdapter):
     """WorkOS role management implementation."""
 
-    def __init__(self, base_client):
+    def __init__(self, base_client: "WorkOSManagementClient"):
         """Initialize with base management client.
 
         Args:
@@ -23,7 +27,12 @@ class WorkOSRoleManagement(RoleManagementAdapter):
         """
         self.base_client = base_client
 
-    def list_roles(self, organization_id: str | None = None, **kwargs) -> dict[str, Any]:
+    def list_roles(self, page: int = 0, per_page: int = 50, **kwargs) -> list[dict[str, Any]]:
+        if page != 0:
+            raise NotImplementedError("WorkOS uses cursor pagination; pass after or before")
+        return object_list(self.list_roles_page(**kwargs).get("data", []))[:per_page]
+
+    def list_roles_page(self, organization_id: str | None = None, **kwargs) -> dict[str, Any]:
         """List roles for an organization.
 
         Args:
@@ -155,7 +164,7 @@ class WorkOSRoleManagement(RoleManagementAdapter):
         Returns:
             List of role objects
         """
-        params = {"user_id": user_id}
+        params: dict[str, Any] = {"user_id": user_id}
         if organization_id:
             params["organization_id"] = organization_id
 
@@ -164,3 +173,14 @@ class WorkOSRoleManagement(RoleManagementAdapter):
         )
         roles = [m["role"] for m in memberships_resp.get("data", []) if m.get("role")]
         return roles
+
+    def assign_user_roles(self, user_id: str, role_ids: list[str], **kwargs) -> None:
+        if len(role_ids) != 1:
+            raise NotImplementedError("This adapter supports one WorkOS membership role per call")
+        self.assign_role_to_user(user_id, role_ids[0], **kwargs)
+
+    def remove_user_roles(self, user_id: str, role_ids: list[str], **kwargs) -> None:
+        raise NotImplementedError("WorkOS membership roles must be replaced rather than removed")
+
+    def get_user_permissions(self, user_id: str) -> list[dict[str, Any]]:
+        raise NotImplementedError("Use WorkOS authorization APIs for effective permissions")

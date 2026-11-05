@@ -1,4 +1,5 @@
-from typing import Any, BinaryIO
+from datetime import timedelta
+from typing import Any, BinaryIO, cast
 
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
@@ -66,7 +67,7 @@ class DjangoStorageAdapter(StorageProviderAdapter):
                 with open(destination, "wb") as f:
                     f.write(content)
 
-            return content
+            return cast(bytes, content)
         except StorageFileNotFoundError:
             raise
         except Exception as e:
@@ -85,7 +86,7 @@ class DjangoStorageAdapter(StorageProviderAdapter):
         except Exception as e:
             raise StorageDeleteError(f"Failed to delete file: {str(e)}") from e
 
-    def get_file_url(self, file_path: str, expiry_seconds: int = 3600) -> str:
+    def get_file_url(self, file_path: str, expiration: timedelta | None = None) -> str:
         try:
             # Note: expiry_seconds might be ignored by some backends or require specific config
             return default_storage.url(file_path)
@@ -93,7 +94,25 @@ class DjangoStorageAdapter(StorageProviderAdapter):
             # Fallback or re-raise depending on strictness needed
             return ""
 
-    def list_files(self, prefix: str = "") -> dict[str, Any]:
+    def list_files(self, prefix: str | None = None, max_results: int = 1000) -> list[dict[str, Any]]:
+        """List object keys recursively using the common storage adapter shape."""
+        if max_results <= 0:
+            return []
+        pending = [prefix or ""]
+        result: list[dict[str, Any]] = []
+        while pending and len(result) < max_results:
+            directory = pending.pop()
+            directories, files = default_storage.listdir(directory)
+            pending.extend(f"{directory.rstrip('/')}/{name}".lstrip("/") for name in directories)
+            for name in files:
+                key = f"{directory.rstrip('/')}/{name}".lstrip("/")
+                result.append({"file_path": key, "size": default_storage.size(key)})
+                if len(result) >= max_results:
+                    break
+        return result
+
+    def list_directory(self, prefix: str = "") -> dict[str, Any]:
+        """Return the legacy single-directory shape explicitly."""
         try:
             directories, files = default_storage.listdir(prefix)
             return {"files": files, "directories": directories}
@@ -115,7 +134,7 @@ class DjangoStorageAdapter(StorageProviderAdapter):
             return {}
 
     def generate_presigned_upload_url(
-        self, file_path: str, content_type: str | None = None, expiration: int = 3600
+        self, file_path: str, content_type: str | None = None, expiration: timedelta = timedelta(hours=1)
     ) -> dict[str, Any]:
         """
         Generate a presigned URL for direct upload.

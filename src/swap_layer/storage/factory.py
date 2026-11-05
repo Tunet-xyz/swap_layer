@@ -59,7 +59,7 @@ def get_storage_provider() -> StorageProviderAdapter:
         try:
             from django.conf import settings as django_settings
         except ImportError:
-            django_settings = None
+            django_settings = None  # type: ignore[assignment]
 
         if django_settings is not None and django_settings.configured:
             provider = getattr(django_settings, "STORAGE_PROVIDER", "local").lower()
@@ -72,7 +72,7 @@ def get_storage_provider() -> StorageProviderAdapter:
         try:
             from django.conf import settings as django_settings
         except ImportError:
-            django_settings = None
+            django_settings = None  # type: ignore[assignment]
 
         return GCSStorageProvider(
             bucket_name=getattr(django_settings, "GCS_BUCKET_NAME", ""),

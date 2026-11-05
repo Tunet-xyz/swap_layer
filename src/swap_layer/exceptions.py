@@ -4,13 +4,14 @@ SwapLayer Custom Exceptions
 Provides rich, actionable error messages that guide developers to solutions.
 """
 
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 try:
     from django.core.exceptions import ImproperlyConfigured
 except ImportError:  # pragma: no cover - exercised in environments without Django
 
-    class ImproperlyConfigured(Exception):
+    class ImproperlyConfigured(Exception):  # type: ignore[no-redef]
         """Fallback used when Django is not installed."""
 
         pass
@@ -354,7 +355,7 @@ class ErrorContext:
             "🚨 SWAPLAYER CONFIGURATION ERROR",
             "=" * 80,
             "",
-            str(error),
+            f"{type(error).__name__}: configuration validation failed",
             "",
         ]
 
@@ -389,12 +390,14 @@ class ErrorContext:
                 prefix = "  " * indent
                 if ErrorContext._is_sensitive_key(key):
                     lines.append(f"{prefix}{key}: {'*' * 8} (masked)")
-                elif isinstance(value, dict):
+                elif isinstance(value, (dict, list, tuple)):
                     lines.append(f"{prefix}{key}:")
                     lines.append(ErrorContext._format_config(value, indent + 1))
                 else:
                     lines.append(f"{prefix}{key}: {value}")
             return "\n".join(lines)
+        if isinstance(config, (list, tuple)):
+            return "\n".join(ErrorContext._format_config(item, indent) for item in config)
         return str(config)
 
     @staticmethod
@@ -456,7 +459,7 @@ def enhance_validation_error(error: Exception, context: dict[str, Any]) -> Excep
     )
 
 
-def format_startup_validation_errors(errors: list[dict[str, Any]]) -> str:
+def format_startup_validation_errors(errors: Sequence[Mapping[str, Any]]) -> str:
     """
     Format Pydantic validation errors for display at startup.
 

@@ -1,8 +1,10 @@
 from decimal import Decimal
-from typing import Any
+from typing import Any, NoReturn, cast
 
 import stripe
-from django.conf import settings
+from stripe.params.v2.billing import MeterEventStreamCreateParams
+
+from swap_layer._compat import legacy_setting
 
 from ..adapter import (
     PaymentConnectionError,
@@ -37,20 +39,16 @@ class StripePaymentProvider(PaymentProviderAdapter):
             webhook_secret: Stripe webhook secret (falls back to settings.STRIPE_WEBHOOK_SECRET)
         """
         # Use provided config or fallback to Django settings for backward compatibility
-        if secret_key is None and settings.configured:
-            secret_key = getattr(settings, "STRIPE_SECRET_KEY", None)
+        if secret_key is None:
+            secret_key = legacy_setting("STRIPE_SECRET_KEY")
 
         if not secret_key:
             raise ValueError("STRIPE_SECRET_KEY is required but not configured")
 
         self._client = stripe.StripeClient(secret_key, max_network_retries=2)
         self.secret_key = secret_key
-        self.publishable_key = publishable_key or (
-            getattr(settings, "STRIPE_PUBLISHABLE_KEY", None) if settings.configured else None
-        )
-        self.webhook_secret = webhook_secret or (
-            getattr(settings, "STRIPE_WEBHOOK_SECRET", None) if settings.configured else None
-        )
+        self.publishable_key = publishable_key or legacy_setting("STRIPE_PUBLISHABLE_KEY")
+        self.webhook_secret = webhook_secret or legacy_setting("STRIPE_WEBHOOK_SECRET")
 
     def get_vendor_client(self) -> Any:
         """
@@ -59,7 +57,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
         """
         return self._client
 
-    def _handle_stripe_error(self, e: Exception) -> None:
+    def _handle_stripe_error(self, e: Exception) -> NoReturn:
         """Convert Stripe exceptions to standard PaymentErrors."""
         if isinstance(e, stripe.CardError):
             raise PaymentDeclinedError(f"Payment declined: {e.user_message}") from e
@@ -89,7 +87,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
             if metadata:
                 params["metadata"] = metadata
 
-            customer = self._client.v1.customers.create(params=params)
+            customer = self._client.v1.customers.create(params=cast(stripe.params.CustomerCreateParams, params))
 
             return {
                 "id": customer.id,
@@ -135,7 +133,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
             if metadata:
                 params["metadata"] = metadata
 
-            customer = self._client.v1.customers.update(customer_id, params=params)
+            customer = self._client.v1.customers.update(customer_id, params=cast(stripe.params.CustomerUpdateParams, params))
 
             return {
                 "id": customer.id,
@@ -209,7 +207,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
             params.update(extra_params)
 
             subscription = self._client.v1.subscriptions.create(
-                params=params,
+                params=cast(stripe.params.SubscriptionCreateParams, params),
                 options=self._request_options(idempotency_key),
             )
 
@@ -267,7 +265,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
 
         subscription = self._client.v1.subscriptions.update(
             subscription_id,
-            params=params,
+            params=cast(stripe.params.SubscriptionUpdateParams, params),
             options=self._request_options(idempotency_key),
         )
         return self._normalize_subscription(subscription)
@@ -296,7 +294,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
         if status:
             params["status"] = status
 
-        subscriptions = self._client.v1.subscriptions.list(params=params)
+        subscriptions = self._client.v1.subscriptions.list(params=cast(stripe.params.SubscriptionListParams, params))
         return [self._normalize_subscription(sub) for sub in subscriptions.data]
 
     def _normalize_subscription(self, subscription) -> dict[str, Any]:
@@ -352,7 +350,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
             "type": method_type or "card",
         }
 
-        payment_methods = self._client.v1.payment_methods.list(params=params)
+        payment_methods = self._client.v1.payment_methods.list(params=cast(stripe.params.PaymentMethodListParams, params))
         return [self._normalize_payment_method(pm) for pm in payment_methods.data]
 
     def set_default_payment_method(
@@ -370,7 +368,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
 
         return {
             "id": customer.id,
-            "default_payment_method": customer.invoice_settings.default_payment_method,
+            "default_payment_method": customer.invoice_settings.default_payment_method if customer.invoice_settings else None,
         }
 
     def _normalize_payment_method(self, payment_method) -> dict[str, Any]:
@@ -391,7 +389,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
 
         return result
 
-    def _request_options(self, idempotency_key: str | None = None) -> dict[str, Any] | None:
+    def _request_options(self, idempotency_key: str | None = None) -> stripe.RequestOptions | None:
         if not idempotency_key:
             return None
         return {"idempotency_key": idempotency_key}
@@ -436,11 +434,12 @@ class StripePaymentProvider(PaymentProviderAdapter):
         customer_id: str | None = None,
         payment_method_id: str | None = None,
         metadata: dict[str, Any] | None = None,
+        idempotency_key: str | None = None,
+        *,
         automatic_payment_methods: dict[str, Any] | None = None,
         capture_method: str | None = None,
         setup_future_usage: str | None = None,
         receipt_email: str | None = None,
-        idempotency_key: str | None = None,
         **extra_params: Any,
     ) -> dict[str, Any]:
         """Create a Stripe payment intent."""
@@ -462,7 +461,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
         params.update(extra_params)
 
         payment_intent = self._client.v1.payment_intents.create(
-            params=params,
+            params=cast(stripe.params.PaymentIntentCreateParams, params),
             options=self._request_options(idempotency_key),
         )
 
@@ -484,7 +483,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
             params["payment_method"] = payment_method_id
 
         payment_intent = self._client.v1.payment_intents.confirm(
-            payment_intent_id, params=params if params else None
+            payment_intent_id, params=cast(stripe.params.PaymentIntentConfirmParams, params if params else None)
         )
 
         return {
@@ -517,6 +516,8 @@ class StripePaymentProvider(PaymentProviderAdapter):
         metadata: dict[str, Any] | None = None,
         line_items: list[dict[str, Any]] | None = None,
         quantity: int = 1,
+        idempotency_key: str | None = None,
+        *,
         customer_email: str | None = None,
         client_reference_id: str | None = None,
         allow_promotion_codes: bool | None = None,
@@ -529,7 +530,6 @@ class StripePaymentProvider(PaymentProviderAdapter):
         subscription_data: dict[str, Any] | None = None,
         payment_intent_data: dict[str, Any] | None = None,
         invoice_creation: dict[str, Any] | None = None,
-        idempotency_key: str | None = None,
         **extra_params: Any,
     ) -> dict[str, Any]:
         """Create a Stripe checkout session."""
@@ -563,7 +563,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
         params.update(extra_params)
 
         session = self._client.v1.checkout.sessions.create(
-            params=params,
+            params=cast(stripe.params.checkout.SessionCreateParams, params),
             options=self._request_options(idempotency_key),
         )
 
@@ -633,7 +633,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
             params["pause_collection"]["resumes_at"] = resumes_at
         subscription = self._client.v1.subscriptions.update(
             subscription_id,
-            params=params,
+            params=cast(stripe.params.SubscriptionUpdateParams, params),
             options=self._request_options(idempotency_key),
         )
         return self._normalize_subscription(subscription)
@@ -656,7 +656,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
         }
         subscription = self._client.v1.subscriptions.resume(
             subscription_id,
-            params=params or None,
+            params=cast(stripe.params.SubscriptionResumeParams, params or None),
             options=self._request_options(idempotency_key),
         )
         return self._normalize_subscription(subscription)
@@ -686,7 +686,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
         )
         params.update(extra_params)
         product = self._client.v1.products.create(
-            params=params,
+            params=cast(stripe.params.ProductCreateParams, params),
             options=self._request_options(idempotency_key),
         )
         return self._normalize_product(product)
@@ -719,7 +719,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
         params.update(extra_params)
         product = self._client.v1.products.update(
             product_id,
-            params=params,
+            params=cast(stripe.params.ProductUpdateParams, params),
             options=self._request_options(idempotency_key),
         )
         return self._normalize_product(product)
@@ -729,7 +729,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
         params: dict[str, Any] = {"limit": limit}
         if active is not None:
             params["active"] = active
-        products = self._client.v1.products.list(params=params)
+        products = self._client.v1.products.list(params=cast(stripe.params.ProductListParams, params))
         return [self._normalize_product(product) for product in products.data]
 
     def list_all_products(self, active: bool | None = None) -> list[dict[str, Any]]:
@@ -737,7 +737,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
         params: dict[str, Any] = {"limit": 100}
         if active is not None:
             params["active"] = active
-        products = self._client.v1.products.list(params=params)
+        products = self._client.v1.products.list(params=cast(stripe.params.ProductListParams, params))
         return [self._normalize_product(product) for product in self._auto_paging_items(products)]
 
     def create_price(
@@ -775,7 +775,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
         params.update({key: value for key, value in optional_params.items() if value is not None})
         params.update(extra_params)
         price = self._client.v1.prices.create(
-            params=params,
+            params=cast(stripe.params.PriceCreateParams, params),
             options=self._request_options(idempotency_key),
         )
         return self._normalize_price(price)
@@ -809,7 +809,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
         }
         price = self._client.v1.prices.update(
             price_id,
-            params=params,
+            params=cast(stripe.params.PriceUpdateParams, params),
             options=self._request_options(idempotency_key),
         )
         return self._normalize_price(price)
@@ -868,7 +868,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
             params["active"] = active
         if lookup_keys:
             params["lookup_keys"] = lookup_keys
-        prices = self._client.v1.prices.list(params=params)
+        prices = self._client.v1.prices.list(params=cast(stripe.params.PriceListParams, params))
         return [self._normalize_price(price) for price in prices.data]
 
     def list_all_prices(
@@ -885,7 +885,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
             params["active"] = active
         if lookup_keys:
             params["lookup_keys"] = lookup_keys
-        prices = self._client.v1.prices.list(params=params)
+        prices = self._client.v1.prices.list(params=cast(stripe.params.PriceListParams, params))
         return [self._normalize_price(price) for price in self._auto_paging_items(prices)]
 
     def _normalize_product(self, product) -> dict[str, Any]:
@@ -960,7 +960,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
         }
         params.update(extra_params)
         meter = self._client.v1.billing.meters.create(
-            params=params,
+            params=cast(stripe.params.billing.MeterCreateParams, params),
             options=self._request_options(idempotency_key),
         )
         return self._normalize_meter(meter)
@@ -974,7 +974,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
         params: dict[str, Any] = {"limit": limit}
         if status:
             params["status"] = status
-        meters = self._client.v1.billing.meters.list(params=params)
+        meters = self._client.v1.billing.meters.list(params=cast(stripe.params.billing.MeterListParams, params))
         return [self._normalize_meter(meter) for meter in meters.data]
 
     def list_all_meters(self, status: str | None = None) -> list[dict[str, Any]]:
@@ -982,7 +982,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
         params: dict[str, Any] = {"limit": 100}
         if status:
             params["status"] = status
-        meters = self._client.v1.billing.meters.list(params=params)
+        meters = self._client.v1.billing.meters.list(params=cast(stripe.params.billing.MeterListParams, params))
         return [self._normalize_meter(meter) for meter in self._auto_paging_items(meters)]
 
     def update_meter(
@@ -997,7 +997,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
         params.update(extra_params)
         meter = self._client.v1.billing.meters.update(
             meter_id,
-            params=params,
+            params=cast(stripe.params.billing.MeterUpdateParams, params),
             options=self._request_options(idempotency_key),
         )
         return self._normalize_meter(meter)
@@ -1047,7 +1047,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
             params["timestamp"] = timestamp
 
         meter_event = self._client.v1.billing.meter_events.create(
-            params=params,
+            params=cast(stripe.params.billing.MeterEventCreateParams, params),
             options=self._request_options(idempotency_key),
         )
         return self._normalize_meter_event(meter_event)
@@ -1071,7 +1071,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
     ) -> dict[str, Any]:
         """Send high-throughput meter events through Stripe API v2."""
         client = stripe.StripeClient(authentication_token) if authentication_token else self._client
-        client.v2.billing.meter_event_stream.create(params={"events": events})
+        client.v2.billing.meter_event_stream.create(params=cast(MeterEventStreamCreateParams, {"events": events}))
         return {"submitted": True, "event_count": len(events)}
 
     def _normalize_meter(self, meter) -> dict[str, Any]:
@@ -1113,7 +1113,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
         if metadata is not None:
             params["metadata"] = metadata
         feature = self._client.v1.entitlements.features.create(
-            params=params,
+            params=cast(stripe.params.entitlements.FeatureCreateParams, params),
             options=self._request_options(idempotency_key),
         )
         return self._normalize_entitlement_feature(feature)
@@ -1134,7 +1134,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
         }
         feature = self._client.v1.entitlements.features.update(
             feature_id,
-            params=params,
+            params=cast(stripe.params.entitlements.FeatureUpdateParams, params),
             options=self._request_options(idempotency_key),
         )
         return self._normalize_entitlement_feature(feature)
@@ -1145,7 +1145,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
         params: dict[str, Any] = {"limit": 100}
         if archived is not None:
             params["archived"] = archived
-        features = self._client.v1.entitlements.features.list(params=params)
+        features = self._client.v1.entitlements.features.list(params=cast(stripe.params.entitlements.FeatureListParams, params))
         return [
             self._normalize_entitlement_feature(feature)
             for feature in self._auto_paging_items(features)
@@ -1264,6 +1264,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
         flow_data: dict[str, Any] | None = None,
         on_behalf_of: str | None = None,
         idempotency_key: str | None = None,
+        **extra_params: Any,
     ) -> dict[str, Any]:
         """Create a Stripe-hosted customer billing portal session."""
         params = {
@@ -1278,7 +1279,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
             if value is not None
         }
         session = self._client.v1.billing_portal.sessions.create(
-            params=params,
+            params=cast(stripe.params.billing_portal.SessionCreateParams, {**params, **extra_params}),
             options=self._request_options(idempotency_key),
         )
         return {"id": session.id, "url": session.url, "customer_id": session.customer}
@@ -1307,7 +1308,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
         }
         params.update(extra_params)
         refund = self._client.v1.refunds.create(
-            params=params,
+            params=cast(stripe.params.RefundCreateParams, params),
             options=self._request_options(idempotency_key),
         )
         return self._normalize_refund(refund)
@@ -1323,12 +1324,12 @@ class StripePaymentProvider(PaymentProviderAdapter):
         limit: int = 10,
     ) -> list[dict[str, Any]]:
         """List refunds."""
-        params = {"limit": limit}
+        params: dict[str, Any] = {"limit": limit}
         if payment_intent_id:
             params["payment_intent"] = payment_intent_id
         if charge_id:
             params["charge"] = charge_id
-        refunds = self._client.v1.refunds.list(params=params)
+        refunds = self._client.v1.refunds.list(params=cast(stripe.params.RefundListParams, params))
         return [self._normalize_refund(refund) for refund in refunds.data]
 
     def create_coupon(
@@ -1357,7 +1358,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
         }
         params.update(extra_params)
         coupon = self._client.v1.coupons.create(
-            params=params,
+            params=cast(stripe.params.CouponCreateParams, params),
             options=self._request_options(idempotency_key),
         )
         return self._normalize_coupon(coupon)
@@ -1386,7 +1387,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
         params = {
             key: value
             for key, value in {
-                "coupon": coupon_id,
+                "promotion": {"type": "coupon", "coupon": coupon_id},
                 "code": code,
                 "customer": customer_id,
                 "active": active,
@@ -1397,15 +1398,13 @@ class StripePaymentProvider(PaymentProviderAdapter):
         }
         params.update(extra_params)
         promotion_code = self._client.v1.promotion_codes.create(
-            params=params,
+            params=cast(stripe.params.PromotionCodeCreateParams, params),
             options=self._request_options(idempotency_key),
         )
         return {
             "id": promotion_code.id,
             "code": promotion_code.code,
-            "coupon_id": promotion_code.coupon.id
-            if hasattr(promotion_code.coupon, "id")
-            else promotion_code.coupon,
+            "coupon_id": self._catalog_id(promotion_code.promotion.coupon),
             "active": promotion_code.active,
             "metadata": getattr(promotion_code, "metadata", {}),
         }
@@ -1420,6 +1419,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
         jurisdiction: str | None = None,
         metadata: dict[str, Any] | None = None,
         idempotency_key: str | None = None,
+        **extra_params: Any,
     ) -> dict[str, Any]:
         """Create a Stripe tax rate."""
         params = {
@@ -1436,7 +1436,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
             if value is not None
         }
         tax_rate = self._client.v1.tax_rates.create(
-            params=params,
+            params=cast(stripe.params.TaxRateCreateParams, {**params, **extra_params}),
             options=self._request_options(idempotency_key),
         )
         return self._normalize_tax_rate(tax_rate)
@@ -1446,7 +1446,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
         params: dict[str, Any] = {"limit": limit}
         if active is not None:
             params["active"] = active
-        tax_rates = self._client.v1.tax_rates.list(params=params)
+        tax_rates = self._client.v1.tax_rates.list(params=cast(stripe.params.TaxRateListParams, params))
         return [self._normalize_tax_rate(tax_rate) for tax_rate in tax_rates.data]
 
     def create_invoice(
@@ -1471,33 +1471,36 @@ class StripePaymentProvider(PaymentProviderAdapter):
         }
         params.update(extra_params)
         invoice = self._client.v1.invoices.create(
-            params=params,
+            params=cast(stripe.params.InvoiceCreateParams, params),
             options=self._request_options(idempotency_key),
         )
         return self._normalize_invoice(invoice)
 
     def finalize_invoice(
-        self, invoice_id: str, idempotency_key: str | None = None
+        self, invoice_id: str, idempotency_key: str | None = None, **extra_params: Any
     ) -> dict[str, Any]:
         """Finalize a draft invoice."""
         invoice = self._client.v1.invoices.finalize_invoice(
             invoice_id,
+            params=cast(stripe.params.InvoiceFinalizeInvoiceParams, extra_params),
             options=self._request_options(idempotency_key),
         )
         return self._normalize_invoice(invoice)
 
-    def pay_invoice(self, invoice_id: str, idempotency_key: str | None = None) -> dict[str, Any]:
+    def pay_invoice(self, invoice_id: str, idempotency_key: str | None = None, **extra_params: Any) -> dict[str, Any]:
         """Pay an invoice."""
         invoice = self._client.v1.invoices.pay(
             invoice_id,
+            params=cast(stripe.params.InvoicePayParams, extra_params),
             options=self._request_options(idempotency_key),
         )
         return self._normalize_invoice(invoice)
 
-    def void_invoice(self, invoice_id: str, idempotency_key: str | None = None) -> dict[str, Any]:
+    def void_invoice(self, invoice_id: str, idempotency_key: str | None = None, **extra_params: Any) -> dict[str, Any]:
         """Void an invoice."""
         invoice = self._client.v1.invoices.void_invoice(
             invoice_id,
+            params=cast(stripe.params.InvoiceVoidInvoiceParams, extra_params),
             options=self._request_options(idempotency_key),
         )
         return self._normalize_invoice(invoice)
@@ -1600,7 +1603,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
             params["api_version"] = api_version
         options = {"idempotency_key": idempotency_key} if idempotency_key else None
         try:
-            endpoint = self._client.v1.webhook_endpoints.create(params=params, options=options)
+            endpoint = self._client.v1.webhook_endpoints.create(params=cast(stripe.params.WebhookEndpointCreateParams, params), options=cast(stripe.RequestOptions, options))
             return self._normalize_webhook_endpoint(endpoint, include_secret=True)
         except Exception as exc:
             self._handle_stripe_error(exc)
@@ -1655,7 +1658,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
         options = {"idempotency_key": idempotency_key} if idempotency_key else None
         try:
             endpoint = self._client.v1.webhook_endpoints.update(
-                endpoint_id, params=params, options=options
+                endpoint_id, params=cast(stripe.params.WebhookEndpointUpdateParams, params), options=cast(stripe.RequestOptions, options)
             )
             return self._normalize_webhook_endpoint(endpoint)
         except Exception as exc:
@@ -1691,7 +1694,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
                 else self._client.construct_event(payload, signature, secret)
             )
             event_data = getattr(event, "data", None)
-            if hasattr(event_data, "object"):
+            if event_data is not None and hasattr(event_data, "object"):
                 event_data = event_data.object
             return {
                 "type": event.type,
@@ -1716,7 +1719,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
         if processed_event_ids is not None and event_id in processed_event_ids:
             return {"handled": False, "duplicate": True, "event_id": event_id}
 
-        handler = handlers.get(event.get("type")) or handlers.get("*")
+        handler = handlers.get(str(event.get("type", ""))) or handlers.get("*")
         if handler is None:
             return {"handled": False, "duplicate": False, "event_id": event_id}
 

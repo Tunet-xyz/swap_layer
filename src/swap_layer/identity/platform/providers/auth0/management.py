@@ -22,6 +22,7 @@ Usage:
     members = mgmt.get_organization_members(org_id='org_123')
 """
 
+from hashlib import sha256
 from typing import Any
 
 import requests
@@ -70,7 +71,8 @@ class Auth0ManagementClient:
         )
 
         # Token caching
-        self._token_cache_key = f"auth0_mgmt_token_{app_name}"
+        audience = sha256(f"{self.domain}:{self.client_id}".encode()).hexdigest()
+        self._token_cache_key = f"auth0_mgmt_token_{app_name}_{audience}"
         self._token = None
         self._token_expires_at = 0
 

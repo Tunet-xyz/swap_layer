@@ -72,6 +72,7 @@ class SMTPEmailProvider(EmailProviderAdapter):
                 raise EmailSendError("Either text_body or html_body is required")
 
             # Create email message
+            msg: EmailMessage
             if html_body:
                 msg = EmailMultiAlternatives(
                     subject=subject,

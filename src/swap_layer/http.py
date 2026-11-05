@@ -5,7 +5,8 @@ Provides resilient HTTP requests with exponential backoff for all provider integ
 """
 
 import logging
-from functools import wraps
+from collections.abc import Callable
+from typing import Any, TypeVar, cast
 
 import requests
 from requests.exceptions import (
@@ -26,14 +27,15 @@ RETRYABLE_STATUS_CODES = {429, 500, 502, 503, 504}
 
 # Exceptions that should trigger a retry
 RETRYABLE_EXCEPTIONS = (ConnectionError, Timeout)
+_RequestFunction = TypeVar("_RequestFunction", bound=Callable[..., Any])
 
 
-def is_retryable_error(exception: Exception) -> bool:
+def is_retryable_error(exception: BaseException) -> bool:
     """Check if an exception should trigger a retry."""
     if isinstance(exception, RETRYABLE_EXCEPTIONS):
         return True
     if isinstance(exception, HTTPError):
-        return exception.response.status_code in RETRYABLE_STATUS_CODES
+        return exception.response is not None and exception.response.status_code in RETRYABLE_STATUS_CODES
     return False
 
 
@@ -52,7 +54,7 @@ try:
         max_retries: int = DEFAULT_MAX_RETRIES,
         min_wait: float = 1,
         max_wait: float = 60,
-    ):
+    ) -> Callable[[_RequestFunction], _RequestFunction]:
         """
         Create a retry decorator with exponential backoff.
 
@@ -64,13 +66,13 @@ try:
         Returns:
             Configured retry decorator
         """
-        return retry(
+        return cast(Callable[[_RequestFunction], _RequestFunction], retry(
             stop=stop_after_attempt(max_retries),
             wait=wait_exponential(multiplier=1, min=min_wait, max=max_wait),
             retry=retry_if_exception(is_retryable_error),
             before_sleep=before_sleep_log(logger, logging.WARNING),
             reraise=True,
-        )
+        ))
 
     # Default retry decorator
     with_retry = create_retry_decorator()
@@ -82,19 +84,15 @@ except ImportError:
         max_retries: int = DEFAULT_MAX_RETRIES,
         min_wait: float = 1,
         max_wait: float = 60,
-    ):
+    ) -> Callable[[_RequestFunction], _RequestFunction]:
         """Fallback when tenacity is not installed - no retry logic."""
 
-        def decorator(func):
-            @wraps(func)
-            def wrapper(*args, **kwargs):
-                return func(*args, **kwargs)
-
-            return wrapper
+        def decorator(func: _RequestFunction) -> _RequestFunction:
+            return func
 
         return decorator
 
-    def with_retry(func):
+    def with_retry(func: _RequestFunction) -> _RequestFunction:
         """Fallback decorator when tenacity is not installed."""
         return func
 
@@ -159,7 +157,7 @@ class ResilientSession:
         kwargs.setdefault("timeout", self.timeout)
 
         @create_retry_decorator(max_retries=self.max_retries)
-        def _request():
+        def _request() -> requests.Response:
             response = self.session.request(method, url, **kwargs)
             response.raise_for_status()
             return response
@@ -223,7 +221,7 @@ def resilient_request(
     kwargs.setdefault("timeout", timeout)
 
     @create_retry_decorator(max_retries=max_retries)
-    def _request():
+    def _request() -> requests.Response:
         response = requests.request(method, url, **kwargs)
         response.raise_for_status()
         return response

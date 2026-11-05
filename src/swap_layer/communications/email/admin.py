@@ -10,6 +10,7 @@ Add this to your admin.py:
         list_display = ['to_email', 'subject', 'status', 'email_provider', 'sent_at']
 """
 
+from django.contrib import admin
 from django.utils.html import format_html
 
 
@@ -20,10 +21,11 @@ class EmailLogAdminMixin:
     Adds helpful fields and actions for email tracking.
     """
 
+    @admin.display(description="Status", ordering="status")
     def status_badge(self, obj):
         """Display email status with color badge."""
         if not obj.status:
-            return format_html('<span style="color: #999;">—</span>')
+            return format_html('<span style="color: #999;">{}</span>', "—")
 
         colors = {
             "sent": "#17a2b8",
@@ -41,21 +43,16 @@ class EmailLogAdminMixin:
             obj.status.upper(),
         )
 
-    status_badge.short_description = "Status"
-    status_badge.admin_order_field = "status"
-
+    @admin.display(description="Provider", ordering="email_provider")
     def provider_badge(self, obj):
         """Display provider with badge."""
         if not obj.email_provider:
-            return format_html('<span style="color: #999;">—</span>')
+            return format_html('<span style="color: #999;">{}</span>', "—")
 
         return format_html(
             '<span style="background: #6c757d; color: white; padding: 2px 8px; border-radius: 3px; font-size: 11px;">{}</span>',
             obj.email_provider.upper(),
         )
-
-    provider_badge.short_description = "Provider"
-    provider_badge.admin_order_field = "email_provider"
 
 
 class EmailSuppressionAdminMixin:
@@ -65,10 +62,11 @@ class EmailSuppressionAdminMixin:
     Adds helpful fields for suppression management.
     """
 
+    @admin.display(description="Type", ordering="suppression_type")
     def suppression_type_badge(self, obj):
         """Display suppression type with color badge."""
         if not obj.suppression_type:
-            return format_html('<span style="color: #999;">—</span>')
+            return format_html('<span style="color: #999;">{}</span>', "—")
 
         colors = {
             "bounce": "#dc3545",
@@ -83,6 +81,3 @@ class EmailSuppressionAdminMixin:
             color,
             obj.suppression_type.upper(),
         )
-
-    suppression_type_badge.short_description = "Type"
-    suppression_type_badge.admin_order_field = "suppression_type"

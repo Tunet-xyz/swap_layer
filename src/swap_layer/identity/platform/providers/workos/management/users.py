@@ -4,15 +4,19 @@ WorkOS user management operations.
 Handles user CRUD operations via the WorkOS AuthKit user management API.
 """
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
+from swap_layer.identity.platform.management._responses import object_list
 from swap_layer.identity.platform.management.adapter import UserManagementAdapter
+
+if TYPE_CHECKING:
+    from .client import WorkOSManagementClient
 
 
 class WorkOSUserManagement(UserManagementAdapter):
     """WorkOS user management implementation."""
 
-    def __init__(self, base_client):
+    def __init__(self, base_client: "WorkOSManagementClient"):
         """Initialize with base management client.
 
         Args:
@@ -21,6 +25,17 @@ class WorkOSUserManagement(UserManagementAdapter):
         self.base_client = base_client
 
     def list_users(
+        self, page: int = 0, per_page: int = 50, search_query: str | None = None, **kwargs
+    ) -> list[dict[str, Any]]:
+        """Return one user page; use ``after``/``before`` cursors beyond page zero."""
+        if page != 0:
+            raise NotImplementedError("WorkOS uses cursor pagination; pass after or before")
+        if search_query is not None:
+            kwargs.setdefault("email", search_query)
+        kwargs.setdefault("limit", per_page)
+        return object_list(self.list_users_page(**kwargs).get("data", []))
+
+    def list_users_page(
         self,
         email: str | None = None,
         organization_id: str | None = None,
@@ -38,7 +53,7 @@ class WorkOSUserManagement(UserManagementAdapter):
         Returns:
             Dict with 'data' (list of users) and 'listMetadata'
         """
-        params = {"limit": limit}
+        params: dict[str, Any] = {"limit": limit}
         if email:
             params["email"] = email
         if organization_id:
@@ -61,9 +76,11 @@ class WorkOSUserManagement(UserManagementAdapter):
         self,
         email: str,
         password: str | None = None,
+        email_verified: bool = False,
+        metadata: dict | None = None,
+        *,
         first_name: str | None = None,
         last_name: str | None = None,
-        email_verified: bool = False,
         **kwargs,
     ) -> dict[str, Any]:
         """Create a new user.
@@ -79,22 +96,26 @@ class WorkOSUserManagement(UserManagementAdapter):
         Returns:
             Created user object
         """
-        data = {"email": email, "email_verified": email_verified}
+        data: dict[str, Any] = {"email": email, "email_verified": email_verified}
         if password:
             data["password"] = password
         if first_name:
             data["first_name"] = first_name
         if last_name:
             data["last_name"] = last_name
+        if metadata is not None:
+            data["metadata"] = metadata
         data.update(kwargs)
         return self.base_client._make_request("POST", "/user_management/users", json=data)
 
     def update_user(
         self,
         user_id: str,
+        email: str | None = None,
+        metadata: dict | None = None,
+        *,
         first_name: str | None = None,
         last_name: str | None = None,
-        email: str | None = None,
         email_verified: bool | None = None,
         **kwargs,
     ) -> dict[str, Any]:
@@ -111,7 +132,7 @@ class WorkOSUserManagement(UserManagementAdapter):
         Returns:
             Updated user object
         """
-        data = {}
+        data: dict[str, Any] = {}
         if first_name is not None:
             data["first_name"] = first_name
         if last_name is not None:
@@ -120,10 +141,12 @@ class WorkOSUserManagement(UserManagementAdapter):
             data["email"] = email
         if email_verified is not None:
             data["email_verified"] = email_verified
+        if metadata is not None:
+            data["metadata"] = metadata
         data.update(kwargs)
         return self.base_client._make_request("PUT", f"/user_management/users/{user_id}", json=data)
 
-    def delete_user(self, user_id: str) -> bool:
+    def delete_user(self, user_id: str) -> None:
         """Delete a user.
 
         Args:
@@ -133,9 +156,8 @@ class WorkOSUserManagement(UserManagementAdapter):
             True if successful
         """
         self.base_client._make_request("DELETE", f"/user_management/users/{user_id}")
-        return True
 
-    def search_users(self, query: str, **kwargs) -> dict[str, Any]:
+    def search_users(self, query: str, per_page: int = 50, **kwargs) -> list[dict[str, Any]]:
         """Search users by email.
 
         Args:
@@ -145,4 +167,4 @@ class WorkOSUserManagement(UserManagementAdapter):
         Returns:
             Dict with search results
         """
-        return self.list_users(email=query, **kwargs)
+        return self.list_users(search_query=query, per_page=per_page, **kwargs)

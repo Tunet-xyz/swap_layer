@@ -23,7 +23,7 @@ def _seal_auth_response(response: Any, user: Any, cookie_password: str) -> str:
     try:
         from workos.session import seal_session_from_auth_response
     except ImportError:
-        seal_session_from_auth_response = None
+        seal_session_from_auth_response = None  # type: ignore[assignment]
 
     user_data = user.to_dict()
     impersonator = response.impersonator.to_dict() if response.impersonator else None
@@ -67,7 +67,7 @@ class WorkOSClient(AuthProviderAdapter):
             ValueError: If app_name not found in settings
         """
         self.app_name = app_name
-        self.config = settings.WORKOS_APPS.get(app_name)
+        self.config = getattr(settings, "WORKOS_APPS", {}).get(app_name)
         if not self.config:
             raise ValueError(
                 f"WorkOS configuration for '{app_name}' not found in settings.WORKOS_APPS"
@@ -151,7 +151,7 @@ class WorkOSClient(AuthProviderAdapter):
         if sealed_session:
             try:
                 session = self._workos_client.user_management.load_sealed_session(
-                    sealed_session=sealed_session,
+                    session_data=sealed_session,
                     cookie_password=self._cookie_password,
                 )
                 return session.get_logout_url()
