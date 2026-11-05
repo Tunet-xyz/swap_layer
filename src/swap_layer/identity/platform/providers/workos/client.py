@@ -157,7 +157,7 @@ class WorkOSClient(AuthProviderAdapter):
                 return session.get_logout_url()
             except Exception:
                 # If session loading fails, fallback to return_to url
-                pass
+                return return_to
 
         return return_to
 

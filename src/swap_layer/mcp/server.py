@@ -8,7 +8,10 @@ including onboarding, documentation, and configuration tools.
 import json
 import pathlib
 import uuid
+from io import BytesIO
 from typing import Any
+
+from pydantic import BaseModel
 
 try:
     import mcp.types as types
@@ -29,7 +32,29 @@ SENSITIVE_KEYS = {
     "account_sid",
     "auth_token",
     "client_secret",
+    "cookie_password",
 }
+
+
+def _redact_config(value: Any) -> Any:
+    """Omit credential fields recursively, including nested validated settings."""
+    if isinstance(value, BaseModel):
+        value = value.model_dump()
+    if isinstance(value, dict):
+        return {
+            key: _redact_config(item)
+            for key, item in value.items()
+            if not (
+                str(key).lower() in SENSITIVE_KEYS
+                or any(
+                    marker in str(key).lower()
+                    for marker in ("secret", "password", "token", "api_key", "credential", "private_key")
+                )
+            )
+        }
+    if isinstance(value, (list, tuple)):
+        return [_redact_config(item) for item in value]
+    return value
 
 # Path to the docs directory — only available when running from source
 _DOCS_DIR = pathlib.Path(__file__).parent.parent.parent.parent / "docs"
@@ -1309,7 +1334,7 @@ def create_mcp_server() -> Any:
 
             return [types.TextContent(type="text", text=json.dumps(result, indent=2))]
         except Exception as e:
-            error_result = {"error": str(e), "type": type(e).__name__}
+            error_result = {"error": "Tool execution failed; inspect local provider configuration", "type": type(e).__name__}
             return [types.TextContent(type="text", text=json.dumps(error_result, indent=2))]
 
     # ── Resources — expose documentation for agents to read directly ──────────
@@ -1588,26 +1613,26 @@ async def _get_config(service: str) -> dict[str, Any]:
     try:
         settings = get_swaplayer_settings()
 
+        communications = settings.communications
+        services = {
+            "payments": settings.billing,
+            "email": communications.email if communications else None,
+            "sms": communications.sms if communications else None,
+            "storage": settings.storage,
+            "identity": settings.identity,
+            "verification": settings.verification,
+        }
         if service == "all":
-            config = {}
-            for svc in ["email", "payments", "sms", "storage", "identity", "verification"]:
-                if hasattr(settings, svc):
-                    svc_config = getattr(settings, svc)
-                    if svc_config:
-                        safe_config = {
-                            k: v for k, v in svc_config.items() if k not in SENSITIVE_KEYS
-                        }
-                        config[svc] = safe_config
-            return {"status": "success", "config": config}
-        else:
-            if hasattr(settings, service):
-                svc_config = getattr(settings, service)
-                if svc_config:
-                    safe_config = {k: v for k, v in svc_config.items() if k not in SENSITIVE_KEYS}
-                    return {"status": "success", "service": service, "config": safe_config}
-            return {"status": "not_configured", "service": service}
+            return {"status": "success", "config": {
+                key: _redact_config(value) for key, value in services.items() if value is not None
+            }}
+        if service not in services:
+            return {"status": "error", "message": "Unknown service"}
+        if services[service] is not None:
+            return {"status": "success", "service": service, "config": _redact_config(services[service])}
+        return {"status": "not_configured", "service": service}
     except Exception as e:
-        return {"status": "error", "message": str(e)}
+        return {"status": "error", "message": "Configuration could not be loaded", "error_type": type(e).__name__}
 
 
 async def _list_providers(service: str) -> dict[str, Any]:
@@ -1616,9 +1641,9 @@ async def _list_providers(service: str) -> dict[str, Any]:
         "email": ["django", "smtp", "sendgrid", "mailgun", "ses"],
         "payments": ["stripe", "paypal", "square"],
         "sms": ["twilio", "sns"],
-        "storage": ["django", "s3", "azure", "gcs"],
+        "storage": ["local", "django", "gcs"],
         "identity": ["workos", "auth0"],
-        "verification": ["workos", "persona"],
+        "verification": ["stripe"],
     }
 
     if service not in providers:
@@ -1639,7 +1664,7 @@ async def _send_test_email(to: str, subject: str, body: str) -> dict[str, Any]:
     except Exception as e:
         return {
             "status": "error",
-            "message": f"Failed to send test email: {str(e)}",
+            "message": "Failed to send test email; inspect local provider configuration",
             "error_type": type(e).__name__,
         }
 
@@ -1656,7 +1681,7 @@ async def _send_test_sms(to: str, message: str) -> dict[str, Any]:
     except Exception as e:
         return {
             "status": "error",
-            "message": f"Failed to send test SMS: {str(e)}",
+            "message": "Failed to send test SMS; inspect local provider configuration",
             "error_type": type(e).__name__,
         }
 
@@ -1679,18 +1704,18 @@ async def _check_storage(test_upload: bool = False) -> dict[str, Any]:
             test_filename = f"mcp_test_{uuid.uuid4().hex[:8]}.txt"
 
             try:
-                storage_provider.save(test_filename, test_content)
-                storage_provider.delete(test_filename)
+                storage_provider.upload_file(test_filename, BytesIO(test_content))
+                storage_provider.delete_file(test_filename)
                 info["test_upload"] = "success"
             except Exception as e:
                 info["test_upload"] = "failed"
-                info["test_error"] = str(e)
+                info["test_error"] = type(e).__name__
 
         return info
     except Exception as e:
         return {
             "status": "error",
-            "message": f"Storage check failed: {str(e)}",
+            "message": "Storage check failed; inspect local provider configuration",
             "error_type": type(e).__name__,
         }
 

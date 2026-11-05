@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+- Reject traversal, absolute paths, symlinks, and junctions in local storage keys;
+  enforce safe tenant identities and organization-scoped storage paths.
+- Redact nested credentials from current MCP settings models and omit raw provider
+  exception messages from operational MCP responses.
+- Bound legacy Auth0 management HTTP calls with a 30-second timeout.
+
+### Fixed
+- Restrict the MCP SDK to its supported 1.x API and test the actual tool registry.
+- Use the storage adapter API in MCP upload probes and the current settings API in
+  the WorkOS management factory.
+
 ### Added
 - Added provider-neutral webhook endpoint lifecycle operations and Stripe discovery,
   create, update, and explicit delete support with a one-time signing-secret boundary.

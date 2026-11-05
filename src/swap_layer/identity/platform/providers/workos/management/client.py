@@ -114,7 +114,7 @@ class WorkOSManagementClient(IdentityManagementClient):
                 try:
                     error_msg = e.response.text
                 except Exception:
-                    pass
+                    error_msg = "Provider response could not be read"
 
             logger.error(f"WorkOS API error: {error_msg}")
             raise WorkOSAPIError(

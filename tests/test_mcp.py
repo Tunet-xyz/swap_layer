@@ -319,23 +319,20 @@ async def test_get_migration_guide_warns_unknown_provider():
         pytest.skip("MCP dependencies not installed")
 
 
-def test_server_has_13_tools():
+@pytest.mark.asyncio
+async def test_server_has_13_tools():
     """Verify the server exposes all 13 tools (9 original + 4 onboarding)."""
     try:
-        import asyncio
-
+        from mcp import types
         from swap_layer.mcp import create_mcp_server
 
         server = create_mcp_server()
 
         # The list_tools handler is registered on the server;
         # access the underlying handler to call it
-        handler = server.request_handlers.get("tools/list")
-        if handler is None:
-            pytest.skip("Cannot inspect tool list via this mcp version")
-
-        tools = asyncio.run(handler(None))
-        tool_names = {t.name for t in tools.tools}
+        handler = server.request_handlers[types.ListToolsRequest]
+        result = await handler(types.ListToolsRequest(method="tools/list"))
+        tool_names = {t.name for t in result.root.tools}
 
         expected = {
             "swaplayer_get_config",

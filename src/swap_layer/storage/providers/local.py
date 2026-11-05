@@ -2,7 +2,7 @@ import hashlib
 import mimetypes
 import shutil
 from datetime import datetime, timedelta
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from typing import Any, BinaryIO
 
 from ..adapter import (
@@ -41,19 +41,45 @@ class LocalFileStorageProvider(StorageProviderAdapter):
             base_path: Base directory for file storage (defaults to MEDIA_ROOT)
             base_url: Base URL for accessing files (defaults to MEDIA_URL)
         """
-        self.base_path = Path(base_path or _get_django_setting("MEDIA_ROOT", "media"))
+        self.base_path = Path(base_path or _get_django_setting("MEDIA_ROOT", "media")).resolve()
         self.base_url = base_url or _get_django_setting("MEDIA_URL", "/media/")
 
         # Ensure base path exists
         self.base_path.mkdir(parents=True, exist_ok=True)
 
     def _get_full_path(self, file_path: str) -> Path:
-        """Get the full filesystem path for a file."""
-        return self.base_path / file_path
+        """Resolve a relative object key without following links below the root."""
+        windows_path = PureWindowsPath(file_path)
+        if (
+            not file_path
+            or "\x00" in file_path
+            or "\\" in file_path
+            or ":" in file_path
+            or windows_path.drive
+            or file_path.startswith("/")
+            or ".." in file_path.split("/")
+        ):
+            raise ValueError("Storage paths must be relative keys within the storage root")
+        candidate = self.base_path / file_path
+        for component in (candidate, *candidate.parents):
+            if component == self.base_path:
+                break
+            if component.is_symlink() or (
+                hasattr(component, "is_junction") and component.is_junction()
+            ):
+                raise ValueError("Storage paths cannot contain symbolic links or junctions")
+        resolved = candidate.resolve()
+        if not resolved.is_relative_to(self.base_path) or resolved == self.base_path:
+            raise ValueError("Storage path escapes the storage root")
+        return candidate
+
+    def _metadata_path(self, full_path: Path) -> Path:
+        key = full_path.relative_to(self.base_path).as_posix() + ".meta"
+        return self._get_full_path(key)
 
     def _calculate_etag(self, file_path: Path) -> str:
         """Calculate an ETag (MD5 hash) for a file."""
-        md5_hash = hashlib.md5()
+        md5_hash = hashlib.md5(usedforsecurity=False)
         with open(file_path, "rb") as f:
             for chunk in iter(lambda: f.read(8192), b""):
                 md5_hash.update(chunk)
@@ -85,7 +111,7 @@ class LocalFileStorageProvider(StorageProviderAdapter):
 
             # Store metadata in a sidecar file if provided
             if metadata:
-                metadata_path = full_path.with_suffix(full_path.suffix + ".meta")
+                metadata_path = self._metadata_path(full_path)
                 with open(metadata_path, "w") as f:
                     for key, value in metadata.items():
                         f.write(f"{key}:{value}\n")
@@ -128,7 +154,7 @@ class LocalFileStorageProvider(StorageProviderAdapter):
                 raise StorageFileNotFoundError(f"File not found: {file_path}")
 
             # Delete metadata file if it exists
-            metadata_path = full_path.with_suffix(full_path.suffix + ".meta")
+            metadata_path = self._metadata_path(full_path)
             if metadata_path.exists():
                 metadata_path.unlink()
 
@@ -160,7 +186,7 @@ class LocalFileStorageProvider(StorageProviderAdapter):
 
         # Load custom metadata if it exists
         custom_metadata = {}
-        metadata_path = full_path.with_suffix(full_path.suffix + ".meta")
+        metadata_path = self._metadata_path(full_path)
         if metadata_path.exists():
             with open(metadata_path) as f:
                 for line in f:
@@ -193,7 +219,11 @@ class LocalFileStorageProvider(StorageProviderAdapter):
 
         for file_path in search_path.rglob("*"):
             if file_path.is_file() and not file_path.suffix == ".meta":
-                relative_path = str(file_path.relative_to(self.base_path))
+                relative_path = file_path.relative_to(self.base_path).as_posix()
+                try:
+                    self._get_full_path(relative_path)
+                except ValueError:
+                    continue
                 stat = file_path.stat()
                 etag = self._calculate_etag(file_path)
 
@@ -213,6 +243,7 @@ class LocalFileStorageProvider(StorageProviderAdapter):
 
     def get_file_url(self, file_path: str, expiration: timedelta | None = None) -> str:
         """Get a URL to access a file."""
+        self._get_full_path(file_path)
         # Local files don't support signed URLs, just return the direct URL
         # Note: expiration parameter is ignored for local storage
         return f"{self.base_url.rstrip('/')}/{file_path}"
@@ -249,11 +280,9 @@ class LocalFileStorageProvider(StorageProviderAdapter):
             shutil.copy2(source_full_path, destination_full_path)
 
             # Copy metadata if it exists
-            source_metadata_path = source_full_path.with_suffix(source_full_path.suffix + ".meta")
+            source_metadata_path = self._metadata_path(source_full_path)
             if source_metadata_path.exists():
-                destination_metadata_path = destination_full_path.with_suffix(
-                    destination_full_path.suffix + ".meta"
-                )
+                destination_metadata_path = self._metadata_path(destination_full_path)
                 shutil.copy2(source_metadata_path, destination_metadata_path)
 
             etag = self._calculate_etag(destination_full_path)
@@ -281,11 +310,9 @@ class LocalFileStorageProvider(StorageProviderAdapter):
             shutil.move(str(source_full_path), str(destination_full_path))
 
             # Move metadata if it exists
-            source_metadata_path = source_full_path.with_suffix(source_full_path.suffix + ".meta")
+            source_metadata_path = self._metadata_path(source_full_path)
             if source_metadata_path.exists():
-                destination_metadata_path = destination_full_path.with_suffix(
-                    destination_full_path.suffix + ".meta"
-                )
+                destination_metadata_path = self._metadata_path(destination_full_path)
                 shutil.move(str(source_metadata_path), str(destination_metadata_path))
 
             return {

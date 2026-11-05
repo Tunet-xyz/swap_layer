@@ -44,6 +44,7 @@ class TestLocalStorageProvider(unittest.TestCase):
         with patch("swap_layer.storage.providers.local.Path.mkdir"):
             with patch("swap_layer.storage.providers.local.Path.stat") as mock_stat:
                 mock_stat.return_value.st_size = 17
+                mock_stat.return_value.st_mode = 0
                 with patch.object(self.provider, "_calculate_etag", return_value="abc123"):
                     result = self.provider.upload_file(
                         file_path="uploads/test.txt",
@@ -102,6 +103,7 @@ class TestLocalStorageProvider(unittest.TestCase):
             with patch("swap_layer.storage.providers.local.Path.stat") as mock_stat:
                 mock_stat.return_value.st_size = 1024
                 mock_stat.return_value.st_mtime = 1640000000
+                mock_stat.return_value.st_mode = 0
                 with patch.object(self.provider, "_calculate_etag", return_value="abc123"):
                     with patch("builtins.open", mock_open(read_data="")):
                         result = self.provider.get_file_metadata("uploads/test.txt")

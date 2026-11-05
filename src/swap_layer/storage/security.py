@@ -133,7 +133,7 @@ def validate_path_segment(segment: str) -> str:
     if ".." in segment:
         raise ValueError(f"Path traversal detected in segment: '{segment}'")
 
-    if not re.match(r"^[a-zA-Z0-9_\-./]+$", segment):
+    if not re.fullmatch(r"[a-zA-Z0-9_\-./]+", segment):
         raise ValueError(
             f"Invalid path segment: '{segment}'. "
             f"Only alphanumeric characters, underscores, hyphens, dots, and slashes are allowed."
@@ -208,6 +208,13 @@ class StorageSecurityContext:
                     "Example: scope_format='{organization_id}' to place files "
                     "under the org id at the bucket root."
                 )
+            if "{organization_id}" not in self.scope_format:
+                raise ValueError("scope_format must include {organization_id} for tenant isolation")
+            for value in (self.organization_id, self.platform, self.role):
+                if value is not None and (
+                    not re.fullmatch(r"[a-zA-Z0-9_\-.]+", value) or ".." in value
+                ):
+                    raise ValueError("Storage identity fields must be safe single path segments")
 
     def get_permissions(self) -> set[StoragePermission]:
         """
@@ -276,7 +283,16 @@ class StorageSecurityContext:
 
         # Normalize: strip leading/trailing slashes
         prefix = prefix.strip("/")
-        path = path.lstrip("/")
+        if not prefix:
+            raise ValueError("Storage scope prefix cannot be empty")
+        if (
+            path.startswith("/")
+            or "\\" in path
+            or ":" in path
+            or "\x00" in path
+            or ".." in path.split("/")
+        ):
+            raise ValueError("Storage paths must remain within the tenant namespace")
 
         return f"{prefix}/{path}"
 
@@ -293,10 +309,13 @@ class StorageSecurityContext:
         if self.is_system:
             return True
 
-        prefix = self._resolve_prefix()
-        prefix = prefix.strip("/")
-
-        return scoped_path.startswith(f"{prefix}/")
+        try:
+            prefix = self.scope_path("")
+            if not scoped_path.startswith(prefix):
+                return False
+            return self.scope_path(scoped_path[len(prefix):]) == scoped_path
+        except ValueError:
+            return False
 
     def to_audit_dict(self) -> dict[str, Any]:
         """Return context info for audit logging."""

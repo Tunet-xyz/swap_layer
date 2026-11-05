@@ -774,7 +774,8 @@ class SquarePaymentProvider(PaymentProviderAdapter):
             "amount": self._amount_from_money(money),
             "currency": money.get("currency"),
             "status": (payment.get("status") or "").lower(),
-            "client_secret": None,
+            # There is no client secret for this provider; None is not a credential.
+            "client_secret": None,  # nosec B105
             "metadata": {"receipt_url": payment.get("receipt_url")}
             if payment.get("receipt_url")
             else {},

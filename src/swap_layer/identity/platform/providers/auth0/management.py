@@ -28,6 +28,8 @@ import requests
 from django.conf import settings
 from django.core.cache import cache
 
+from swap_layer.http import DEFAULT_TIMEOUT
+
 
 class Auth0ManagementClient:
     """
@@ -93,7 +95,7 @@ class Auth0ManagementClient:
             "audience": f"https://{self.domain}/api/v2/",
         }
 
-        response = requests.post(self.token_url, json=payload)
+        response = requests.post(self.token_url, json=payload, timeout=DEFAULT_TIMEOUT)
         response.raise_for_status()
 
         data = response.json()
@@ -125,7 +127,8 @@ class Auth0ManagementClient:
 
         url = f"{self.base_url}{endpoint}"
         response = requests.request(
-            method=method, url=url, headers=headers, params=params, json=json
+            method=method, url=url, headers=headers, params=params, json=json,
+            timeout=DEFAULT_TIMEOUT,
         )
         response.raise_for_status()
 

@@ -41,12 +41,14 @@ def get_management_client(app_name: str = "default") -> IdentityManagementClient
 
     elif provider == "workos":
         # Get WorkOS API key from settings
-        from swap_layer.settings import get_settings
+        from swap_layer.settings import get_swaplayer_settings
 
         from ..providers.workos.management.client import WorkOSManagementClient
 
-        settings_obj = get_settings()
-        api_key = settings_obj.WORKOS_API_KEY
+        identity = get_swaplayer_settings().identity
+        if identity is None or not identity.workos_apps or app_name not in identity.workos_apps:
+            raise ValueError(f"WorkOS configuration for '{app_name}' not found")
+        api_key = identity.workos_apps[app_name].api_key
         return WorkOSManagementClient(api_key=api_key)
 
     else:

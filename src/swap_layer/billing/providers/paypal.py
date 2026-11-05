@@ -669,7 +669,8 @@ class PayPalPaymentProvider(PaymentProviderAdapter):
             "amount": self._amount_from_money(money),
             "currency": money.get("currency_code"),
             "status": (order.get("status") or "").lower(),
-            "client_secret": None,
+            # There is no client secret for this provider; None is not a credential.
+            "client_secret": None,  # nosec B105
             "metadata": {},
             "url": self._find_approval_url(order),
         }
