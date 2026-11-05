@@ -1,5 +1,5 @@
 import json
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation, localcontext
 from typing import Any, NoReturn
 
 import requests
@@ -15,6 +15,10 @@ from ..adapter import (
 
 class PayPalPaymentProvider(PaymentProviderAdapter):
     """PayPal REST implementation of the payment provider interface."""
+
+    # PayPal's REST currency rules differ from some other providers:
+    # https://developer.paypal.com/api/codes/currency/
+    _ZERO_DECIMAL_CURRENCIES = {"HUF", "JPY", "TWD"}
 
     def __init__(
         self,
@@ -102,19 +106,40 @@ class PayPalPaymentProvider(PaymentProviderAdapter):
             raise PaymentConnectionError(message)
         raise PaymentError(message)
 
-    @staticmethod
-    def _money(amount: Decimal | int | str, currency: str) -> dict[str, str]:
-        value = (
-            str(amount) if isinstance(amount, str) else str(Decimal(str(amount)) / Decimal("100"))
-        )
-        return {"currency_code": currency.upper(), "value": value}
+    @classmethod
+    def _money(cls, amount: Decimal | int | str, currency: str) -> dict[str, str]:
+        factor = Decimal(1 if currency.upper() in cls._ZERO_DECIMAL_CURRENCIES else 100)
+        try:
+            number = Decimal(str(amount))
+        except InvalidOperation as exc:
+            raise PaymentValidationError("Invalid monetary amount") from exc
+        if not number.is_finite() or (not isinstance(amount, str) and number != number.to_integral_value()):
+            raise PaymentValidationError("Numeric amounts must be finite integer minor units")
+        with localcontext() as context:
+            context.prec = max(28, len(number.as_tuple().digits) + 2)
+            value = number if isinstance(amount, str) else number / factor
+            if value * factor != (value * factor).to_integral_value():
+                raise PaymentValidationError("Amount has too many decimal places for this currency")
+        return {"currency_code": currency.upper(), "value": format(value, "f")}
 
-    @staticmethod
-    def _amount_from_money(money: dict[str, Any]) -> int | None:
+    @classmethod
+    def _amount_from_money(cls, money: dict[str, Any]) -> int | None:
         value = money.get("value")
         if value is None:
             return None
-        return int(Decimal(str(value)) * Decimal("100"))
+        factor = Decimal(1 if str(money.get("currency_code", "")).upper() in cls._ZERO_DECIMAL_CURRENCIES else 100)
+        try:
+            number = Decimal(str(value))
+        except InvalidOperation as exc:
+            raise PaymentValidationError("Invalid provider monetary amount") from exc
+        if not number.is_finite():
+            raise PaymentValidationError("Provider amount is not an integer number of minor units")
+        with localcontext() as context:
+            context.prec = max(28, len(number.as_tuple().digits) + 2)
+            number *= factor
+        if number != number.to_integral_value():
+            raise PaymentValidationError("Provider amount is not an integer number of minor units")
+        return int(number)
 
     @staticmethod
     def _find_approval_url(payload: dict[str, Any]) -> str | None:

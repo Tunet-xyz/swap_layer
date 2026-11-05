@@ -38,6 +38,13 @@ def test_local_storage_lifecycle(tmp_path):
     assert not provider.file_exists("org-a/docs/c.txt")
 
 
+def test_local_storage_rejects_resolution_into_another_tenant(tmp_path):
+    provider = LocalFileStorageProvider(str(tmp_path))
+    with patch("swap_layer.storage.providers.local.Path.resolve", return_value=tmp_path / "org-b/private.txt"):
+        with pytest.raises(StorageUploadError, match="junctions"):
+            provider.upload_file("org-a/private.txt", BytesIO(b"changed"))
+
+
 def test_local_storage_does_not_follow_symlinks(tmp_path):
     provider = LocalFileStorageProvider(str(tmp_path / "objects"))
     outside = tmp_path / "other-tenant"

@@ -69,6 +69,10 @@ class LocalFileStorageProvider(StorageProviderAdapter):
             ):
                 raise ValueError("Storage paths cannot contain symbolic links or junctions")
         resolved = candidate.resolve()
+        if resolved != candidate:
+            # Covers Windows junctions even on Python versions without
+            # Path.is_junction(), including links into another tenant's path.
+            raise ValueError("Storage paths cannot resolve through links or junctions")
         if not resolved.is_relative_to(self.base_path) or resolved == self.base_path:
             raise ValueError("Storage path escapes the storage root")
         return candidate

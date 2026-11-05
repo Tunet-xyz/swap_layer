@@ -1,3 +1,5 @@
+> Historical module implementation notes from the 0.x series. For the current 1.0 configuration, supported providers, and compatibility contract, use the [current guides](https://github.com/Tunet-xyz/swap_layer/blob/main/docs/README.md). Planned or stub surfaces below are not additional 1.0 guarantees.
+
 # Identity Management API
 
 Provider-agnostic abstraction for identity management operations (user management, organizations, roles, audit logs).

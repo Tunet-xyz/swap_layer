@@ -1,6 +1,6 @@
 # Public Agent MCP Contract
 
-This directory defines the public agent-operability contract for this open-source offering. It is written for external user agents that can use published package APIs, hosted or local MCP tools, public documentation, and browser-visible surfaces. It must not assume access to private source code, local repository paths, unredacted settings, production data, or vendor dashboards unless the user explicitly grants that access.
+This directory defines the public agent-operability contract for this open-source offering. It is written for external user agents that can use published package APIs, caller-owned local MCP tools, public documentation, and browser-visible surfaces. It must not assume access to private source code, local repository paths, unredacted settings, production data, or vendor dashboards unless the user explicitly grants that access.
 
 Files:
 
@@ -28,6 +28,8 @@ Supported methods:
 - `prompts/get`
 
 Production packages may expose richer runtime MCP tools, but those tools should preserve this contract's public-access boundaries, approval gates, and verification expectations.
+No hosted maintainer agent, provider account, or token is supplied. The public contract is read-only; runtime test sends/writes require caller approval. Package and contract version: 1.0.0.
+
 ## SwapLayer Notes
 
 SwapLayer already ships a runtime MCP server through `swaplayer-mcp` when installed with `SwapLayer[mcp]`. This root contract describes how external agents should discover and operate the offering safely:

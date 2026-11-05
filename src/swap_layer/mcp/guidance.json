@@ -1,0 +1,723 @@
+{
+  "explain": {
+    "overview": "# SwapLayer\n\nSwapLayer 1.0 provides Python interfaces for billing, email, SMS, storage, and identity integrations. Configure the services you use, then call their adapters through `get_provider()`. Django supplies email, OAuth, model, and admin integrations; a small FastAPI adapter attaches configuration to application state.\n\nProvider capabilities differ. Moving a provider can require data migration, webhook changes, and application changes. Unsupported operations raise errors or have documented limitations.\n\n## Install\n\nPython 3.10–3.13 is tested. Core dependencies are Pydantic 2, Requests, and Tenacity.\n\n```bash\npip install 'SwapLayer==1.0.0'\npip install 'SwapLayer[stripe]==1.0.0'   # Stripe 16.x\npip install 'SwapLayer[email]==1.0.0'    # Django and django-anymail\npip install 'SwapLayer[sms]==1.0.0'      # Twilio 9.x; add [aws] for SNS\npip install 'SwapLayer[gcs]==1.0.0'      # Native Google Cloud Storage\npip install 'SwapLayer[identity]==1.0.0' # Django, WorkOS 10.x, Authlib\npip install 'SwapLayer[mcp]==1.0.0'      # Local MCP SDK 1.x\n```\n\nOther extras: `django`, `fastapi`, `paypal`, `square`, `aws`, `azure`, `all`, and `dev`. PayPal and Square use the core HTTP dependencies. Email and OAuth require configured Django settings; storage, billing, Stripe Identity, and Twilio support explicit configuration without Django.\n\n## Start with local storage\n\n```python\nfrom io import BytesIO\nfrom swap_layer import configure, get_provider\n\nconfigure(storage={\"provider\": \"local\", \"media_root\": \"./media\", \"media_url\": \"/media/\"})\nstorage = get_provider(\"storage\")\nstorage.upload_file(\"documents/hello.txt\", BytesIO(b\"hello\"))\nassert storage.download_file(\"documents/hello.txt\") == b\"hello\"\nassert storage.file_exists(\"documents/hello.txt\")\nprint(storage.get_file_url(\"documents/hello.txt\"))\n```\n\nLocal URLs are plain paths; the library does not serve files or enforce URL expiry. Applications must control access to private files. Keep the local storage directory writable only by trusted application processes.\n\nFor tenant boundaries, use an explicit verified identity context:\n\n```python\nfrom swap_layer.storage.security import StorageSecurityContext, storage_context\n\ncontext = StorageSecurityContext(\n    organization_id=\"org-123\", user_id=\"user-456\", role=\"member\",\n    scope_format=\"tenants/{organization_id}\",\n)\nwith storage_context(storage, context) as scoped:\n    scoped.upload_from_string(\"hello.txt\", \"tenant data\")\n```\n\nThis produces `tenants/org-123/hello.txt`. Contexts consume identity already verified by your application; they do not verify JWTs. System access requires `StorageSecurityContext.system_context()` explicitly.\n\n## Configure billing\n\n```python\nimport os\nfrom swap_layer import configure, get_provider\n\nconfigure(billing={\"provider\": \"stripe\", \"stripe\": {\n    \"secret_key\": os.environ[\"STRIPE_SECRET_KEY\"],\n    \"webhook_secret\": os.environ.get(\"STRIPE_WEBHOOK_SECRET\"),\n}})\npayments = get_provider(\"payments\")\n# Uses your provider account; run against a test account first.\ncustomer = payments.create_customer(email=\"customer@example.com\")\n```\n\nPass integer provider minor currency units, represented by `Decimal` where required by the adapter, to payment amounts. Provider IDs, tax rules, recurring billing, and capability differences require application review. Stripe exposes the broadest catalog, usage-meter, Entitlements, and webhook administration surface.\n\n## Current provider selection\n\n| Service | Selectable provider values | Notes |\n| --- | --- | --- |\n| `email` | `django`, `smtp` | SendGrid, Mailgun, SES, and similar services use Django's Anymail backend settings. |\n| `payments` | `stripe`, `paypal`, `square` | Capabilities differ; see the billing guide. |\n| `sms` | `twilio`, `sns` | SNS history, delivery lookup, and balance are limited placeholders. |\n| `storage` | `local`, `django`, `gcs` | S3/Azure use `django` with a configured Django storage backend. |\n| `identity` | `workos`, `auth0` | Django OAuth integration; use the documented app registry. |\n| `verification` | `stripe` | Stripe Identity; other verification providers are not implemented. |\n\nStructured settings use `billing`, `communications.email`, `communications.sms`, `storage`, `identity`, and `verification`. In plain Python call `configure(...)`. In Django assign a `SwapLayerSettings` instance or dictionary to `SWAPLAYER`. Environment configuration uses complete paths such as `SWAPLAYER_BILLING_STRIPE_SECRET_KEY`.\n\n## Local agent tools\n\n```bash\nswaplayer-mcp\n```\n\nThe stdio server exposes 13 documentation, configuration, and test tools. Test email/SMS and storage probes use the caller's local credentials and can cause provider charges or file changes. Clients must obtain approval before those calls. There is no hosted maintainer agent service, shared provider account, or maintainer token in the package. The dependency-free public contract server is `python mcp/server.py` from a source checkout.\n\n## Compatibility and migration\n\nThe 1.x compatibility promise covers documented configuration, factory names, adapter method names, and normalized result fields. Underscore-prefixed helpers, vendor SDK objects, and historical development notes are outside that promise. Vendor behavior and access policies remain governed by the provider.\n\nFrom 0.x: replace root `email`/`sms` settings with `communications`; use `send_email`, `send_sms`, and the storage adapter's `upload_file`/`get_file_url`/`file_exists` methods. Django storage `list_files` now returns a list of object dictionaries; `list_directory` preserves the former directory shape. WorkOS common list methods return object lists; `*_page` methods expose cursor envelopes. Stripe-specific payment/checkout options are keyword arguments after the common positional idempotency key. PayPal now handles zero-decimal HUF/JPY/TWD without dividing by 100; review provider-specific amount conventions when migrating. Tenant scopes must contain `{organization_id}` and reject unsafe paths; omitted contexts no longer grant system access.\n\n## Documentation and contribution\n\n- [Documentation index](https://github.com/Tunet-xyz/swap_layer/blob/main/docs/README.md), [billing](https://github.com/Tunet-xyz/swap_layer/blob/main/docs/billing.md), [storage](https://github.com/Tunet-xyz/swap_layer/blob/main/docs/storage.md)\n- [Email](https://github.com/Tunet-xyz/swap_layer/blob/main/docs/email.md), [SMS](https://github.com/Tunet-xyz/swap_layer/blob/main/docs/sms.md), [identity](https://github.com/Tunet-xyz/swap_layer/blob/main/docs/identity-platform.md), [verification](https://github.com/Tunet-xyz/swap_layer/blob/main/docs/identity-verification.md)\n- [MCP tools](https://github.com/Tunet-xyz/swap_layer/blob/main/docs/mcp.md), [security](https://github.com/Tunet-xyz/swap_layer/blob/main/SECURITY.md), [changelog](https://github.com/Tunet-xyz/swap_layer/blob/main/CHANGELOG.md)\n- [Contributing](https://github.com/Tunet-xyz/swap_layer/blob/main/CONTRIBUTING.md), [shared versioning policy](https://github.com/Tunet-xyz/swap_layer/blob/main/VERSIONING.md), [release procedure](https://github.com/Tunet-xyz/swap_layer/blob/main/docs/RELEASE.md)\n\nTests use mocked provider calls, plus installed-package and Django admin checks. They do not establish live provider certification or an independent security audit. Public PRs are welcome and require owner approval; repository jobs are manual and owner-gated.\n\nMIT, copyright 2024–2026 Tunet Ltd. The [license](https://github.com/Tunet-xyz/swap_layer/blob/main/LICENSE) is included in source and wheel distributions. Other Tunet libraries: [SessionArmor](https://github.com/Tunet-xyz/session_armor), [AccessGate](https://github.com/Tunet-xyz/access_gate), and [GeoCanon](https://github.com/Tunet-xyz/GeoCanon).\n",
+    "philosophy": "# Provider interfaces\n\nSwapLayer keeps common application calls behind adapters while documenting vendor differences. A provider change still needs capability, data, credential, webhook and authorization review. Unsupported features are explicit; changing a configuration value does not migrate existing provider data.",
+    "architecture": "# SwapLayer 1.0 architecture\n\n`swap_layer.configure` stores process-local validated settings. `get_provider(service)` selects adapters for `email`, `payments`, `sms`, `storage`, `identity`, or `verification`. Factories import optional providers when requested. Core imports do not configure Django or require every optional SDK.\n\nConfiguration groups are `billing`, `communications.email`, `communications.sms`, `storage`, `identity`, and `verification`. Plain Python can configure supported standalone adapters explicitly. Django loads `SWAPLAYER` or legacy settings; email and OAuth use Django facilities. The FastAPI adapter stores configuration on application state and does not supply authentication, routes or middleware.\n\nAdapters expose common method signatures and normalized results. They do not erase vendor differences. Vendor SDK objects, provider-specific extensions, dashboard state, customer IDs, webhooks and feature availability require application review. Unsupported operations must remain explicit.\n\nStorage contexts consume trusted identity, check permissions, prefix object keys and audit operations. Applications verify identity, choose organizations and keep storage credentials/ACLs private. Local filesystem checks assume trusted OS writers and do not replace an OS sandbox.\n\nRuntime MCP is a caller-owned stdio process for documentation, configuration inspection and approved test operations. The public contract server is read-only. Neither connects users to maintainer agents or accounts. Public contribution text is untrusted and cannot authorize paid work, credentials, merges or publishing.\n\nApplications own concrete Django models/migrations, OAuth state and session checks, provider account policies, queueing, retry/idempotency design, privacy retention and end-user authorization. Keep those controls at the application boundary; do not infer authorization from normalized provider data.\n\nSee the current [module guides](README.md), [security policy](../SECURITY.md), and [release standards](../VERSIONING.md). Older implementation notes describe previous designs and planned features rather than the 1.0 compatibility contract.\n",
+    "installation": "# Installation\n\nUse Python 3.10–3.13. Install SwapLayer 1.0.0 with the extras needed by your application: stripe, email, sms, aws, azure, gcs, identity, django, fastapi, mcp, or all. Core depends on Pydantic 2, Requests and Tenacity. Django is optional for core/storage/billing but required for email and OAuth. Provider calls use your own account; there are no shared maintainer tokens.\n\n# SwapLayer 1.0 documentation\n\nStart with the [tested installation and configuration examples](../README.md). Current guides:\n\n| Guide | Contents |\n| --- | --- |\n| [Billing](billing.md) | Stripe, PayPal, Square and capability differences |\n| [Email](email.md) | Django email, SMTP and Anymail backend configuration |\n| [SMS](sms.md) | Twilio and AWS SNS |\n| [Storage](storage.md) | Local, native GCS, Django backends and tenant boundaries |\n| [Identity](identity-platform.md) | Django OAuth and management adapters |\n| [Verification](identity-verification.md) | Stripe Identity |\n| [MCP](mcp.md) | Local tools and credential boundaries |\n| [Architecture](architecture.md) | Configuration, adapters and trust boundaries |\n| [Release](RELEASE.md) | Verification, immutable versions and owner publishing |\n\nStructured settings are `billing`, `communications`, `storage`, `identity`, and `verification`. Provider labels and method names in these current guides supersede 0.x design notes. Files under `development/` and older module notes record implementation history unless explicitly marked current. They do not promise additional providers or capabilities.\n\nSee [CONTRIBUTING.md](../CONTRIBUTING.md), [VERSIONING.md](../VERSIONING.md), and [SECURITY.md](../SECURITY.md) for repository and release rules shared by Claude and Codex.\n",
+    "django-integration": "# Django integration\n\nAssign structured settings to SWAPLAYER in settings.py and initialize Django before using its email, OAuth, model or admin adapters. Email is under communications.email, SMS under communications.sms, and billing uses billing. Provider SDKs do not supply application authorization or migrations.\n\n# Identity integration in SwapLayer 1.0\n\nInstall `SwapLayer[identity]`. WorkOS 10.x and Authlib integrate with Django requests and sessions; this OAuth adapter is not a standalone JWT verifier. Authenticate and authorize requests in the application before privileged provider operations.\n\nThe current OAuth clients read Django app registries. The structured `identity` block selects the provider and validates configuration; retain the corresponding `WORKOS_APPS` or `AUTH0_APPS` registry for those clients.\n\n```python\n# Django settings.py\nimport os\nWORKOS_APPS = {\"default\": {\n    \"api_key\": os.environ[\"WORKOS_API_KEY\"],\n    \"client_id\": os.environ[\"WORKOS_CLIENT_ID\"],\n    \"cookie_password\": os.environ[\"WORKOS_COOKIE_PASSWORD\"], # at least 32 characters\n}}\nSWAPLAYER = {\"identity\": {\"provider\": \"workos\", \"workos_apps\": WORKOS_APPS}}\n```\n\nAuth0 uses `AUTH0_APPS={'developer': {'client_id': ..., 'client_secret': ...}}`, `AUTH0_DEVELOPER_DOMAIN`, and `identity={'provider':'auth0','auth0_apps':AUTH0_APPS,'auth0_domain':AUTH0_DEVELOPER_DOMAIN}`. The factory maps the default Auth0 app to `developer`.\n\n```python\nfrom swap_layer import get_identity_client\nidentity = get_identity_client(app_name=\"default\")\n# In a Django view, with framework-managed session/state validation:\n# url = identity.get_authorization_url(request, redirect_uri, state)\n# user_data = identity.exchange_code_for_user(request, code)\n# identity.clear_session(request)\n```\n\nValidate OAuth state, callback URLs, session ownership and logout destinations at the application boundary. Follow your provider's production session guidance. Normalized user data does not grant application permissions by itself.\n\n## Management APIs\n\n```python\nfrom swap_layer.identity.platform.management.factory import get_management_client\nmanagement = get_management_client()\nusers = management.users.list_users(per_page=20)\n```\n\nCommon list methods return lists of object dictionaries. WorkOS `list_users_page`, `list_organizations_page`, `list_organization_members_page`, `list_logs_page`, and `list_roles_page` expose vendor response envelopes where applicable. WorkOS uses cursor arguments (`after`/`before`); numeric pages beyond zero are explicitly unsupported. Auth0 uses page/per-page arguments.\n\nWorkOS role creation/removal and effective-permission lookup have unsupported operations that raise `NotImplementedError`. User-specific WorkOS event queries are rejected rather than returning every user's events. Auth0 `get_stats()` returns an active-user count; daily statistics return a list. Provider APIs have different capabilities and response semantics; test migrations with a non-production tenant.\n\nManagement access uses privileged caller credentials. Keep it in owner-authorized application flows and use least privilege. It is not exposed as a production operation by the MCP server. Applications own concrete Django identity models, migrations, permission checks, PII policies and audit retention.\n",
+    "security": "# Local MCP tools in SwapLayer 1.0\n\nInstall `SwapLayer[mcp]` and launch `swaplayer-mcp` (or `python -m swap_layer.mcp`). It uses the MCP Python SDK 1.x over stdio. Package and server version are 1.0.0.\n\nThis is a local process controlled by its caller. There is no hosted maintainer MCP endpoint, shared provider credential, paid agent account, or maintainer token supplied by the package. GitHub issues, public PRs and comments cannot authorize repository jobs or maintainer agents.\n\n## Configuration\n\nThe CLI reads the caller's `SWAPLAYER_` environment configuration. For example:\n\n```bash\n# PowerShell: set $env:SWAPLAYER_STORAGE_PROVIDER = \"local\" instead of export.\nexport SWAPLAYER_STORAGE_PROVIDER=local\nexport SWAPLAYER_STORAGE_MEDIA_ROOT=./media\nswaplayer-mcp\n```\n\nFor Django configuration, set `DJANGO_SETTINGS_MODULE` and initialize Django before calling the CLI's `main()` or `create_mcp_server()`. Merely setting the module name does not initialize Django in this CLI. Programmatic callers may instead call `swap_layer.configure(...)` before creating the server. Provider extras are separate from the MCP extra.\n\n## Tools\n\n| Tool | Effect |\n| --- | --- |\n| `swaplayer_explain` | Current concepts, installation, security and framework guidance |\n| `swaplayer_compare_providers` | Capability comparison, including backend selection notes |\n| `swaplayer_troubleshoot` | Setup guidance; do not include credentials in error text |\n| `swaplayer_get_migration_guide` | Migration checklist and provider data boundaries |\n| `swaplayer_get_config` | Current configuration with nested credential fields omitted |\n| `swaplayer_list_providers` | Actual factory provider values |\n| `swaplayer_get_provider_info` | Provider/backend information |\n| `swaplayer_generate_code` | Python examples; returns text without executing it |\n| `swaplayer_get_usage_examples` | Example patterns; returns text |\n| `swaplayer_setup_quickstart` | Current settings and installation examples |\n| `swaplayer_send_test_email` | Sends email using the caller's provider account |\n| `swaplayer_send_test_sms` | Sends SMS using the caller's provider account |\n| `swaplayer_check_storage` | Configuration check; `test_upload=true` writes and deletes a test file |\n\nClients must obtain explicit approval before test sends or writes. They can incur charges or modify caller infrastructure. A label saying \"test\" does not switch provider credentials into sandbox mode. Configure a test account and approved recipient yourself. Do not expose this stdio process as an unauthenticated network service.\n\nCredential fields are removed recursively from configuration output; operational errors omit raw exception messages. This is not a universal secret scanner for arbitrary user text, SDK logging or application data. Do not paste credentials into tool arguments. Application production transactions use the Python adapters behind application authorization, not autonomous documentation tools.\n\n## Public contract\n\nThe packaged `swap_layer/mcp/agent-contract.json` describes public capabilities and approval boundaries. From a source checkout, `python mcp/server.py` runs a dependency-free, read-only contract server with resources, prompts and discovery tools. It validates JSON-RPC input, limits message size, and recovers after malformed input. The repository URL is documentation, not a hosted agent endpoint.\n\nThird-party client settings determine model access and approval behavior. Configure the client to approve sensitive operations; repository and package policies do not grant that approval on your behalf.\n\n\n# Storage in SwapLayer 1.0\n\nSelect `local`, `gcs`, or `django`. Direct S3 and Azure adapter classes are not exposed; use Django's configured storage backend for those services.\n\n```python\nfrom io import BytesIO\nfrom swap_layer import configure, get_provider\n\nconfigure(storage={\"provider\": \"local\", \"media_root\": \"./media\"})\nstorage = get_provider(\"storage\")\nstorage.upload_file(\"docs/example.txt\", BytesIO(b\"example\"))\ncontents = storage.download_file(\"docs/example.txt\")\nobjects = storage.list_files(prefix=\"docs/\", max_results=100)\nurl = storage.get_file_url(\"docs/example.txt\")\n```\n\nCommon operations: `upload_file`, `download_file`, `delete_file`, `delete_files`, `file_exists`, `get_file_metadata`, `list_files`, `get_file_url`, `copy_file`, `move_file`, and `generate_presigned_upload_url`. Presigned uploads and expiry are backend-dependent. Local storage returns an upload placeholder and plain URLs; Django's generic adapter cannot generate presigned uploads. The application serves local URLs and enforces access control.\n\n`list_files` returns a list of dictionaries with `file_path` and backend metadata. Django's former `{files, directories}` result is available through `list_directory`.\n\n## Tenant boundaries\n\n```python\nfrom swap_layer.storage.security import StorageSecurityContext, storage_context\n\nctx = StorageSecurityContext(\n    organization_id=\"org-123\", user_id=\"user-456\", role=\"member\",\n    scope_format=\"tenants/{organization_id}\",\n)\nwith storage_context(storage, ctx) as scoped:\n    scoped.upload_from_string(\"report.txt\", \"example\")\n    assert scoped.download_as_text(\"report.txt\") == \"example\"\n```\n\nA member may read/write; a viewer may read; managers and admins may delete. Unknown roles receive no permissions. Explicit permission sets override the role mapping. The context consumes trusted, previously verified identity; it does not verify JWTs or determine membership. Never populate it directly from unverified claims.\n\nNon-system scopes must include `{organization_id}`. Identity fields are single safe segments; traversal, absolute paths, backslashes and drive/stream paths are rejected. Explicit system access is `StorageSecurityContext.system_context(reason=\"maintenance\")`. Missing contexts fail closed.\n\nLocal storage rejects symlinks and junctions below its configured root, including metadata sidecars. The storage root and its parents must be writable only by trusted application processes: this is not an OS sandbox against concurrent filesystem replacement. `download_file(destination=...)` writes to a caller-specified local destination; validate that destination in your application. MD5 ETags are change indicators, not security checksums.\n\n## Native GCS\n\nInstall `SwapLayer[gcs]`. Google application default credentials are supported; a credentials file is optional.\n\n```python\nconfigure(storage={\n    \"provider\": \"gcs\", \"bucket_name\": \"your-bucket\", \"project_id\": \"your-project\",\n})\n```\n\n`credentials_path`, `location`, and `storage_class` are optional settings. GCS URL signing requires credentials capable of signing. Extended bucket methods are provider-specific and are outside the common adapter surface.\n\n## Django storage backends\n\nInstall `SwapLayer[aws]` for S3 or `SwapLayer[azure]` for Azure, configure Django's `STORAGES['default']` backend, then use `SWAPLAYER = {'storage': {'provider': 'django'}}`. Do not set the SwapLayer provider to `s3` or `azure`. Django 4.2–6.x is supported subject to each Python version's requirements. Backend ACLs, URL expiry, credentials, and serving policies remain application configuration.\n\nOptional model/admin mixins live in `swap_layer.storage.models` and `swap_layer.storage.admin`; subclass the abstract models in your application and manage their migrations there.\n",
+    "providers": "# SwapLayer 1.0 documentation\n\nStart with the [tested installation and configuration examples](../README.md). Current guides:\n\n| Guide | Contents |\n| --- | --- |\n| [Billing](billing.md) | Stripe, PayPal, Square and capability differences |\n| [Email](email.md) | Django email, SMTP and Anymail backend configuration |\n| [SMS](sms.md) | Twilio and AWS SNS |\n| [Storage](storage.md) | Local, native GCS, Django backends and tenant boundaries |\n| [Identity](identity-platform.md) | Django OAuth and management adapters |\n| [Verification](identity-verification.md) | Stripe Identity |\n| [MCP](mcp.md) | Local tools and credential boundaries |\n| [Architecture](architecture.md) | Configuration, adapters and trust boundaries |\n| [Release](RELEASE.md) | Verification, immutable versions and owner publishing |\n\nStructured settings are `billing`, `communications`, `storage`, `identity`, and `verification`. Provider labels and method names in these current guides supersede 0.x design notes. Files under `development/` and older module notes record implementation history unless explicitly marked current. They do not promise additional providers or capabilities.\n\nSee [CONTRIBUTING.md](../CONTRIBUTING.md), [VERSIONING.md](../VERSIONING.md), and [SECURITY.md](../SECURITY.md) for repository and release rules shared by Claude and Codex.\n\n\n# SMS in SwapLayer 1.0\n\nTwilio and AWS SNS are implemented. Vonage and other SMS vendors are not selectable providers. Install `SwapLayer[sms]` for Twilio 9.x or `SwapLayer[aws]` for SNS.\n\n```python\nimport os\nfrom swap_layer import configure, get_provider\nconfigure(communications={\"sms\": {\"provider\": \"twilio\", \"twilio\": {\n    \"account_sid\": os.environ[\"TWILIO_ACCOUNT_SID\"],\n    \"auth_token\": os.environ[\"TWILIO_AUTH_TOKEN\"],\n    \"from_number\": os.environ[\"TWILIO_FROM_NUMBER\"],\n}}})\nresult = get_provider(\"sms\").send_sms(to=\"+15555551234\", message=\"Example\")\n```\n\nExplicit Twilio configuration works without Django. Use E.164 phone numbers and a test account/approved recipient before enabling real sends.\n\nFor SNS, configure `communications.sms={'provider':'sns','sns':{'region_name':'eu-west-2','sender_id':'Example'}}`. Credentials may be supplied through `aws_access_key_id`/`aws_secret_access_key` or boto3's normal IAM credential chain. The library does not supply an AWS account.\n\n`send_sms` and `send_bulk_sms` use the selected adapter. Twilio also supplies message status/history and lookup/account operations. SNS delivery-status lookup returns `unknown`, message history returns an empty list, and balance is unavailable; those are documented placeholders rather than live monitoring. SNS opt-out queries and opt-in calls use AWS APIs. Phone validation is provider-dependent and is not proof of ownership.\n\nApplications implement messaging consent, opt-out policy, rate limits, OTP verification, and abuse controls. A provider change does not migrate phone numbers or suppression lists. Calls can incur charges against the caller's account. MCP test sends require client approval.\n\nDjango model/admin helpers are in `swap_layer.communications.sms.models` and `.admin` and require your application's concrete models and migrations.\n",
+    "faq": "# Frequently asked questions\n\nDoes SwapLayer host an agent? No. MCP runs in the caller's local process and uses their provider credentials. Does changing providers migrate data? No; IDs, sessions, webhooks and storage URLs require review. Are all methods portable? No; the selected adapter documents unsupported features. Does storage_context verify JWTs? No; applications supply trusted identity. Can public comments spend maintainer tokens? Repository jobs require an owner-started manual workflow; package tools have no maintainer credentials."
+  },
+  "comparisons": {
+    "payments": {
+      "summary": "Current payments integrations and backend choices. Capabilities and IDs differ. Provider migration, recurring billing and unsupported operations need review.",
+      "providers": {
+        "stripe": {
+          "name": "stripe",
+          "best_for": "stripe integration for payments; see current setup and provider limitations.",
+          "pros": [
+            "Supports documented payments adapter examples"
+          ],
+          "cons": [
+            "Capabilities and IDs differ. Provider migration, recurring billing and unsupported operations need review."
+          ],
+          "pip_extra": "pip install 'SwapLayer[stripe]==1.0.0'",
+          "factory_provider": "stripe",
+          "recommended_when": "Review the current module guide and test the selected caller-owned account."
+        },
+        "paypal": {
+          "name": "paypal",
+          "best_for": "paypal integration for payments; see current setup and provider limitations.",
+          "pros": [
+            "Supports documented payments adapter examples"
+          ],
+          "cons": [
+            "Capabilities and IDs differ. Provider migration, recurring billing and unsupported operations need review."
+          ],
+          "pip_extra": "pip install 'SwapLayer[paypal]==1.0.0'",
+          "factory_provider": "paypal",
+          "recommended_when": "Review the current module guide and test the selected caller-owned account."
+        },
+        "square": {
+          "name": "square",
+          "best_for": "square integration for payments; see current setup and provider limitations.",
+          "pros": [
+            "Supports documented payments adapter examples"
+          ],
+          "cons": [
+            "Capabilities and IDs differ. Provider migration, recurring billing and unsupported operations need review."
+          ],
+          "pip_extra": "pip install 'SwapLayer[square]==1.0.0'",
+          "factory_provider": "square",
+          "recommended_when": "Review the current module guide and test the selected caller-owned account."
+        }
+      },
+      "decision_guide": "Use the factory_provider value and the generated quickstart. Review capability differences before selecting or migrating a provider. Review provider minor-unit conventions, including PayPal zero-decimal HUF/JPY/TWD."
+    },
+    "email": {
+      "summary": "Current email integrations and backend choices. Uses configured Django backends; analytics, suppression and webhook facilities are not portable guarantees.",
+      "providers": {
+        "sendgrid": {
+          "name": "sendgrid",
+          "best_for": "sendgrid integration for email; see current setup and provider limitations.",
+          "pros": [
+            "Supports documented email adapter examples"
+          ],
+          "cons": [
+            "Uses configured Django backends; analytics, suppression and webhook facilities are not portable guarantees."
+          ],
+          "pip_extra": "pip install 'SwapLayer[email]==1.0.0'",
+          "factory_provider": "django",
+          "recommended_when": "Review the current module guide and test the selected caller-owned account."
+        },
+        "mailgun": {
+          "name": "mailgun",
+          "best_for": "mailgun integration for email; see current setup and provider limitations.",
+          "pros": [
+            "Supports documented email adapter examples"
+          ],
+          "cons": [
+            "Uses configured Django backends; analytics, suppression and webhook facilities are not portable guarantees."
+          ],
+          "pip_extra": "pip install 'SwapLayer[email]==1.0.0'",
+          "factory_provider": "django",
+          "recommended_when": "Review the current module guide and test the selected caller-owned account."
+        },
+        "ses": {
+          "name": "ses",
+          "best_for": "ses integration for email; see current setup and provider limitations.",
+          "pros": [
+            "Supports documented email adapter examples"
+          ],
+          "cons": [
+            "Uses configured Django backends; analytics, suppression and webhook facilities are not portable guarantees."
+          ],
+          "pip_extra": "pip install 'SwapLayer[email,aws]==1.0.0'",
+          "factory_provider": "django",
+          "recommended_when": "Review the current module guide and test the selected caller-owned account."
+        },
+        "django": {
+          "name": "django",
+          "best_for": "django integration for email; see current setup and provider limitations.",
+          "pros": [
+            "Supports documented email adapter examples"
+          ],
+          "cons": [
+            "Uses configured Django backends; analytics, suppression and webhook facilities are not portable guarantees."
+          ],
+          "pip_extra": "pip install 'SwapLayer[email]==1.0.0'",
+          "factory_provider": "django",
+          "recommended_when": "Review the current module guide and test the selected caller-owned account."
+        },
+        "smtp": {
+          "name": "smtp",
+          "best_for": "smtp integration for email; see current setup and provider limitations.",
+          "pros": [
+            "Supports documented email adapter examples"
+          ],
+          "cons": [
+            "Uses configured Django backends; analytics, suppression and webhook facilities are not portable guarantees."
+          ],
+          "pip_extra": "pip install 'SwapLayer[email]==1.0.0'",
+          "factory_provider": "smtp",
+          "recommended_when": "Review the current module guide and test the selected caller-owned account."
+        }
+      },
+      "decision_guide": "Use the factory_provider value and the generated quickstart. Review capability differences before selecting or migrating a provider."
+    },
+    "sms": {
+      "summary": "Current sms integrations and backend choices. SNS history/status/balance have documented placeholders; consent and abuse controls belong to the application.",
+      "providers": {
+        "twilio": {
+          "name": "twilio",
+          "best_for": "twilio integration for sms; see current setup and provider limitations.",
+          "pros": [
+            "Supports documented sms adapter examples"
+          ],
+          "cons": [
+            "SNS history/status/balance have documented placeholders; consent and abuse controls belong to the application."
+          ],
+          "pip_extra": "pip install 'SwapLayer[sms]==1.0.0'",
+          "factory_provider": "twilio",
+          "recommended_when": "Review the current module guide and test the selected caller-owned account."
+        },
+        "sns": {
+          "name": "sns",
+          "best_for": "sns integration for sms; see current setup and provider limitations.",
+          "pros": [
+            "Supports documented sms adapter examples"
+          ],
+          "cons": [
+            "SNS history/status/balance have documented placeholders; consent and abuse controls belong to the application."
+          ],
+          "pip_extra": "pip install 'SwapLayer[aws]==1.0.0'",
+          "factory_provider": "sns",
+          "recommended_when": "Review the current module guide and test the selected caller-owned account."
+        }
+      },
+      "decision_guide": "Use the factory_provider value and the generated quickstart. Review capability differences before selecting or migrating a provider."
+    },
+    "storage": {
+      "summary": "Current storage integrations and backend choices. Local URLs are unsigned. Presigned operations depend on the backend; tenant identity must be verified by the application.",
+      "providers": {
+        "local": {
+          "name": "local",
+          "best_for": "local integration for storage; see current setup and provider limitations.",
+          "pros": [
+            "Supports documented storage adapter examples"
+          ],
+          "cons": [
+            "Local URLs are unsigned. Presigned operations depend on the backend; tenant identity must be verified by the application."
+          ],
+          "pip_extra": "pip install 'SwapLayer==1.0.0'",
+          "factory_provider": "local",
+          "recommended_when": "Review the current module guide and test the selected caller-owned account."
+        },
+        "gcs": {
+          "name": "gcs",
+          "best_for": "gcs integration for storage; see current setup and provider limitations.",
+          "pros": [
+            "Supports documented storage adapter examples"
+          ],
+          "cons": [
+            "Local URLs are unsigned. Presigned operations depend on the backend; tenant identity must be verified by the application."
+          ],
+          "pip_extra": "pip install 'SwapLayer[gcs]==1.0.0'",
+          "factory_provider": "gcs",
+          "recommended_when": "Review the current module guide and test the selected caller-owned account."
+        },
+        "django": {
+          "name": "django",
+          "best_for": "django integration for storage; see current setup and provider limitations.",
+          "pros": [
+            "Supports documented storage adapter examples"
+          ],
+          "cons": [
+            "Local URLs are unsigned. Presigned operations depend on the backend; tenant identity must be verified by the application."
+          ],
+          "pip_extra": "pip install 'SwapLayer[django]==1.0.0'",
+          "factory_provider": "django",
+          "recommended_when": "Review the current module guide and test the selected caller-owned account."
+        },
+        "s3": {
+          "name": "s3",
+          "best_for": "s3 integration for storage; see current setup and provider limitations.",
+          "pros": [
+            "Supports documented storage adapter examples"
+          ],
+          "cons": [
+            "Local URLs are unsigned. Presigned operations depend on the backend; tenant identity must be verified by the application."
+          ],
+          "pip_extra": "pip install 'SwapLayer[aws]==1.0.0'",
+          "factory_provider": "django",
+          "recommended_when": "Review the current module guide and test the selected caller-owned account."
+        },
+        "azure": {
+          "name": "azure",
+          "best_for": "azure integration for storage; see current setup and provider limitations.",
+          "pros": [
+            "Supports documented storage adapter examples"
+          ],
+          "cons": [
+            "Local URLs are unsigned. Presigned operations depend on the backend; tenant identity must be verified by the application."
+          ],
+          "pip_extra": "pip install 'SwapLayer[azure]==1.0.0'",
+          "factory_provider": "django",
+          "recommended_when": "Review the current module guide and test the selected caller-owned account."
+        }
+      },
+      "decision_guide": "Use the factory_provider value and the generated quickstart. Review capability differences before selecting or migrating a provider."
+    },
+    "identity": {
+      "summary": "Current identity integrations and backend choices. Django sessions and app registries are required; management features and pagination differ.",
+      "providers": {
+        "workos": {
+          "name": "workos",
+          "best_for": "workos integration for identity; see current setup and provider limitations.",
+          "pros": [
+            "Supports documented identity adapter examples"
+          ],
+          "cons": [
+            "Django sessions and app registries are required; management features and pagination differ."
+          ],
+          "pip_extra": "pip install 'SwapLayer[identity]==1.0.0'",
+          "factory_provider": "workos",
+          "recommended_when": "Review the current module guide and test the selected caller-owned account."
+        },
+        "auth0": {
+          "name": "auth0",
+          "best_for": "auth0 integration for identity; see current setup and provider limitations.",
+          "pros": [
+            "Supports documented identity adapter examples"
+          ],
+          "cons": [
+            "Django sessions and app registries are required; management features and pagination differ."
+          ],
+          "pip_extra": "pip install 'SwapLayer[identity]==1.0.0'",
+          "factory_provider": "auth0",
+          "recommended_when": "Review the current module guide and test the selected caller-owned account."
+        }
+      },
+      "decision_guide": "Use the factory_provider value and the generated quickstart. Review capability differences before selecting or migrating a provider."
+    },
+    "verification": {
+      "summary": "Current verification integrations and backend choices. Only Stripe Identity is implemented; production verification and retention require application authorization.",
+      "providers": {
+        "stripe": {
+          "name": "stripe",
+          "best_for": "stripe integration for verification; see current setup and provider limitations.",
+          "pros": [
+            "Supports documented verification adapter examples"
+          ],
+          "cons": [
+            "Only Stripe Identity is implemented; production verification and retention require application authorization."
+          ],
+          "pip_extra": "pip install 'SwapLayer[stripe]==1.0.0'",
+          "factory_provider": "stripe",
+          "recommended_when": "Review the current module guide and test the selected caller-owned account."
+        }
+      },
+      "decision_guide": "Use the factory_provider value and the generated quickstart. Review capability differences before selecting or migrating a provider."
+    }
+  },
+  "troubleshoot": {
+    "missing_config": {
+      "symptoms": [
+        "SwapLayerError: SWAPLAYER setting not found",
+        "ModuleNotConfiguredError",
+        "AttributeError: 'NoneType' object has no attribute"
+      ],
+      "cause": "The SWAPLAYER setting is not defined in Django settings.py",
+      "solution": "Call swap_layer.configure(...) in plain Python, or configure Django SWAPLAYER with billing, communications, storage, identity or verification groups. Use swaplayer_setup_quickstart for a valid example."
+    },
+    "missing_package": {
+      "symptoms": [
+        "ImportError: No module named 'stripe'",
+        "ImportError: No module named 'twilio'",
+        "ImportError: No module named 'sendgrid'"
+      ],
+      "cause": "The provider's SDK package is not installed",
+      "solution": "Install the appropriate SwapLayer extra for your provider:\n\n| Provider | Command |\n|----------|---------|\n| Stripe | `pip install 'SwapLayer[stripe]'` |\n| SendGrid / Mailgun / SES | `pip install 'SwapLayer[email]'` |\n| Twilio | `pip install 'SwapLayer[sms]'` |\n| AWS (SNS, S3) | `pip install 'SwapLayer[aws]'` |\n| Azure Blob | `pip install 'SwapLayer[azure]'` |\n| WorkOS / Auth0 | `pip install 'SwapLayer[identity]'` |\n| MCP server | `pip install 'SwapLayer[mcp]'` |\n\nOr install everything: `pip install 'SwapLayer[all]'`"
+    },
+    "invalid_credentials": {
+      "symptoms": [
+        "ProviderError: Authentication failed",
+        "stripe.error.AuthenticationError",
+        "TwilioConfigError",
+        "StripeKeyError"
+      ],
+      "cause": "API key, token, or credentials are wrong or expired",
+      "solution": "Check your credentials:\n\n1. Verify environment variables are set:\n```bash\necho $STRIPE_SECRET_KEY   # should start with sk_\necho $SENDGRID_API_KEY    # should start with SG.\necho $TWILIO_ACCOUNT_SID  # should start with AC\n```\n\n2. For Stripe: use test keys (sk_test_...) in development, live keys (sk_live_...) in production.\n\n3. Confirm the key has the correct permissions in the provider dashboard.\n\n4. Check for leading/trailing whitespace in environment variables.\n\n5. Verify the key isn't expired or revoked in the provider dashboard."
+    },
+    "wrong_provider_name": {
+      "symptoms": [
+        "ConfigurationError: Unknown provider",
+        "ValueError: Invalid provider"
+      ],
+      "cause": "Provider name in configuration doesn't match an available provider",
+      "solution": "Provider values are lowercase. Email selects django/smtp; SendGrid and Mailgun use the Django Anymail backend. Storage selects local/django/gcs; S3/Azure use Django STORAGES. Verification selects stripe."
+    },
+    "django_not_setup": {
+      "symptoms": [
+        "django.core.exceptions.ImproperlyConfigured",
+        "Apps aren't loaded yet",
+        "django.setup() not called"
+      ],
+      "cause": "Django application registry isn't initialized before SwapLayer is used",
+      "solution": "Ensure Django is set up before using SwapLayer:\n\n```python\nimport os\nimport django\n\nos.environ.setdefault('DJANGO_SETTINGS_MODULE', 'myproject.settings')\ndjango.setup()  # must be called before get_provider()\n\nfrom swap_layer import get_provider\nemail = get_provider('email')\n```\n\nIn management commands or scripts, Django is set up automatically.\nIn tests, use `@pytest.mark.django_db` or configure pytest-django."
+    },
+    "mcp_not_installed": {
+      "symptoms": [
+        "ImportError: No module named 'mcp'",
+        "Error: MCP dependencies not installed"
+      ],
+      "cause": "The mcp package is not installed",
+      "solution": "Install the MCP extra:\n\n```bash\npip install 'SwapLayer[mcp]'\n```\n\nThen run the MCP server:\n```bash\nswaplayer-mcp\n```\n\nOr run directly:\n```bash\npython -m swap_layer.mcp\n```"
+    }
+  },
+  "code": {
+    "email": {
+      "send_email": "from swap_layer import get_provider\nemail = get_provider(\"email\")\nresult = email.send_email(to=[\"recipient@example.com\"], subject=\"Example\", text_body=\"Hello\")\n",
+      "send_with_attachment": "from swap_layer import get_provider\nwith open(\"document.pdf\", \"rb\") as document:\n    result = get_provider(\"email\").send_email(to=[\"recipient@example.com\"], subject=\"Document\", text_body=\"Attached\", attachments=[{\"filename\":\"document.pdf\", \"content\":document.read(), \"mimetype\":\"application/pdf\"}])\n"
+    },
+    "payments": {
+      "create_customer": "from swap_layer import get_provider\n# Configure a test provider account before making this paid/external call.\ncustomer = get_provider(\"payments\").create_customer(email=\"customer@example.com\")\n",
+      "create_payment_intent": "from decimal import Decimal\nfrom swap_layer import get_provider\nintent = get_provider(\"payments\").create_payment_intent(amount=Decimal(\"1000\"), currency=\"gbp\", idempotency_key=\"application-defined-unique-key\")\n"
+    },
+    "sms": {
+      "send_sms": "from swap_layer import get_provider\nresult = get_provider(\"sms\").send_sms(to=\"+15555551234\", message=\"Approved test message\")\n"
+    },
+    "storage": {
+      "upload_file": "from io import BytesIO\nfrom swap_layer import get_provider\nstorage = get_provider(\"storage\")\nstorage.upload_file(\"docs/example.txt\", BytesIO(b\"example\"))\nurl = storage.get_file_url(\"docs/example.txt\")\n",
+      "check_file_exists": "from swap_layer import get_provider\nstorage = get_provider(\"storage\")\nexists = storage.file_exists(\"docs/example.txt\")\n"
+    },
+    "identity": {
+      "oauth_flow": "from swap_layer import get_identity_client\ndef authorization_url(request, redirect_uri, state):\n    # Use framework-managed session/state validation and an approved redirect URI.\n    return get_identity_client().get_authorization_url(request, redirect_uri, state)\n"
+    },
+    "verification": {
+      "create_verification": "from swap_layer import get_provider\ndef create_session(user):\n    # user is an application object with id; use Stripe test mode first.\n    return get_provider(\"verification\").create_verification_session(user, \"document\", options={\"return_url\":\"https://example.com/verification/return\"})\n"
+    }
+  },
+  "examples": {
+    "email": {
+      "send_email": {
+        "description": "Use after configuring the selected adapter and approving any external operation.",
+        "code": "from swap_layer import get_provider\nemail = get_provider(\"email\")\nresult = email.send_email(to=[\"recipient@example.com\"], subject=\"Example\", text_body=\"Hello\")\n"
+      },
+      "send_with_attachment": {
+        "description": "Use after configuring the selected adapter and approving any external operation.",
+        "code": "from swap_layer import get_provider\nwith open(\"document.pdf\", \"rb\") as document:\n    result = get_provider(\"email\").send_email(to=[\"recipient@example.com\"], subject=\"Document\", text_body=\"Attached\", attachments=[{\"filename\":\"document.pdf\", \"content\":document.read(), \"mimetype\":\"application/pdf\"}])\n"
+      }
+    },
+    "payments": {
+      "create_customer": {
+        "description": "Use after configuring the selected adapter and approving any external operation.",
+        "code": "from swap_layer import get_provider\n# Configure a test provider account before making this paid/external call.\ncustomer = get_provider(\"payments\").create_customer(email=\"customer@example.com\")\n"
+      },
+      "create_payment_intent": {
+        "description": "Use after configuring the selected adapter and approving any external operation.",
+        "code": "from decimal import Decimal\nfrom swap_layer import get_provider\nintent = get_provider(\"payments\").create_payment_intent(amount=Decimal(\"1000\"), currency=\"gbp\", idempotency_key=\"application-defined-unique-key\")\n"
+      }
+    },
+    "sms": {
+      "send_sms": {
+        "description": "Use after configuring the selected adapter and approving any external operation.",
+        "code": "from swap_layer import get_provider\nresult = get_provider(\"sms\").send_sms(to=\"+15555551234\", message=\"Approved test message\")\n"
+      }
+    },
+    "storage": {
+      "upload_file": {
+        "description": "Use after configuring the selected adapter and approving any external operation.",
+        "code": "from io import BytesIO\nfrom swap_layer import get_provider\nstorage = get_provider(\"storage\")\nstorage.upload_file(\"docs/example.txt\", BytesIO(b\"example\"))\nurl = storage.get_file_url(\"docs/example.txt\")\n"
+      },
+      "check_file_exists": {
+        "description": "Use after configuring the selected adapter and approving any external operation.",
+        "code": "from swap_layer import get_provider\nstorage = get_provider(\"storage\")\nexists = storage.file_exists(\"docs/example.txt\")\n"
+      }
+    },
+    "identity": {
+      "oauth_flow": {
+        "description": "Use after configuring the selected adapter and approving any external operation.",
+        "code": "from swap_layer import get_identity_client\ndef authorization_url(request, redirect_uri, state):\n    # Use framework-managed session/state validation and an approved redirect URI.\n    return get_identity_client().get_authorization_url(request, redirect_uri, state)\n"
+      }
+    },
+    "verification": {
+      "create_verification": {
+        "description": "Use after configuring the selected adapter and approving any external operation.",
+        "code": "from swap_layer import get_provider\ndef create_session(user):\n    # user is an application object with id; use Stripe test mode first.\n    return get_provider(\"verification\").create_verification_session(user, \"document\", options={\"return_url\":\"https://example.com/verification/return\"})\n"
+      }
+    }
+  },
+  "quickstarts": {
+    "payments": {
+      "stripe": {
+        "pip_install": "pip install 'SwapLayer[stripe]==1.0.0'",
+        "settings_config": "import os\nfrom swap_layer.settings import SwapLayerSettings\nSWAPLAYER = SwapLayerSettings(billing={\"provider\":\"stripe\",\"stripe\":{\"secret_key\":os.environ[\"STRIPE_SECRET_KEY\"]}})\n",
+        "env_vars": "STRIPE_SECRET_KEY=<your-test-account-key>",
+        "usage_example": "from swap_layer import get_provider\n# Configure a test provider account before making this paid/external call.\ncustomer = get_provider(\"payments\").create_customer(email=\"customer@example.com\")\n",
+        "credentials_instructions": "Set caller-owned credentials in the local environment; never send them to an agent."
+      },
+      "paypal": {
+        "pip_install": "pip install 'SwapLayer[paypal]==1.0.0'",
+        "settings_config": "import os\nfrom swap_layer.settings import SwapLayerSettings\nSWAPLAYER = SwapLayerSettings(billing={\"provider\":\"paypal\",\"paypal\":{\"client_id\":os.environ[\"PAYPAL_CLIENT_ID\"],\"client_secret\":os.environ[\"PAYPAL_CLIENT_SECRET\"],\"sandbox\":True}})\n",
+        "env_vars": "PAYPAL_CLIENT_ID=<your-client-id>\nPAYPAL_CLIENT_SECRET=<your-secret>",
+        "usage_example": "from swap_layer import get_provider\n# Configure a test provider account before making this paid/external call.\ncustomer = get_provider(\"payments\").create_customer(email=\"customer@example.com\")\n",
+        "credentials_instructions": "Set caller-owned credentials in the local environment; never send them to an agent."
+      },
+      "square": {
+        "pip_install": "pip install 'SwapLayer[square]==1.0.0'",
+        "settings_config": "import os\nfrom swap_layer.settings import SwapLayerSettings\nSWAPLAYER = SwapLayerSettings(billing={\"provider\":\"square\",\"square\":{\"access_token\":os.environ[\"SQUARE_ACCESS_TOKEN\"],\"location_id\":os.environ[\"SQUARE_LOCATION_ID\"],\"sandbox\":True}})\n",
+        "env_vars": "SQUARE_ACCESS_TOKEN=<your-test-token>\nSQUARE_LOCATION_ID=<your-location>",
+        "usage_example": "from swap_layer import get_provider\n# Configure a test provider account before making this paid/external call.\ncustomer = get_provider(\"payments\").create_customer(email=\"customer@example.com\")\n",
+        "credentials_instructions": "Set caller-owned credentials in the local environment; never send them to an agent."
+      }
+    },
+    "email": {
+      "sendgrid": {
+        "pip_install": "pip install 'SwapLayer[email]==1.0.0'",
+        "settings_config": "import os\nfrom swap_layer.settings import SwapLayerSettings\nSWAPLAYER = SwapLayerSettings(communications={\"email\":{\"provider\":'django'}})\nEMAIL_BACKEND = 'anymail.backends.sendgrid.EmailBackend'\nDEFAULT_FROM_EMAIL = \"sender@example.com\"\nANYMAIL = {'SENDGRID_API_KEY': os.environ['SENDGRID_API_KEY']}\n",
+        "env_vars": "SENDGRID_API_KEY=<your-key>",
+        "usage_example": "from swap_layer import get_provider\nemail = get_provider(\"email\")\nresult = email.send_email(to=[\"recipient@example.com\"], subject=\"Example\", text_body=\"Hello\")\n",
+        "credentials_instructions": "Set caller-owned credentials in the local environment; never send them to an agent."
+      },
+      "mailgun": {
+        "pip_install": "pip install 'SwapLayer[email]==1.0.0'",
+        "settings_config": "import os\nfrom swap_layer.settings import SwapLayerSettings\nSWAPLAYER = SwapLayerSettings(communications={\"email\":{\"provider\":'django'}})\nEMAIL_BACKEND = 'anymail.backends.mailgun.EmailBackend'\nDEFAULT_FROM_EMAIL = \"sender@example.com\"\nANYMAIL = {'MAILGUN_API_KEY': os.environ['MAILGUN_API_KEY']}\nANYMAIL[\"MAILGUN_SENDER_DOMAIN\"] = os.environ[\"MAILGUN_SENDER_DOMAIN\"]\n",
+        "env_vars": "MAILGUN_API_KEY=<your-key>",
+        "usage_example": "from swap_layer import get_provider\nemail = get_provider(\"email\")\nresult = email.send_email(to=[\"recipient@example.com\"], subject=\"Example\", text_body=\"Hello\")\n",
+        "credentials_instructions": "Set caller-owned credentials in the local environment; never send them to an agent."
+      },
+      "ses": {
+        "pip_install": "pip install 'SwapLayer[email,aws]==1.0.0'",
+        "settings_config": "import os\nfrom swap_layer.settings import SwapLayerSettings\nSWAPLAYER = SwapLayerSettings(communications={\"email\":{\"provider\":'django'}})\nEMAIL_BACKEND = 'anymail.backends.amazon_ses.EmailBackend'\nDEFAULT_FROM_EMAIL = \"sender@example.com\"\n",
+        "env_vars": "Configure the selected Django backend locally.",
+        "usage_example": "from swap_layer import get_provider\nemail = get_provider(\"email\")\nresult = email.send_email(to=[\"recipient@example.com\"], subject=\"Example\", text_body=\"Hello\")\n",
+        "credentials_instructions": "Set caller-owned credentials in the local environment; never send them to an agent."
+      },
+      "django": {
+        "pip_install": "pip install 'SwapLayer[email]==1.0.0'",
+        "settings_config": "import os\nfrom swap_layer.settings import SwapLayerSettings\nSWAPLAYER = SwapLayerSettings(communications={\"email\":{\"provider\":'django'}})\nEMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'\nDEFAULT_FROM_EMAIL = \"sender@example.com\"\n",
+        "env_vars": "Configure the selected Django backend locally.",
+        "usage_example": "from swap_layer import get_provider\nemail = get_provider(\"email\")\nresult = email.send_email(to=[\"recipient@example.com\"], subject=\"Example\", text_body=\"Hello\")\n",
+        "credentials_instructions": "Set caller-owned credentials in the local environment; never send them to an agent."
+      },
+      "smtp": {
+        "pip_install": "pip install 'SwapLayer[email]==1.0.0'",
+        "settings_config": "import os\nfrom swap_layer.settings import SwapLayerSettings\nSWAPLAYER = SwapLayerSettings(communications={\"email\":{\"provider\":'smtp'}})\nEMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'\nDEFAULT_FROM_EMAIL = \"sender@example.com\"\n",
+        "env_vars": "Configure the selected Django backend locally.",
+        "usage_example": "from swap_layer import get_provider\nemail = get_provider(\"email\")\nresult = email.send_email(to=[\"recipient@example.com\"], subject=\"Example\", text_body=\"Hello\")\n",
+        "credentials_instructions": "Set caller-owned credentials in the local environment; never send them to an agent."
+      }
+    },
+    "sms": {
+      "twilio": {
+        "pip_install": "pip install 'SwapLayer[sms]==1.0.0'",
+        "settings_config": "import os\nfrom swap_layer.settings import SwapLayerSettings\nSWAPLAYER = SwapLayerSettings(communications={\"sms\":{\"provider\":\"twilio\",\"twilio\":{\"account_sid\":os.environ[\"TWILIO_ACCOUNT_SID\"],\"auth_token\":os.environ[\"TWILIO_AUTH_TOKEN\"],\"from_number\":os.environ[\"TWILIO_FROM_NUMBER\"]}}})\n",
+        "env_vars": "TWILIO_ACCOUNT_SID=<your-sid>\nTWILIO_AUTH_TOKEN=<your-token>\nTWILIO_FROM_NUMBER=<your-E.164-number>",
+        "usage_example": "from swap_layer import get_provider\nresult = get_provider(\"sms\").send_sms(to=\"+15555551234\", message=\"Approved test message\")\n",
+        "credentials_instructions": "Set caller-owned credentials in the local environment; never send them to an agent."
+      },
+      "sns": {
+        "pip_install": "pip install 'SwapLayer[aws]==1.0.0'",
+        "settings_config": "import os\nfrom swap_layer.settings import SwapLayerSettings\nSWAPLAYER = SwapLayerSettings(communications={\"sms\":{\"provider\":\"sns\",\"sns\":{\"region_name\":\"eu-west-2\",\"sender_id\":\"Example\"}}})\n",
+        "env_vars": "Use boto3's IAM credential chain or caller-owned AWS credentials.",
+        "usage_example": "from swap_layer import get_provider\nresult = get_provider(\"sms\").send_sms(to=\"+15555551234\", message=\"Approved test message\")\n",
+        "credentials_instructions": "Set caller-owned credentials in the local environment; never send them to an agent."
+      }
+    },
+    "storage": {
+      "local": {
+        "pip_install": "pip install 'SwapLayer==1.0.0'",
+        "settings_config": "import os\nfrom swap_layer.settings import SwapLayerSettings\nSWAPLAYER = SwapLayerSettings(storage={\"provider\":\"local\",\"media_root\":\"./media\"})\n",
+        "env_vars": "No provider credentials required.",
+        "usage_example": "from io import BytesIO\nfrom swap_layer import get_provider\nstorage = get_provider(\"storage\")\nstorage.upload_file(\"docs/example.txt\", BytesIO(b\"example\"))\nurl = storage.get_file_url(\"docs/example.txt\")\n",
+        "credentials_instructions": "Set caller-owned credentials in the local environment; never send them to an agent."
+      },
+      "gcs": {
+        "pip_install": "pip install 'SwapLayer[gcs]==1.0.0'",
+        "settings_config": "import os\nfrom swap_layer.settings import SwapLayerSettings\nSWAPLAYER = SwapLayerSettings(storage={\"provider\":\"gcs\",\"bucket_name\":os.environ[\"GCS_BUCKET_NAME\"],\"project_id\":os.environ[\"GOOGLE_CLOUD_PROJECT\"]})\n",
+        "env_vars": "GCS_BUCKET_NAME=<your-bucket>\nGOOGLE_CLOUD_PROJECT=<your-project>\nUse Google application default credentials.",
+        "usage_example": "from io import BytesIO\nfrom swap_layer import get_provider\nstorage = get_provider(\"storage\")\nstorage.upload_file(\"docs/example.txt\", BytesIO(b\"example\"))\nurl = storage.get_file_url(\"docs/example.txt\")\n",
+        "credentials_instructions": "Set caller-owned credentials in the local environment; never send them to an agent."
+      },
+      "django": {
+        "pip_install": "pip install 'SwapLayer[django]==1.0.0'",
+        "settings_config": "import os\nfrom swap_layer.settings import SwapLayerSettings\nSWAPLAYER = SwapLayerSettings(storage={\"provider\":\"django\"})\n# Configure Django STORAGES[\"default\"] for your backend.\n",
+        "env_vars": "Backend-specific Django settings and credentials.",
+        "usage_example": "from io import BytesIO\nfrom swap_layer import get_provider\nstorage = get_provider(\"storage\")\nstorage.upload_file(\"docs/example.txt\", BytesIO(b\"example\"))\nurl = storage.get_file_url(\"docs/example.txt\")\n",
+        "credentials_instructions": "Set caller-owned credentials in the local environment; never send them to an agent."
+      },
+      "s3": {
+        "pip_install": "pip install 'SwapLayer[aws]==1.0.0'",
+        "settings_config": "import os\nfrom swap_layer.settings import SwapLayerSettings\nSWAPLAYER = SwapLayerSettings(storage={\"provider\":\"django\"})\nSTORAGES = {\"default\":{\"BACKEND\":'storages.backends.s3.S3Storage'}}\n# Add your backend options and credentials using Django/django-storages settings.\n",
+        "env_vars": "Configure your own storage account and backend options.",
+        "usage_example": "from io import BytesIO\nfrom swap_layer import get_provider\nstorage = get_provider(\"storage\")\nstorage.upload_file(\"docs/example.txt\", BytesIO(b\"example\"))\nurl = storage.get_file_url(\"docs/example.txt\")\n",
+        "credentials_instructions": "Set caller-owned credentials in the local environment; never send them to an agent."
+      },
+      "azure": {
+        "pip_install": "pip install 'SwapLayer[azure]==1.0.0'",
+        "settings_config": "import os\nfrom swap_layer.settings import SwapLayerSettings\nSWAPLAYER = SwapLayerSettings(storage={\"provider\":\"django\"})\nSTORAGES = {\"default\":{\"BACKEND\":'storages.backends.azure_storage.AzureStorage'}}\n# Add your backend options and credentials using Django/django-storages settings.\n",
+        "env_vars": "Configure your own storage account and backend options.",
+        "usage_example": "from io import BytesIO\nfrom swap_layer import get_provider\nstorage = get_provider(\"storage\")\nstorage.upload_file(\"docs/example.txt\", BytesIO(b\"example\"))\nurl = storage.get_file_url(\"docs/example.txt\")\n",
+        "credentials_instructions": "Set caller-owned credentials in the local environment; never send them to an agent."
+      }
+    },
+    "identity": {
+      "workos": {
+        "pip_install": "pip install 'SwapLayer[identity]==1.0.0'",
+        "settings_config": "import os\nfrom swap_layer.settings import SwapLayerSettings\nWORKOS_APPS = {\"default\":{\"api_key\":os.environ[\"WORKOS_API_KEY\"],\"client_id\":os.environ[\"WORKOS_CLIENT_ID\"],\"cookie_password\":os.environ[\"WORKOS_COOKIE_PASSWORD\"]}}\nSWAPLAYER = SwapLayerSettings(identity={\"provider\":\"workos\",\"workos_apps\":WORKOS_APPS})\n",
+        "env_vars": "WORKOS_API_KEY=<your-key>\nWORKOS_CLIENT_ID=<your-client>\nWORKOS_COOKIE_PASSWORD=<32-or-more-random-characters>",
+        "usage_example": "from swap_layer import get_identity_client\ndef authorization_url(request, redirect_uri, state):\n    # Use framework-managed session/state validation and an approved redirect URI.\n    return get_identity_client().get_authorization_url(request, redirect_uri, state)\n",
+        "credentials_instructions": "Set caller-owned credentials in the local environment; never send them to an agent."
+      },
+      "auth0": {
+        "pip_install": "pip install 'SwapLayer[identity]==1.0.0'",
+        "settings_config": "import os\nfrom swap_layer.settings import SwapLayerSettings\nAUTH0_APPS = {\"developer\":{\"client_id\":os.environ[\"AUTH0_CLIENT_ID\"],\"client_secret\":os.environ[\"AUTH0_CLIENT_SECRET\"]}}\nAUTH0_DEVELOPER_DOMAIN = os.environ[\"AUTH0_DOMAIN\"]\nSWAPLAYER = SwapLayerSettings(identity={\"provider\":\"auth0\",\"auth0_apps\":AUTH0_APPS,\"auth0_domain\":AUTH0_DEVELOPER_DOMAIN})\n",
+        "env_vars": "AUTH0_CLIENT_ID=<your-client>\nAUTH0_CLIENT_SECRET=<your-secret>\nAUTH0_DOMAIN=<your-tenant-domain>",
+        "usage_example": "from swap_layer import get_identity_client\ndef authorization_url(request, redirect_uri, state):\n    # Use framework-managed session/state validation and an approved redirect URI.\n    return get_identity_client().get_authorization_url(request, redirect_uri, state)\n",
+        "credentials_instructions": "Set caller-owned credentials in the local environment; never send them to an agent."
+      }
+    },
+    "verification": {
+      "stripe": {
+        "pip_install": "pip install 'SwapLayer[stripe]==1.0.0'",
+        "settings_config": "import os\nfrom swap_layer.settings import SwapLayerSettings\nSWAPLAYER = SwapLayerSettings(verification={\"provider\":\"stripe\",\"stripe_secret_key\":os.environ[\"STRIPE_IDENTITY_SECRET_KEY\"]})\n",
+        "env_vars": "STRIPE_IDENTITY_SECRET_KEY=<your-test-key>",
+        "usage_example": "from swap_layer import get_provider\ndef create_session(user):\n    # user is an application object with id; use Stripe test mode first.\n    return get_provider(\"verification\").create_verification_session(user, \"document\", options={\"return_url\":\"https://example.com/verification/return\"})\n",
+        "credentials_instructions": "Set caller-owned credentials in the local environment; never send them to an agent."
+      }
+    }
+  },
+  "info": {
+    "payments": {
+      "stripe": {
+        "description": "stripe integration for payments; see current setup and provider limitations.",
+        "capabilities": [
+          "create_customer",
+          "create_payment_intent"
+        ],
+        "setup": "import os\nfrom swap_layer.settings import SwapLayerSettings\nSWAPLAYER = SwapLayerSettings(billing={\"provider\":\"stripe\",\"stripe\":{\"secret_key\":os.environ[\"STRIPE_SECRET_KEY\"]}})\n",
+        "pip_install": "pip install 'SwapLayer[stripe]==1.0.0'"
+      },
+      "paypal": {
+        "description": "paypal integration for payments; see current setup and provider limitations.",
+        "capabilities": [
+          "create_customer",
+          "create_payment_intent"
+        ],
+        "setup": "import os\nfrom swap_layer.settings import SwapLayerSettings\nSWAPLAYER = SwapLayerSettings(billing={\"provider\":\"paypal\",\"paypal\":{\"client_id\":os.environ[\"PAYPAL_CLIENT_ID\"],\"client_secret\":os.environ[\"PAYPAL_CLIENT_SECRET\"],\"sandbox\":True}})\n",
+        "pip_install": "pip install 'SwapLayer[paypal]==1.0.0'"
+      },
+      "square": {
+        "description": "square integration for payments; see current setup and provider limitations.",
+        "capabilities": [
+          "create_customer",
+          "create_payment_intent"
+        ],
+        "setup": "import os\nfrom swap_layer.settings import SwapLayerSettings\nSWAPLAYER = SwapLayerSettings(billing={\"provider\":\"square\",\"square\":{\"access_token\":os.environ[\"SQUARE_ACCESS_TOKEN\"],\"location_id\":os.environ[\"SQUARE_LOCATION_ID\"],\"sandbox\":True}})\n",
+        "pip_install": "pip install 'SwapLayer[square]==1.0.0'"
+      }
+    },
+    "email": {
+      "sendgrid": {
+        "description": "sendgrid integration for email; see current setup and provider limitations.",
+        "capabilities": [
+          "send_email",
+          "send_with_attachment"
+        ],
+        "setup": "import os\nfrom swap_layer.settings import SwapLayerSettings\nSWAPLAYER = SwapLayerSettings(communications={\"email\":{\"provider\":'django'}})\nEMAIL_BACKEND = 'anymail.backends.sendgrid.EmailBackend'\nDEFAULT_FROM_EMAIL = \"sender@example.com\"\nANYMAIL = {'SENDGRID_API_KEY': os.environ['SENDGRID_API_KEY']}\n",
+        "pip_install": "pip install 'SwapLayer[email]==1.0.0'"
+      },
+      "mailgun": {
+        "description": "mailgun integration for email; see current setup and provider limitations.",
+        "capabilities": [
+          "send_email",
+          "send_with_attachment"
+        ],
+        "setup": "import os\nfrom swap_layer.settings import SwapLayerSettings\nSWAPLAYER = SwapLayerSettings(communications={\"email\":{\"provider\":'django'}})\nEMAIL_BACKEND = 'anymail.backends.mailgun.EmailBackend'\nDEFAULT_FROM_EMAIL = \"sender@example.com\"\nANYMAIL = {'MAILGUN_API_KEY': os.environ['MAILGUN_API_KEY']}\nANYMAIL[\"MAILGUN_SENDER_DOMAIN\"] = os.environ[\"MAILGUN_SENDER_DOMAIN\"]\n",
+        "pip_install": "pip install 'SwapLayer[email]==1.0.0'"
+      },
+      "ses": {
+        "description": "ses integration for email; see current setup and provider limitations.",
+        "capabilities": [
+          "send_email",
+          "send_with_attachment"
+        ],
+        "setup": "import os\nfrom swap_layer.settings import SwapLayerSettings\nSWAPLAYER = SwapLayerSettings(communications={\"email\":{\"provider\":'django'}})\nEMAIL_BACKEND = 'anymail.backends.amazon_ses.EmailBackend'\nDEFAULT_FROM_EMAIL = \"sender@example.com\"\n",
+        "pip_install": "pip install 'SwapLayer[email,aws]==1.0.0'"
+      },
+      "django": {
+        "description": "django integration for email; see current setup and provider limitations.",
+        "capabilities": [
+          "send_email",
+          "send_with_attachment"
+        ],
+        "setup": "import os\nfrom swap_layer.settings import SwapLayerSettings\nSWAPLAYER = SwapLayerSettings(communications={\"email\":{\"provider\":'django'}})\nEMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'\nDEFAULT_FROM_EMAIL = \"sender@example.com\"\n",
+        "pip_install": "pip install 'SwapLayer[email]==1.0.0'"
+      },
+      "smtp": {
+        "description": "smtp integration for email; see current setup and provider limitations.",
+        "capabilities": [
+          "send_email",
+          "send_with_attachment"
+        ],
+        "setup": "import os\nfrom swap_layer.settings import SwapLayerSettings\nSWAPLAYER = SwapLayerSettings(communications={\"email\":{\"provider\":'smtp'}})\nEMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'\nDEFAULT_FROM_EMAIL = \"sender@example.com\"\n",
+        "pip_install": "pip install 'SwapLayer[email]==1.0.0'"
+      }
+    },
+    "sms": {
+      "twilio": {
+        "description": "twilio integration for sms; see current setup and provider limitations.",
+        "capabilities": [
+          "send_sms"
+        ],
+        "setup": "import os\nfrom swap_layer.settings import SwapLayerSettings\nSWAPLAYER = SwapLayerSettings(communications={\"sms\":{\"provider\":\"twilio\",\"twilio\":{\"account_sid\":os.environ[\"TWILIO_ACCOUNT_SID\"],\"auth_token\":os.environ[\"TWILIO_AUTH_TOKEN\"],\"from_number\":os.environ[\"TWILIO_FROM_NUMBER\"]}}})\n",
+        "pip_install": "pip install 'SwapLayer[sms]==1.0.0'"
+      },
+      "sns": {
+        "description": "sns integration for sms; see current setup and provider limitations.",
+        "capabilities": [
+          "send_sms"
+        ],
+        "setup": "import os\nfrom swap_layer.settings import SwapLayerSettings\nSWAPLAYER = SwapLayerSettings(communications={\"sms\":{\"provider\":\"sns\",\"sns\":{\"region_name\":\"eu-west-2\",\"sender_id\":\"Example\"}}})\n",
+        "pip_install": "pip install 'SwapLayer[aws]==1.0.0'"
+      }
+    },
+    "storage": {
+      "local": {
+        "description": "local integration for storage; see current setup and provider limitations.",
+        "capabilities": [
+          "upload_file",
+          "check_file_exists"
+        ],
+        "setup": "import os\nfrom swap_layer.settings import SwapLayerSettings\nSWAPLAYER = SwapLayerSettings(storage={\"provider\":\"local\",\"media_root\":\"./media\"})\n",
+        "pip_install": "pip install 'SwapLayer==1.0.0'"
+      },
+      "gcs": {
+        "description": "gcs integration for storage; see current setup and provider limitations.",
+        "capabilities": [
+          "upload_file",
+          "check_file_exists"
+        ],
+        "setup": "import os\nfrom swap_layer.settings import SwapLayerSettings\nSWAPLAYER = SwapLayerSettings(storage={\"provider\":\"gcs\",\"bucket_name\":os.environ[\"GCS_BUCKET_NAME\"],\"project_id\":os.environ[\"GOOGLE_CLOUD_PROJECT\"]})\n",
+        "pip_install": "pip install 'SwapLayer[gcs]==1.0.0'"
+      },
+      "django": {
+        "description": "django integration for storage; see current setup and provider limitations.",
+        "capabilities": [
+          "upload_file",
+          "check_file_exists"
+        ],
+        "setup": "import os\nfrom swap_layer.settings import SwapLayerSettings\nSWAPLAYER = SwapLayerSettings(storage={\"provider\":\"django\"})\n# Configure Django STORAGES[\"default\"] for your backend.\n",
+        "pip_install": "pip install 'SwapLayer[django]==1.0.0'"
+      },
+      "s3": {
+        "description": "s3 integration for storage; see current setup and provider limitations.",
+        "capabilities": [
+          "upload_file",
+          "check_file_exists"
+        ],
+        "setup": "import os\nfrom swap_layer.settings import SwapLayerSettings\nSWAPLAYER = SwapLayerSettings(storage={\"provider\":\"django\"})\nSTORAGES = {\"default\":{\"BACKEND\":'storages.backends.s3.S3Storage'}}\n# Add your backend options and credentials using Django/django-storages settings.\n",
+        "pip_install": "pip install 'SwapLayer[aws]==1.0.0'"
+      },
+      "azure": {
+        "description": "azure integration for storage; see current setup and provider limitations.",
+        "capabilities": [
+          "upload_file",
+          "check_file_exists"
+        ],
+        "setup": "import os\nfrom swap_layer.settings import SwapLayerSettings\nSWAPLAYER = SwapLayerSettings(storage={\"provider\":\"django\"})\nSTORAGES = {\"default\":{\"BACKEND\":'storages.backends.azure_storage.AzureStorage'}}\n# Add your backend options and credentials using Django/django-storages settings.\n",
+        "pip_install": "pip install 'SwapLayer[azure]==1.0.0'"
+      }
+    },
+    "identity": {
+      "workos": {
+        "description": "workos integration for identity; see current setup and provider limitations.",
+        "capabilities": [
+          "oauth_flow"
+        ],
+        "setup": "import os\nfrom swap_layer.settings import SwapLayerSettings\nWORKOS_APPS = {\"default\":{\"api_key\":os.environ[\"WORKOS_API_KEY\"],\"client_id\":os.environ[\"WORKOS_CLIENT_ID\"],\"cookie_password\":os.environ[\"WORKOS_COOKIE_PASSWORD\"]}}\nSWAPLAYER = SwapLayerSettings(identity={\"provider\":\"workos\",\"workos_apps\":WORKOS_APPS})\n",
+        "pip_install": "pip install 'SwapLayer[identity]==1.0.0'"
+      },
+      "auth0": {
+        "description": "auth0 integration for identity; see current setup and provider limitations.",
+        "capabilities": [
+          "oauth_flow"
+        ],
+        "setup": "import os\nfrom swap_layer.settings import SwapLayerSettings\nAUTH0_APPS = {\"developer\":{\"client_id\":os.environ[\"AUTH0_CLIENT_ID\"],\"client_secret\":os.environ[\"AUTH0_CLIENT_SECRET\"]}}\nAUTH0_DEVELOPER_DOMAIN = os.environ[\"AUTH0_DOMAIN\"]\nSWAPLAYER = SwapLayerSettings(identity={\"provider\":\"auth0\",\"auth0_apps\":AUTH0_APPS,\"auth0_domain\":AUTH0_DEVELOPER_DOMAIN})\n",
+        "pip_install": "pip install 'SwapLayer[identity]==1.0.0'"
+      }
+    },
+    "verification": {
+      "stripe": {
+        "description": "stripe integration for verification; see current setup and provider limitations.",
+        "capabilities": [
+          "create_verification"
+        ],
+        "setup": "import os\nfrom swap_layer.settings import SwapLayerSettings\nSWAPLAYER = SwapLayerSettings(verification={\"provider\":\"stripe\",\"stripe_secret_key\":os.environ[\"STRIPE_IDENTITY_SECRET_KEY\"]})\n",
+        "pip_install": "pip install 'SwapLayer[stripe]==1.0.0'"
+      }
+    }
+  }
+}

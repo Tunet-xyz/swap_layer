@@ -19,22 +19,13 @@ def test_mcp_server_creation():
         pytest.skip("MCP dependencies not installed")
 
 
-def test_mcp_not_available_error():
+def test_mcp_not_available_error(monkeypatch):
     """Test that proper error is raised when MCP is not installed."""
-    try:
-        # Try to import mcp
-        import mcp  # noqa: F401
+    from swap_layer.mcp import server
 
-        # If successful, skip this test
-        pytest.skip("MCP is installed, cannot test error condition")
-    except ImportError:
-        # MCP not installed, we expect ImportError when creating server
-        # Just verify the module can be imported
-        from swap_layer.mcp import create_mcp_server  # noqa: F401
-
-        # Test passes if we can import the function
-        # Actual error testing would require isolating imports
-        pass
+    monkeypatch.setattr(server, "MCP_AVAILABLE", False)
+    with pytest.raises(ImportError, match=r"SwapLayer\[mcp\]"):
+        server.create_mcp_server()
 
 
 @pytest.mark.asyncio
@@ -47,8 +38,7 @@ async def test_list_providers():
         result = await _list_providers("email")
         assert result["status"] == "success"
         assert "providers" in result
-        assert "sendgrid" in result["providers"]
-        assert "mailgun" in result["providers"]
+        assert set(result["providers"]) == {"django", "smtp"}
 
         # Test listing payment providers
         result = await _list_providers("payments")
@@ -162,7 +152,7 @@ async def test_compare_providers_all_services():
             result = await _compare_providers(service)
             assert result["status"] == "success", f"Failed for service '{service}'"
             assert "providers" in result
-            assert len(result["providers"]) >= 2, f"Too few providers for '{service}'"
+            assert len(result["providers"]) >= (1 if service == "verification" else 2)
             assert "decision_guide" in result
 
     except ImportError:
@@ -265,7 +255,7 @@ async def test_get_migration_guide_valid():
         assert result["service"] == "email"
         assert result["from_provider"] == "sendgrid"
         assert result["to_provider"] == "mailgun"
-        assert result["application_code_changes"] == "none"
+        assert result["application_code_changes"] == "review-required"
         assert "guide" in result
         assert "data_migration_note" in result
         # Guide should mention both providers
@@ -333,6 +323,9 @@ async def test_server_has_13_tools():
         handler = server.request_handlers[types.ListToolsRequest]
         result = await handler(types.ListToolsRequest(method="tools/list"))
         tool_names = {t.name for t in result.root.tools}
+        tools = {tool.name: tool for tool in result.root.tools}
+        assert tools["swaplayer_get_config"].annotations.readOnlyHint is True
+        assert tools["swaplayer_send_test_sms"].annotations.readOnlyHint is False
 
         expected = {
             "swaplayer_get_config",

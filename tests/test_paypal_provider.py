@@ -192,3 +192,32 @@ def test_billing_factory_returns_paypal_from_swaplayer_settings():
     assert provider.client_id == "paypal-client"
     assert provider.webhook_id == "WH-123"
     assert provider.sandbox is True
+
+
+@pytest.mark.parametrize("currency, expected", [("GBP", "12.34"), ("JPY", "1234"), ("HUF", "1234"), ("TWD", "1234")])
+def test_currency_minor_units_round_trip(currency, expected):
+    money = PayPalPaymentProvider._money(Decimal("1234"), currency)
+    assert money == {"currency_code": currency, "value": expected}
+    assert PayPalPaymentProvider._amount_from_money(money) == 1234
+
+
+@pytest.mark.parametrize("amount", [Decimal("12.5"), Decimal("NaN"), Decimal("Infinity")])
+def test_invalid_numeric_minor_units_fail_before_request(amount):
+    provider = PayPalPaymentProvider("fixture-client", "fixture-secret")
+    with patch.object(provider, "_request") as request:
+        with pytest.raises(PaymentValidationError):
+            provider.create_payment_intent(amount, "GBP")
+    request.assert_not_called()
+
+
+@pytest.mark.parametrize("currency, value", [("GBP", "1.001"), ("JPY", "1.1"), ("HUF", "NaN")])
+def test_provider_amounts_are_never_silently_truncated(currency, value):
+    with pytest.raises(PaymentValidationError):
+        PayPalPaymentProvider._amount_from_money({"currency_code": currency, "value": value})
+
+
+def test_amount_conversion_preserves_decimal_precision():
+    amount = Decimal("100000000000000000000000000001")
+    money = PayPalPaymentProvider._money(amount, "GBP")
+    assert money["value"] == "1000000000000000000000000000.01"
+    assert PayPalPaymentProvider._amount_from_money(money) == int(amount)

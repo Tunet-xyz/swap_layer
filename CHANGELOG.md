@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-11-05
+
+### Changed
+- Establish the stable Python adapter contract and independent SemVer policy.
+- Align package, runtime, and MCP versions; update provider guides and installation metadata.
+- Gate every release job on an owner-started manual workflow with pinned actions,
+  protected OIDC publishing, and hash-locked build tools.
+
+### Fixed
+- Convert PayPal HUF, JPY and TWD using their zero-decimal rules; reject fractional/non-finite minor amounts and prevent decimal truncation.
+
 ### Security
 - Reject traversal, absolute paths, symlinks, and junctions in local storage keys;
   enforce safe tenant identities and organization-scoped storage paths.

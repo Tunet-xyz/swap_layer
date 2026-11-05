@@ -2,8 +2,11 @@
 
 ## Supported Versions
 
+The active security line is 1.x. Pre-1.0 rows are retained as historical release information and no longer indicate active security support.
+
 | Version | Supported          |
 | ------- | ------------------ |
+| 1.0.x   | :white_check_mark: |
 | 0.4.x   | :white_check_mark: |
 | 0.3.x   | :white_check_mark: |
 | < 0.3   | :x:                |
@@ -54,9 +57,15 @@ When using SwapLayer:
 SwapLayer includes several security features:
 
 - ✅ Request timeouts to prevent hanging connections (30s default)
-- ✅ Thread-safe provider clients
-- ✅ Sensitive data masking in error messages (API keys, phone numbers, passwords)
+- Instance-owned provider clients; applications manage concurrency and lifetimes
+- Nested credential redaction in MCP configuration and input-suppressed configuration diagnostics
 - ✅ Input validation via Pydantic
 - ✅ Type hints for static analysis
 - ✅ Scoped storage with tenant-isolated path prefixing
-- ✅ Lazy imports — unused provider dependencies are never loaded
+- Lazy factory imports for optional providers
+
+## Local tools and trust boundaries
+
+MCP runs locally with caller-owned credentials; it does not expose maintainer agents, tokens, or accounts. Clients must approve test sends and writes. Public PRs/comments cannot authorize repository agents or workflows. Entry-point Actions are manual and owner-gated; PyPI publishing uses an owner-reviewed environment and short-lived OIDC identity.
+
+Storage contexts require trusted, already-verified identity and an explicit organization scope. Local storage roots and their parents must not be writable by untrusted OS users; path checks do not replace a filesystem sandbox against concurrent replacement. Local URLs are unsigned and need application access control. Provider mocks and static scans do not constitute an independent security audit.

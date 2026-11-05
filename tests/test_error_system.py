@@ -29,7 +29,7 @@ class TestStripeKeyError:
             SwapLayerSettings(
                 billing={
                     "provider": "stripe",
-                    "stripe": {"secret_key": "pk_test_123abc"},  # Wrong! Publishable key
+                    "stripe": {"secret_key": "pk_test_dummy"},  # Deliberately invalid placeholder
                 }
             )
 
@@ -45,7 +45,7 @@ class TestStripeKeyError:
         assert "stripe.com/docs/keys" in error_message  # Documentation link
         assert "SWAPLAYER.billing.stripe.secret_key" in error_message  # Related setting
         # Ensure the full key is NOT exposed
-        assert "pk_test_123abc" not in error_message
+        assert "pk_test_dummy" not in error_message
 
     def test_completely_wrong_key(self):
         """Should handle completely invalid key gracefully."""
@@ -372,8 +372,8 @@ class TestRichErrorsInRealScenarios:
                 billing={
                     "provider": "stripe",
                     "stripe": {
-                        "secret_key": "pk_test_51Abc123...",  # Oops! Used wrong key
-                        "publishable_key": "pk_test_51Abc123...",
+                        "secret_key": "pk_test_dummy",  # Deliberately invalid placeholder
+                        "publishable_key": "pk_test_dummy",
                     },
                 }
             )
@@ -385,7 +385,7 @@ class TestRichErrorsInRealScenarios:
         assert "*" in error  # Shows value is masked
         assert "sk_test_" in error  # Shows what they should use
         # Ensure full key is NOT exposed
-        assert "pk_test_51Abc123" not in error
+        assert "pk_test_dummy" not in error
 
     def test_developer_copies_phone_number_wrong_format(self):
         """Simulate: Developer copies phone number from UI in wrong format."""

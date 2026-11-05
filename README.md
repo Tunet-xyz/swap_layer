@@ -1,244 +1,107 @@
 # SwapLayer
-### The Anti-Vendor-Lock-in Framework for Python Apps
 
-**One Interface. Any Provider. Zero Rewrites.**
+SwapLayer 1.0 provides Python interfaces for billing, email, SMS, storage, and identity integrations. Configure the services you use, then call their adapters through `get_provider()`. Django supplies email, OAuth, model, and admin integrations; a small FastAPI adapter attaches configuration to application state.
 
-Part of the [Tunet](https://tunet.xyz/engineering/) ecosystem — alongside [SessionArmor](https://github.com/Tunet-xyz/session_armor) and [GeoCanon](https://github.com/Tunet-xyz/GeoCanon). See the [SwapLayer product page](https://tunet.xyz/engineering/swap-layer/) for the public capability overview.
+Provider capabilities differ. Moving a provider can require data migration, webhook changes, and application changes. Unsupported operations raise errors or have documented limitations.
 
----
+## Install
 
-## What is SwapLayer?
-
-SwapLayer is a **unified infrastructure layer** for Python apps that protects you from vendor lock-in. It now has a framework-neutral core with Django and FastAPI integration adapters.
-
-Instead of coupling your code directly to Stripe, PayPal, Square, AWS, or Twilio, you write against **one consistent interface** and swap providers by changing a single configuration line.
-
-### The Problem
-
-```python
-# ❌ Tightly coupled - if Stripe fails, you rewrite everything
-import stripe
-customer = stripe.Customer.create(email='user@example.com')
-```
-
-### The Solution
-
-```python
-# ✅ Provider-agnostic - swap providers in settings
-from swap_layer import get_provider
-payments = get_provider('payments')
-customer = payments.create_customer(email='user@example.com')
-```
-
----
-
-## Quick Start
-
-### 1. Install
-
-SwapLayer has optional dependencies - install only what you need:
+Python 3.10–3.13 is tested. Core dependencies are Pydantic 2, Requests, and Tenacity.
 
 ```bash
-# Core package
-pip install swaplayer
-
-# Framework adapters
-pip install swaplayer[django]        # Django integration
-pip install swaplayer[fastapi]       # FastAPI integration
-
-# Install with specific providers
-pip install swaplayer[stripe]        # Stripe billing
-pip install swaplayer[paypal]        # PayPal billing
-pip install swaplayer[square]        # Square billing
-pip install swaplayer[identity]      # Just WorkOS/Auth0
-pip install swaplayer[email,sms]     # Email + SMS
-
-# Or install everything
-pip install swaplayer[all]
+pip install 'SwapLayer==1.0.0'
+pip install 'SwapLayer[stripe]==1.0.0'   # Stripe 16.x
+pip install 'SwapLayer[email]==1.0.0'    # Django and django-anymail
+pip install 'SwapLayer[sms]==1.0.0'      # Twilio 9.x; add [aws] for SNS
+pip install 'SwapLayer[gcs]==1.0.0'      # Native Google Cloud Storage
+pip install 'SwapLayer[identity]==1.0.0' # Django, WorkOS 10.x, Authlib
+pip install 'SwapLayer[mcp]==1.0.0'      # Local MCP SDK 1.x
 ```
 
-**Available extras:**
-- `django` - Django settings/admin/model integrations
-- `fastapi` - FastAPI configuration adapter
-- `stripe` - Stripe payment processing
-- `paypal` - PayPal payment processing
-- `square` - Square payment processing
-- `identity` - WorkOS/Auth0 OAuth/SSO
-- `email` - Enhanced email (django-anymail)
-- `sms` - Twilio/AWS SNS messaging
-- `aws` - AWS services (S3, SNS)
-- `mcp` - AI assistant integration
-- `all` - Everything
+Other extras: `django`, `fastapi`, `paypal`, `square`, `aws`, `azure`, `all`, and `dev`. PayPal and Square use the core HTTP dependencies. Email and OAuth require configured Django settings; storage, billing, Stripe Identity, and Twilio support explicit configuration without Django.
 
-### 2. Configure
+## Start with local storage
 
 ```python
-# settings.py
-from swap_layer.settings import SwapLayerSettings
+from io import BytesIO
+from swap_layer import configure, get_provider
 
-SWAPLAYER = SwapLayerSettings(
-    email={'provider': 'django'},
-    billing={'provider': 'stripe', 'stripe': {'secret_key': 'sk_test_...'}},
-    sms={'provider': 'twilio', 'twilio': {'account_sid': '...'}},
-    storage={'provider': 'django'},
+configure(storage={"provider": "local", "media_root": "./media", "media_url": "/media/"})
+storage = get_provider("storage")
+storage.upload_file("documents/hello.txt", BytesIO(b"hello"))
+assert storage.download_file("documents/hello.txt") == b"hello"
+assert storage.file_exists("documents/hello.txt")
+print(storage.get_file_url("documents/hello.txt"))
+```
+
+Local URLs are plain paths; the library does not serve files or enforce URL expiry. Applications must control access to private files. Keep the local storage directory writable only by trusted application processes.
+
+For tenant boundaries, use an explicit verified identity context:
+
+```python
+from swap_layer.storage.security import StorageSecurityContext, storage_context
+
+context = StorageSecurityContext(
+    organization_id="org-123", user_id="user-456", role="member",
+    scope_format="tenants/{organization_id}",
 )
+with storage_context(storage, context) as scoped:
+    scoped.upload_from_string("hello.txt", "tenant data")
 ```
 
-### 3. Use Anywhere
+This produces `tenants/org-123/hello.txt`. Contexts consume identity already verified by your application; they do not verify JWTs. System access requires `StorageSecurityContext.system_context()` explicitly.
+
+## Configure billing
 
 ```python
-from swap_layer import get_provider
+import os
+from swap_layer import configure, get_provider
 
-# Email
-get_provider('email').send(to='user@example.com', subject='Hello')
-
-# Payments  
-get_provider('payments').create_customer(email='user@example.com')
-
-# SMS
-get_provider('sms').send(to='+1555555', message='Welcome!')
+configure(billing={"provider": "stripe", "stripe": {
+    "secret_key": os.environ["STRIPE_SECRET_KEY"],
+    "webhook_secret": os.environ.get("STRIPE_WEBHOOK_SECRET"),
+}})
+payments = get_provider("payments")
+# Uses your provider account; run against a test account first.
+customer = payments.create_customer(email="customer@example.com")
 ```
 
----
+Pass integer provider minor currency units, represented by `Decimal` where required by the adapter, to payment amounts. Provider IDs, tax rules, recurring billing, and capability differences require application review. Stripe exposes the broadest catalog, usage-meter, Entitlements, and webhook administration surface.
 
+## Current provider selection
 
-### PayPal Billing
+| Service | Selectable provider values | Notes |
+| --- | --- | --- |
+| `email` | `django`, `smtp` | SendGrid, Mailgun, SES, and similar services use Django's Anymail backend settings. |
+| `payments` | `stripe`, `paypal`, `square` | Capabilities differ; see the billing guide. |
+| `sms` | `twilio`, `sns` | SNS history, delivery lookup, and balance are limited placeholders. |
+| `storage` | `local`, `django`, `gcs` | S3/Azure use `django` with a configured Django storage backend. |
+| `identity` | `workos`, `auth0` | Django OAuth integration; use the documented app registry. |
+| `verification` | `stripe` | Stripe Identity; other verification providers are not implemented. |
 
-```python
-SWAPLAYER = SwapLayerSettings(
-    billing={
-        'provider': 'paypal',
-        'paypal': {
-            'client_id': os.environ['PAYPAL_CLIENT_ID'],
-            'client_secret': os.environ['PAYPAL_CLIENT_SECRET'],
-            'webhook_id': os.environ.get('PAYPAL_WEBHOOK_ID'),
-            'sandbox': True,
-        },
-    }
-)
-```
+Structured settings use `billing`, `communications.email`, `communications.sms`, `storage`, `identity`, and `verification`. In plain Python call `configure(...)`. In Django assign a `SwapLayerSettings` instance or dictionary to `SWAPLAYER`. Environment configuration uses complete paths such as `SWAPLAYER_BILLING_STRIPE_SECRET_KEY`.
 
-PayPal supports provider-agnostic products, plans, subscriptions, checkout orders, invoices, refunds, and webhook verification. It does not have direct equivalents for Stripe billing meters, Stripe coupons/promotion codes, Stripe tax-rate objects, or Stripe's hosted customer billing portal, so SwapLayer raises clear validation errors for those methods when PayPal is selected.
-
-### Square Billing
-
-```python
-SWAPLAYER = SwapLayerSettings(
-    billing={
-        'provider': 'square',
-        'square': {
-            'access_token': os.environ['SQUARE_ACCESS_TOKEN'],
-            'location_id': os.environ['SQUARE_LOCATION_ID'],
-            'webhook_signature_key': os.environ.get('SQUARE_WEBHOOK_SIGNATURE_KEY'),
-            'webhook_notification_url': os.environ.get('SQUARE_WEBHOOK_NOTIFICATION_URL'),
-            'sandbox': True,
-        },
-    }
-)
-```
-
-Square supports provider-agnostic customers, payments, catalog products/prices, subscriptions, checkout payment links, invoices, refunds, and webhook verification. Stripe remains the richest provider for metered usage, coupons/promotion codes, tax-rate management, and the hosted billing portal.
-
-### Stripe Catalog Administration
-
-SwapLayer is the single Stripe integration boundary for catalog discovery and mutation. Control
-planes can use the Stripe provider to auto-page the full products, prices, billing-meter, and
-Entitlements catalog, then create or update resources without importing Stripe directly:
-
-```python
-from swap_layer.billing.providers.stripe import StripePaymentProvider
-
-stripe_billing = StripePaymentProvider(secret_key=os.environ["STRIPE_SECRET_KEY"])
-catalog = stripe_billing.discover_catalog()
-
-stripe_billing.update_price(
-    "price_...",
-    nickname="Professional monthly",
-    idempotency_key="catalog-professional-monthly",
-)
-```
-
-Immutable monetary or recurrence changes use `replace_price()`. It transfers the stable lookup
-key to a new price and deliberately leaves the previous price and existing subscriptions untouched.
----
-
-## Features
-
-| Module | Status | Description |
-|--------|--------|-------------|
-| **Email** | Production | Direct SMTP plus Django-anymail for SendGrid, Mailgun, SES, Postmark, and similar providers |
-| **Payments** | Production | Stripe, PayPal, and Square provider adapters |
-| **SMS** | Production | Twilio and AWS SNS provider adapters |
-| **Storage** | Production | Local files, direct GCS, and Django-storage backends for S3/Azure/GCS |
-| **Identity** | Production | OAuth/SSO via WorkOS/Auth0 plus Stripe Identity verification |
-| **MCP Server** | Production | Runtime `swaplayer-mcp` plus public-agent contract in `mcp/` |
-
-Provider parity is explicit rather than implied: Stripe remains the richest billing adapter; PayPal and Square raise validation errors for unsupported Stripe-specific concepts. Cloud storage providers other than direct GCS are reached through Django's storage backend layer.
-
----
-
-## 🤖 AI Assistant Integration
-
-SwapLayer includes an **MCP (Model Context Protocol) server** that exposes provider management as tools for AI assistants:
+## Local agent tools
 
 ```bash
-# Install with MCP support
-pip install 'swaplayer[mcp]'
-
-# Run the MCP server
 swaplayer-mcp
 ```
 
-**AI assistants can now help you:**
-- Configure and switch providers through conversation
-- Send test emails/SMS to verify integrations  
-- Get provider setup instructions and capabilities
-- Inspect your current configuration
+The stdio server exposes 13 documentation, configuration, and test tools. Test email/SMS and storage probes use the caller's local credentials and can cause provider charges or file changes. Clients must obtain approval before those calls. There is no hosted maintainer agent service, shared provider account, or maintainer token in the package. The dependency-free public contract server is `python mcp/server.py` from a source checkout.
 
-Perfect for AI-powered development workflows! **[→ MCP Documentation](docs/mcp.md)**
+## Compatibility and migration
 
----
+The 1.x compatibility promise covers documented configuration, factory names, adapter method names, and normalized result fields. Underscore-prefixed helpers, vendor SDK objects, and historical development notes are outside that promise. Vendor behavior and access policies remain governed by the provider.
 
-## 📚 Full Documentation
+From 0.x: replace root `email`/`sms` settings with `communications`; use `send_email`, `send_sms`, and the storage adapter's `upload_file`/`get_file_url`/`file_exists` methods. Django storage `list_files` now returns a list of object dictionaries; `list_directory` preserves the former directory shape. WorkOS common list methods return object lists; `*_page` methods expose cursor envelopes. Stripe-specific payment/checkout options are keyword arguments after the common positional idempotency key. PayPal now handles zero-decimal HUF/JPY/TWD without dividing by 100; review provider-specific amount conventions when migrating. Tenant scopes must contain `{organization_id}` and reject unsafe paths; omitted contexts no longer grant system access.
 
-**[→ docs/](docs/) - One doc per module:**
+## Documentation and contribution
 
-- **[Email](docs/email.md)** - Email providers
-- **[Billing](docs/billing.md)** - Payment processing
-- **[SMS](docs/sms.md)** - SMS messaging
-- **[Storage](docs/storage.md)** - File storage
-- **[Identity Platform](docs/identity-platform.md)** - OAuth/SSO
-- **[Identity Verification](docs/identity-verification.md)** - KYC
-- **[MCP Server](docs/mcp.md)** - AI assistant integration
-- **[Architecture](docs/architecture.md)** - Design patterns
-- **[Contributing](docs/development/contributing.md)** - Help improve SwapLayer
+- [Documentation index](https://github.com/Tunet-xyz/swap_layer/blob/main/docs/README.md), [billing](https://github.com/Tunet-xyz/swap_layer/blob/main/docs/billing.md), [storage](https://github.com/Tunet-xyz/swap_layer/blob/main/docs/storage.md)
+- [Email](https://github.com/Tunet-xyz/swap_layer/blob/main/docs/email.md), [SMS](https://github.com/Tunet-xyz/swap_layer/blob/main/docs/sms.md), [identity](https://github.com/Tunet-xyz/swap_layer/blob/main/docs/identity-platform.md), [verification](https://github.com/Tunet-xyz/swap_layer/blob/main/docs/identity-verification.md)
+- [MCP tools](https://github.com/Tunet-xyz/swap_layer/blob/main/docs/mcp.md), [security](https://github.com/Tunet-xyz/swap_layer/blob/main/SECURITY.md), [changelog](https://github.com/Tunet-xyz/swap_layer/blob/main/CHANGELOG.md)
+- [Contributing](https://github.com/Tunet-xyz/swap_layer/blob/main/CONTRIBUTING.md), [shared versioning policy](https://github.com/Tunet-xyz/swap_layer/blob/main/VERSIONING.md), [release procedure](https://github.com/Tunet-xyz/swap_layer/blob/main/docs/RELEASE.md)
 
----
+Tests use mocked provider calls, plus installed-package and Django admin checks. They do not establish live provider certification or an independent security audit. Public PRs are welcome and require owner approval; repository jobs are manual and owner-gated.
 
-## Why SwapLayer?
-
-✅ **Avoid Vendor Lock-in** - Never get trapped by a single provider  
-✅ **Consistent Interface** - Same API across all vendors  
-✅ **Type Safe** - Pydantic validation catches errors early  
-✅ **Battle Tested** - Wraps proven tools (django-storages, django-anymail)  
-✅ **Zero Rewrites** - Swap providers with configuration changes only  
-✅ **AI-Powered** - Built-in MCP server for AI assistant integration
-
----
-
-
-## Public Agent MCP Contract
-
-SwapLayer now includes a public agent-operability contract in [`mcp/`](mcp/). It describes what external agents can safely discover and operate through published package APIs, `swaplayer-mcp`, public docs, and browser-visible surfaces without requiring source-code access or secrets.
-
-## Contributing and releases
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the owner-reviewed contribution process and [VERSIONING.md](VERSIONING.md) for the shared SemVer and release policy. Public PRs and agent mentions do not start agents or workflows.
-
-## License
-
-MIT — Copyright (c) 2024-2026 Tunet Ltd. See [LICENSE](LICENSE).
-
----
-
-**[→ Read Full Documentation](docs/README.md)**
+MIT, copyright 2024–2026 Tunet Ltd. The [license](https://github.com/Tunet-xyz/swap_layer/blob/main/LICENSE) is included in source and wheel distributions. Other Tunet libraries: [SessionArmor](https://github.com/Tunet-xyz/session_armor), [AccessGate](https://github.com/Tunet-xyz/access_gate), and [GeoCanon](https://github.com/Tunet-xyz/GeoCanon).

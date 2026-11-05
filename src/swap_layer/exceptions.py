@@ -33,10 +33,10 @@ def _mask_secret(value: str, show_prefix: int = 4, show_suffix: int = 4) -> str:
         Masked string like 'sk_t****abcd' or '****' for very short values
 
     Examples:
-        >>> _mask_secret('sk_test_1234567890abcdef', 4, 4)
-        'sk_t********cdef'
+        >>> _mask_secret('example-secret-value', 4, 4)
+        'exam************alue'
         >>> _mask_secret('short', 2, 2)
-        'sh****rt'
+        '*****'
         >>> _mask_secret('abc')
         '***'
     """

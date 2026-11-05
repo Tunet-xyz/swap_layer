@@ -36,7 +36,7 @@ from .settings import (
 )
 from .storage.factory import get_storage_provider
 
-__version__ = "0.7.0"
+__version__ = "1.0.0"
 
 
 def get_provider(service_type: str, **kwargs) -> Any:
