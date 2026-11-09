@@ -208,4 +208,4 @@ taking part follows the [code of conduct](https://github.com/Tunet-xyz/swap_laye
 
 ## License
 
-MIT. Copyright (c) 2024-2026 Tunet Ltd. See [LICENSE](https://github.com/Tunet-xyz/swap_layer/blob/main/LICENSE).
+MIT. Copyright (c) 2026 Tunet Ltd. See [LICENSE](https://github.com/Tunet-xyz/swap_layer/blob/main/LICENSE).

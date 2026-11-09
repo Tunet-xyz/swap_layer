@@ -47,6 +47,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The identity management design note moved to
   `docs/development/identity-management-implementation.md`, matching the other
   kebab-case names.
+- The copyright year in LICENSE and the README is 2026, the year the project
+  started.
 
 ## [1.0.0] - 2026-11-05 (tagged; not yet published to PyPI)
 
