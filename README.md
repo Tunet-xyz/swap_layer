@@ -2,6 +2,8 @@
 
 SwapLayer 1.0 provides Python interfaces for billing, email, SMS, storage, and identity integrations. Configure the services you use, then call their adapters through `get_provider()`. Django supplies email, OAuth, model, and admin integrations; a small FastAPI adapter attaches configuration to application state.
 
+Part of the [Tunet](https://www.tunet.xyz/engineering/) open-source libraries, alongside [AccessGate](https://github.com/Tunet-xyz/access_gate), [GeoCanon](https://github.com/Tunet-xyz/geo_canon), and [SessionArmor](https://github.com/Tunet-xyz/session_armor). See the [SwapLayer product page](https://www.tunet.xyz/engineering/swap-layer/) for the public capability overview.
+
 Provider capabilities differ. Moving a provider can require data migration, webhook changes, and application changes. Unsupported operations raise errors or have documented limitations.
 
 ## Install
@@ -104,4 +106,4 @@ From 0.x: replace root `email`/`sms` settings with `communications`; use `send_e
 
 Tests use mocked provider calls, plus installed-package and Django admin checks. They do not establish live provider certification or an independent security audit. Public PRs are welcome and require owner approval; repository jobs are manual and owner-gated.
 
-MIT, copyright 2024–2026 Tunet Ltd. The [license](https://github.com/Tunet-xyz/swap_layer/blob/main/LICENSE) is included in source and wheel distributions. Other Tunet libraries: [SessionArmor](https://github.com/Tunet-xyz/session_armor), [AccessGate](https://github.com/Tunet-xyz/access_gate), and [GeoCanon](https://github.com/Tunet-xyz/GeoCanon).
+MIT, copyright 2024–2026 Tunet Ltd. The [license](https://github.com/Tunet-xyz/swap_layer/blob/main/LICENSE) is included in source and wheel distributions.
