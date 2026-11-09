@@ -7,16 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.0.0] - 2026-11-05
+### Added
+- A Contributor Covenant 2.1 code of conduct, and issue templates for bug
+  reports and feature requests that send vulnerability reports to private
+  reporting.
+
+### Changed
+- The security policy uses the layout shared by the Tunet libraries: private
+  reporting through the Security tab or by email, one set of response targets
+  (critical fixes within 7 days instead of 14), package scope, and secure-use
+  guidance. Its supported-versions table lists 1.0.x only, replacing rows for
+  0.3.x and for a 0.4.x line that was never released.
+- `VERSIONING.md` is worded for outside readers; its rules are unchanged.
+- Changelog: 0.5.0 to 0.7.0 are marked as never published to PyPI, entries
+  are added for the published 0.2.1 and 0.2.4 to 0.2.6, and version links
+  point at existing tags and PyPI pages.
+
+## [1.0.0] - 2026-11-05 (tagged; not yet published to PyPI)
 
 ### Changed
 - Establish the stable Python adapter contract and independent SemVer policy.
 - Align package, runtime, and MCP versions; update provider guides and installation metadata.
 - Gate every release job on an owner-started manual workflow with pinned actions,
   protected OIDC publishing, and hash-locked build tools.
-
-### Fixed
-- Convert PayPal HUF, JPY and TWD using their zero-decimal rules; reject fractional/non-finite minor amounts and prevent decimal truncation.
 
 ### Security
 - Reject traversal, absolute paths, symlinks, and junctions in local storage keys;
@@ -28,6 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   tenant and client, and suppress credential-bearing validation input in diagnostics.
 
 ### Fixed
+- Convert PayPal HUF, JPY and TWD using their zero-decimal rules; reject fractional/non-finite minor amounts and prevent decimal truncation.
 - Restrict the MCP SDK to its supported 1.x API and test the actual tool registry.
 - Use the storage adapter API in MCP upload probes and the current settings API in
   the WorkOS management factory.
@@ -44,7 +58,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added provider-neutral webhook endpoint lifecycle operations and Stripe discovery,
   create, update, and explicit delete support with a one-time signing-secret boundary.
 
-## [0.7.0] - 2026-07-15
+## [0.7.0] - 2026-07-15 (not published to PyPI; included in 1.0.0)
 
 ### Added
 - Added Stripe catalog-admin discovery for billing meters, products, prices, and Entitlements features.
@@ -58,7 +72,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Expanded normalized Stripe catalog objects with the fields required for desired-state reconciliation.
 - Stabilized optional-provider imports and normalized provider behavior for installed-package use.
 
-## [0.6.0] - 2026-06-10
+## [0.6.0] - 2026-06-10 (not published to PyPI; included in 1.0.0)
 
 ### Added
 - Added a Square billing provider using Square REST APIs for customers, payments, catalog products/prices, subscriptions, checkout payment links, invoices, refunds, and webhook verification.
@@ -69,7 +83,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bumped the PyPI package version to `0.6.0`.
 - Updated MCP provider metadata to list Square as a payments provider.
 
-## [0.5.0] - 2026-06-10
+## [0.5.0] - 2026-06-10 (not published to PyPI; included in 1.0.0)
 
 ### Added
 - Added a PayPal billing provider using PayPal REST APIs for products, plans, subscriptions, checkout orders, invoices, refunds, and webhook verification.
@@ -106,6 +120,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Storage module now supports automatic path prefixing with `orgs/{organization_id}/` for multi-tenant isolation
 - Storage operations now validate security context before executing
 
+## [0.2.6] - 2026-01-18
+
+### Added
+- `clear_session()` on the identity platform adapter, implemented for Auth0 and
+  WorkOS, removes provider-specific session data at logout.
+
+### Fixed
+- Start WorkOS AuthKit sign-in with the `"authkit"` provider string and serialize
+  the WorkOS user with `model_dump()`, as the WorkOS SDK 5.x API expects.
+
+## [0.2.5] - 2026-01-13
+
+### Changed
+- Each `WorkOSClient` creates its own WorkOS SDK 5.x client with its own
+  credentials, replacing global SDK configuration and thread locking.
+
+## [0.2.4] - 2026-01-13
+
+### Fixed
+- Stop passing an unused `client_id` to WorkOS `authenticate_with_code`.
+
 ## [0.2.3] - 2026-01-13
 
 ### Fixed
@@ -135,6 +170,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced MCP documentation with detailed VS Code/GitHub Copilot setup instructions
 - Updated MCP config example with `PYTHONPATH` environment variable
 - Added `examples/vscode-mcp.json` template for easy VS Code integration
+
+## [0.2.1] - 2026-01-12
+
+### Changed
+- Import the Stripe, Twilio, and local storage providers inside their factory
+  functions, so unused providers are not imported.
 
 ## [0.2.0] - 2026-01-12
 
@@ -169,8 +210,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial beta release
 
-[Unreleased]: https://github.com/Tunet-xyz/swap_layer/compare/v0.6.0...HEAD
-[0.6.0]: https://github.com/Tunet-xyz/swap_layer/releases/tag/v0.6.0
-[0.5.0]: https://github.com/Tunet-xyz/swap_layer/releases/tag/v0.5.0
-[0.2.0]: https://github.com/Tunet-xyz/swap_layer/releases/tag/v0.2.0
-[0.1.0]: https://github.com/Tunet-xyz/swap_layer/releases/tag/v0.1.0
+[Unreleased]: https://github.com/Tunet-xyz/swap_layer/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/Tunet-xyz/swap_layer/releases/tag/v1.0.0
+[0.3.0]: https://pypi.org/project/SwapLayer/0.3.0/
+[0.2.7]: https://pypi.org/project/SwapLayer/0.2.7/
+[0.2.6]: https://pypi.org/project/SwapLayer/0.2.6/
+[0.2.5]: https://pypi.org/project/SwapLayer/0.2.5/
+[0.2.4]: https://pypi.org/project/SwapLayer/0.2.4/
+[0.2.3]: https://pypi.org/project/SwapLayer/0.2.3/
+[0.2.2]: https://pypi.org/project/SwapLayer/0.2.2/
+[0.2.1]: https://pypi.org/project/SwapLayer/0.2.1/
+[0.2.0]: https://pypi.org/project/SwapLayer/0.2.0/
+[0.1.0]: https://pypi.org/project/SwapLayer/0.1.0/
