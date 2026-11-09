@@ -5,7 +5,7 @@ stdio MCP server for it. Agents can use it to discover SwapLayer's service
 families and APIs, and to get guidance for provider setups and migration
 checklists. This contract server runs locally under the caller's control, makes
 no network connections, and needs no credentials or account. There is no hosted
-SwapLayer MCP service, and nothing here gives access to the maintainer's
+SwapLayer MCP service, and nothing here gives access to the owner's
 agents, accounts, or infrastructure.
 
 SwapLayer also ships a separate runtime server, `swaplayer-mcp`, whose local

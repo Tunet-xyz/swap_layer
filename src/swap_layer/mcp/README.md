@@ -1,6 +1,6 @@
 > Historical module implementation notes from the 0.x series. For the current 1.0 configuration, supported providers, and compatibility contract, use the [current guides](https://github.com/Tunet-xyz/swap_layer/blob/main/docs/README.md). Planned or stub surfaces below are not additional 1.0 guarantees.
 
-# SwapLayer MCP Server
+# SwapLayer runtime MCP server
 
 Model Context Protocol (MCP) server for SwapLayer - exposes provider management as AI assistant tools.
 
@@ -8,7 +8,7 @@ Model Context Protocol (MCP) server for SwapLayer - exposes provider management 
 
 Install:
 ```bash
-pip install 'SwapLayer[mcp]'
+pip install "SwapLayer[mcp]"
 ```
 
 Run:

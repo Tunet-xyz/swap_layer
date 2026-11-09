@@ -1,4 +1,4 @@
-# Email in SwapLayer 1.0
+# Email
 
 Email adapters require configured Django settings. Install `SwapLayer[email]` for Django and Anymail, or `SwapLayer[django]` for Django's built-in backends.
 

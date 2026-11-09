@@ -1,4 +1,4 @@
-# Billing in SwapLayer 1.0
+# Billing
 
 Use `get_provider("payments")` with `billing.provider` set to `stripe`, `paypal`, or `square`. The modules are under `swap_layer.billing`, including customers, subscriptions, payment intents, products and provider implementations. Changing providers requires application and data review.
 

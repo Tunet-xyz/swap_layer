@@ -8,11 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
 - A Contributor Covenant 2.1 code of conduct, and issue templates for bug
   reports and feature requests that send vulnerability reports to private
   reporting.
 
 ### Changed
+
 - The security policy uses the layout shared by the Tunet libraries: private
   reporting through the Security tab or by email, one set of response targets
   (critical fixes within 7 days instead of 14), package scope, and secure-use
@@ -38,45 +40,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   version section says how to install it from the tag, and the configuration
   notes say identity and verification settings cannot come from environment
   variables.
+- The Product URL points at `www.tunet.xyz`, which serves the product page, and
+  the README names the other Tunet libraries. Doc titles no longer carry the
+  version, the docs call the owner the owner, and the development notes folder
+  points at CONTRIBUTING.md instead of repeating it.
 
 ## [1.0.0] - 2026-11-05 (tagged; not yet published to PyPI)
 
 ### Changed
-- Establish the stable Python adapter contract and independent SemVer policy.
-- Align package, runtime, and MCP versions; update provider guides and installation metadata.
-- Gate every release job on an owner-started manual workflow with pinned actions,
+
+- Established the stable Python adapter contract and independent SemVer policy.
+- Aligned package, runtime, and MCP versions; updated provider guides and installation metadata.
+- Gated every release job on an owner-started manual workflow with pinned actions,
   protected OIDC publishing, and hash-locked build tools.
 
 ### Security
-- Reject traversal, absolute paths, symlinks, and junctions in local storage keys;
-  enforce safe tenant identities and organization-scoped storage paths.
-- Redact nested credentials from current MCP settings models and omit raw provider
+
+- Rejected traversal, absolute paths, symlinks, and junctions in local storage keys;
+  enforced safe tenant identities and organization-scoped storage paths.
+- Redacted nested credentials from current MCP settings models and omitted raw provider
   exception messages from operational MCP responses.
-- Bound legacy Auth0 management HTTP calls with a 30-second timeout.
-- Require an explicit storage security context; isolate Auth0 token caches by
-  tenant and client, and suppress credential-bearing validation input in diagnostics.
+- Bounded legacy Auth0 management HTTP calls with a 30-second timeout.
+- Required an explicit storage security context; isolated Auth0 token caches by
+  tenant and client, and suppressed credential-bearing validation input in diagnostics.
 
 ### Fixed
-- Convert PayPal HUF, JPY and TWD using their zero-decimal rules; reject fractional/non-finite minor amounts and prevent decimal truncation.
-- Restrict the MCP SDK to its supported 1.x API and test the actual tool registry.
-- Use the storage adapter API in MCP upload probes and the current settings API in
+
+- Converted PayPal HUF, JPY and TWD using their zero-decimal rules; rejected fractional/non-finite minor amounts and prevented decimal truncation.
+- Restricted the MCP SDK to its supported 1.x API and tested the actual tool registry.
+- Used the storage adapter API in MCP upload probes and the current settings API in
   the WorkOS management factory.
-- Align WorkOS management operations with the shared adapter interfaces and current
-  SDK session API. Reject unsupported user-specific event queries explicitly.
-- Fix standalone Stripe/Twilio initialization, SNS configuration and imports, native
+- Aligned WorkOS management operations with the shared adapter interfaces and current
+  SDK session API. Rejected unsupported user-specific event queries explicitly.
+- Fixed standalone Stripe/Twilio initialization, SNS configuration and imports, native
   GCS settings, and compound environment-variable field names.
-- Normalize Django storage listing and Stripe Identity responses, update promotion
-  codes for the current Stripe API, and preserve positional idempotency arguments.
-- Fix empty admin displays and numeric quota formatting on current Django; preserve
+- Normalized Django storage listing and Stripe Identity responses, updated promotion
+  codes for the current Stripe API, and preserved positional idempotency arguments.
+- Fixed empty admin displays and numeric quota formatting on current Django; preserved
   display metadata using Django's supported decorators. Full source type checks pass.
 
 ### Added
+
 - Added provider-neutral webhook endpoint lifecycle operations and Stripe discovery,
   create, update, and explicit delete support with a one-time signing-secret boundary.
 
 ## [0.7.0] - 2026-07-15 (not published to PyPI; included in 1.0.0)
 
 ### Added
+
 - Added Stripe catalog-admin discovery for billing meters, products, prices, and Entitlements features.
 - Added complete auto-paginated Stripe catalog listing helpers.
 - Added mutable price updates and guarded immutable price replacement with lookup-key transfer.
@@ -85,46 +96,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added the public agent-operability contract and expanded `swaplayer-mcp` guidance surfaces.
 
 ### Changed
+
 - Expanded normalized Stripe catalog objects with the fields required for desired-state reconciliation.
 - Stabilized optional-provider imports and normalized provider behavior for installed-package use.
 
 ## [0.6.0] - 2026-06-10 (not published to PyPI; included in 1.0.0)
 
 ### Added
+
 - Added a Square billing provider using Square REST APIs for customers, payments, catalog products/prices, subscriptions, checkout payment links, invoices, refunds, and webhook verification.
 - Added Square configuration support through `SwapLayerSettings`, environment variables, and legacy Django settings.
 - Added Square provider tests and documented Stripe, PayPal, and Square capability differences.
 
 ### Changed
+
 - Bumped the PyPI package version to `0.6.0`.
 - Updated MCP provider metadata to list Square as a payments provider.
 
 ## [0.5.0] - 2026-06-10 (not published to PyPI; included in 1.0.0)
 
 ### Added
+
 - Added a PayPal billing provider using PayPal REST APIs for products, plans, subscriptions, checkout orders, invoices, refunds, and webhook verification.
 - Added PayPal configuration support through `SwapLayerSettings`, environment variables, and legacy Django settings.
 - Added PayPal provider tests and settings/factory coverage.
 
 ### Changed
+
 - Bumped the PyPI package version to `0.5.0`.
 - Documented the PayPal install/config flow and PayPal versus Stripe billing capability differences.
 
 ## [0.3.0] - 2026-02-26
 
 ### Changed
+
 - **BREAKING**: `scope_format` is now a **required** parameter on `StorageSecurityContext`. Callers must explicitly declare their path scoping convention (e.g. `scope_format='{organization_id}'`). No implicit fallback.
 - Removed `path_prefix` field from `StorageSecurityContext` - use `scope_format` instead.
 - Removed hardcoded `orgs/` path prefix. Path convention is now fully user-controlled via `scope_format`.
 - Centralised prefix resolution into `_resolve_prefix()` (used by both `scope_path()` and `validate_scoped_path()`).
 
 ### Migration
+
 - Replace `StorageSecurityContext(organization_id='org-456', ...)` with `StorageSecurityContext(scope_format='{organization_id}', organization_id='org-456', ...)`
 - Replace any `path_prefix='custom/prefix'` with `scope_format='custom/prefix'`
 
 ## [0.2.7] - 2026-02-11
 
 ### Added
+
 - **Storage Security**: Added `ScopedStorageProvider` for tenant-isolated storage operations
 - **Storage Security Context**: Added `StorageSecurityContext` for RLS-style access control in storage layer
 - **Storage Permissions**: Added `StoragePermission` enum for fine-grained access control
@@ -133,33 +152,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **GCS Provider**: Enhanced GCS storage provider integration with security context support
 
 ### Changed
+
 - Storage module now supports automatic path prefixing with `orgs/{organization_id}/` for multi-tenant isolation
 - Storage operations now validate security context before executing
 
 ## [0.2.6] - 2026-01-18
 
 ### Added
+
 - `clear_session()` on the identity platform adapter, implemented for Auth0 and
   WorkOS, removes provider-specific session data at logout.
 
 ### Fixed
+
 - Start WorkOS AuthKit sign-in with the `"authkit"` provider string and serialize
   the WorkOS user with `model_dump()`, as the WorkOS SDK 5.x API expects.
 
 ## [0.2.5] - 2026-01-13
 
 ### Changed
+
 - Each `WorkOSClient` creates its own WorkOS SDK 5.x client with its own
   credentials, replacing global SDK configuration and thread locking.
 
 ## [0.2.4] - 2026-01-13
 
 ### Fixed
+
 - Stop passing an unused `client_id` to WorkOS `authenticate_with_code`.
 
 ## [0.2.3] - 2026-01-13
 
 ### Fixed
+
 - **CRITICAL**: Fixed provider dependencies being loaded even when not used. All provider modules now use lazy imports via `__getattr__`, ensuring that:
   - You can use WorkOS without having Stripe installed
   - You can use Stripe without having Twilio installed
@@ -173,6 +198,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added `_mask_secret()` helper function for consistent masking across all error messages
 
 ### Added
+
 - Test suite for optional dependencies (`test_optional_dependencies.py`)
 - Enhanced README documentation about optional dependency installation
 - Security tests verifying that secrets are properly masked in error messages
@@ -180,9 +206,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.2.2] - 2026-01-12
 
 ### Fixed
+
 - Removed duplicate return statement in MCP server `_get_config` function
 
 ### Changed
+
 - Enhanced MCP documentation with detailed VS Code/GitHub Copilot setup instructions
 - Updated MCP config example with `PYTHONPATH` environment variable
 - Added `examples/vscode-mcp.json` template for easy VS Code integration
@@ -190,12 +218,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.2.1] - 2026-01-12
 
 ### Changed
+
 - Import the Stripe, Twilio, and local storage providers inside their factory
   functions, so unused providers are not imported.
 
 ## [0.2.0] - 2026-01-12
 
 ### Added
+
 - Initial release of SwapLayer
 - Email module with Django/SMTP providers
 - Billing module with Stripe provider
@@ -216,6 +246,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Abstract model mixins for common patterns
 
 ### Security
+
 - Added request timeouts to all HTTP calls (30s default)
 - Thread-safe WorkOS client implementation
 - Sensitive configuration values masked in error output
@@ -224,6 +255,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.0] - 2026-01-07
 
 ### Added
+
 - Initial beta release
 
 [Unreleased]: https://github.com/Tunet-xyz/swap_layer/compare/v1.0.0...HEAD

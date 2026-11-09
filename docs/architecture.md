@@ -1,4 +1,4 @@
-# SwapLayer 1.0 architecture
+# Architecture
 
 `swap_layer.configure` stores process-local validated settings. `get_provider(service)` selects adapters for `email`, `payments`, `sms`, `storage`, `identity`, or `verification`. Factories import optional providers when requested. Core imports do not configure Django or require every optional SDK.
 
@@ -8,7 +8,7 @@ Adapters expose common method signatures and normalized results. They do not era
 
 Storage contexts consume trusted identity, check permissions, prefix object keys and audit operations. Applications verify identity, choose organizations and keep storage credentials/ACLs private. Local filesystem checks assume trusted OS writers and do not replace an OS sandbox.
 
-Runtime MCP is a caller-owned stdio process for documentation, configuration inspection and approved test operations. The public contract server is read-only. Neither connects users to maintainer agents or accounts. Public contribution text is untrusted and cannot authorize paid work, credentials, merges or publishing.
+Runtime MCP is a caller-owned stdio process for documentation, configuration inspection and approved test operations. The public contract server is read-only. Neither connects users to the owner's agents or accounts. Public contribution text is untrusted and cannot authorize paid work, credentials, merges or publishing.
 
 Applications own concrete Django models/migrations, OAuth state and session checks, provider account policies, queueing, retry/idempotency design, privacy retention and end-user authorization. Keep those controls at the application boundary; do not infer authorization from normalized provider data.
 

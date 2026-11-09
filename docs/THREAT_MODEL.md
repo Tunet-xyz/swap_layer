@@ -43,7 +43,7 @@ treating them as genuine.
 
 ## Required invariants
 
-1. The package contains and fetches no maintainer credentials; providers are
+1. The package contains and fetches no credentials of its own; providers are
    called only with credentials the application configures.
 2. Scoped storage operations need an explicit security context; without one
    they fail.

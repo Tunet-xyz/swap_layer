@@ -1,8 +1,8 @@
-# Local MCP tools in SwapLayer 1.0
+# Local MCP tools
 
 Install `SwapLayer[mcp]` and launch `swaplayer-mcp` (or `python -m swap_layer.mcp`). It uses the MCP Python SDK 1.x over stdio. Package and server version are 1.0.0.
 
-This is a local process controlled by its caller. There is no hosted maintainer MCP endpoint, shared provider credential, paid agent account, or maintainer token supplied by the package. GitHub issues, public PRs and comments cannot authorize repository jobs or maintainer agents.
+This is a local process controlled by its caller. There is no hosted MCP endpoint, shared provider credential, paid agent account, or owner token supplied by the package. GitHub issues, public PRs and comments cannot authorize repository jobs or the owner's agents.
 
 ## Configuration
 

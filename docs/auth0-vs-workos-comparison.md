@@ -1,4 +1,4 @@
-# Auth0 and WorkOS in SwapLayer 1.0
+# Auth0 and WorkOS
 
 Both providers integrate with Django OAuth requests/sessions. Configure the app registries described in [identity-platform.md](identity-platform.md); migrating a provider requires session, user-ID and organization mapping review.
 

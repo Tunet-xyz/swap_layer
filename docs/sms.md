@@ -1,4 +1,4 @@
-# SMS in SwapLayer 1.0
+# SMS
 
 Twilio and AWS SNS are implemented. Vonage and other SMS vendors are not selectable providers. Install `SwapLayer[sms]` for Twilio 9.x or `SwapLayer[aws]` for SNS.
 

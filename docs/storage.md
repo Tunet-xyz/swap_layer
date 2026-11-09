@@ -1,4 +1,4 @@
-# Storage in SwapLayer 1.0
+# Storage
 
 Select `local`, `gcs`, or `django`. Direct S3 and Azure adapter classes are not exposed; use Django's configured storage backend for those services.
 

@@ -1,4 +1,4 @@
-# Identity integration in SwapLayer 1.0
+# Identity integration
 
 Install `SwapLayer[identity]`. WorkOS 10.x and Authlib integrate with Django requests and sessions; this OAuth adapter is not a standalone JWT verifier. Authenticate and authorize requests in the application before privileged provider operations.
 

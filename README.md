@@ -151,8 +151,8 @@ swaplayer-mcp
 It exposes 13 documentation, configuration, and test tools. Test email/SMS
 sends and storage probes use the caller's local credentials and can cause
 provider charges or file changes, so clients must obtain approval before those
-calls. There is no hosted maintainer agent service, shared provider account, or
-maintainer token in the package. From a source checkout, `python mcp/server.py`
+calls. The package includes no hosted agent service, shared provider account,
+or owner credential. From a source checkout, `python mcp/server.py`
 runs the dependency-free public contract server, which makes no network
 connections. See [docs/mcp.md](https://github.com/Tunet-xyz/swap_layer/blob/main/docs/mcp.md) and
 [mcp/README.md](https://github.com/Tunet-xyz/swap_layer/blob/main/mcp/README.md) for the tools, methods, and limits.
@@ -202,7 +202,7 @@ evidence commands, including the dependency audit.
 See [CONTRIBUTING.md](https://github.com/Tunet-xyz/swap_layer/blob/main/CONTRIBUTING.md) for the owner-reviewed contribution
 process and [VERSIONING.md](https://github.com/Tunet-xyz/swap_layer/blob/main/VERSIONING.md) for the shared SemVer and
 release policy. Report vulnerabilities privately as described in
-[SECURITY.md](https://github.com/Tunet-xyz/swap_layer/blob/main/SECURITY.md). CI workflows run only when the maintainer
+[SECURITY.md](https://github.com/Tunet-xyz/swap_layer/blob/main/SECURITY.md). CI workflows run only when the owner
 starts them, so include your local test results in pull requests. Everyone
 taking part follows the [code of conduct](https://github.com/Tunet-xyz/swap_layer/blob/main/CODE_OF_CONDUCT.md).
 

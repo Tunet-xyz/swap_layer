@@ -1,4 +1,4 @@
-# Stripe Identity in SwapLayer 1.0
+# Stripe Identity
 
 Stripe Identity is the implemented verification provider. Persona and WorkOS verification adapters are not included. Install `SwapLayer[stripe]`; explicit configuration works without Django.
 

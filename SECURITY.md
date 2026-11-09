@@ -88,7 +88,7 @@ GitHub security advisory when impact warrants it.
 - Store sealed WorkOS sessions securely in Django sessions.
 - The MCP tools run locally with your own credentials. Test sends and storage
   probes can cause provider charges or file changes, so approve each such call;
-  no maintainer agent, account, or token is involved.
+  none of the owner's agents, accounts, or tokens is involved.
 
 The [threat model](docs/THREAT_MODEL.md),
 [security assurance case](docs/SECURITY_ASSURANCE.md),
