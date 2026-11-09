@@ -1,5 +1,5 @@
 """
-SwapLayer - Swap providers with zero vendor lock-in.
+One Python interface for billing, email, SMS, storage, identity, and verification providers, with Django and FastAPI integrations.
 """
 
 from typing import Any

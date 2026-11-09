@@ -6,7 +6,7 @@
     "packageName": "SwapLayer",
     "status": "production",
     "license": "MIT",
-    "purpose": "Python provider adapters with Django and FastAPI configuration integrations.",
+    "purpose": "One Python interface for billing, email, SMS, storage, identity, and verification providers, with Django and FastAPI integrations.",
     "audiences": [
       "django-developer",
       "platform-engineer",
