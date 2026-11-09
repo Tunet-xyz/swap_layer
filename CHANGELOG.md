@@ -44,6 +44,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the README names the other Tunet libraries. Doc titles no longer carry the
   version, the docs call the owner the owner, and the development notes folder
   points at CONTRIBUTING.md instead of repeating it.
+- The identity management design note moved to
+  `docs/development/identity-management-implementation.md`, matching the other
+  kebab-case names.
 
 ## [1.0.0] - 2026-11-05 (tagged; not yet published to PyPI)
 

@@ -1,6 +1,6 @@
 > Historical design note (January 2026). It does not describe current behavior; see the current [identity guide](../identity-platform.md).
 
-# Auth0 Implementation Analysis
+# Auth0 implementation analysis
 
 ## Overview
 
