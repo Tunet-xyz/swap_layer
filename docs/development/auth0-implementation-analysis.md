@@ -1,3 +1,5 @@
+> Historical design note (January 2026). It does not describe current behavior; see the current [identity guide](../identity-platform.md).
+
 # Auth0 Implementation Analysis
 
 ## Overview
@@ -8,7 +10,7 @@ Your Auth0 implementation is **correct and follows best practices** for OAuth/OI
 
 ### ✅ What You Have (Authentication API)
 
-Your implementation in [`client.py`](../providers/auth0/client.py) correctly handles:
+Your implementation in [`client.py`](../../src/swap_layer/identity/platform/providers/auth0/client.py) correctly handles:
 
 1. **OAuth/OIDC Flow**
    - Authorization URL generation via OIDC discovery

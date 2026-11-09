@@ -19,6 +19,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   guidance. Its supported-versions table lists 1.0.x only, replacing rows for
   0.3.x and for a 0.4.x line that was never released.
 - `VERSIONING.md` is worded for outside readers; its rules are unchanged.
+- Documentation has the layout shared by the Tunet libraries: a reworked docs
+  index, the same sections in the release procedure and MCP README, and new
+  threat model, security assurance, audit scope, and secure-development
+  documents. Guides are corrected against the code: the management client
+  follows Django `IDENTITY_PROVIDER`, PayPal webhook verification reads its
+  transmission fields from the payload, Stripe and Square truncate fractional
+  amounts, Twilio opt-out/opt-in only return a status, the `smtp` email provider
+  sends through Django's `EMAIL_BACKEND`, and identity and verification settings
+  cannot come from environment variables. Historical design notes are labelled.
 - Changelog: 0.5.0 to 0.7.0 are marked as never published to PyPI, entries
   are added for the published 0.2.1 and 0.2.4 to 0.2.6, and version links
   point at existing tags and PyPI pages.

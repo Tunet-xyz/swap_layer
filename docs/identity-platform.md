@@ -2,7 +2,7 @@
 
 Install `SwapLayer[identity]`. WorkOS 10.x and Authlib integrate with Django requests and sessions; this OAuth adapter is not a standalone JWT verifier. Authenticate and authorize requests in the application before privileged provider operations.
 
-The current OAuth clients read Django app registries. The structured `identity` block selects the provider and validates configuration; retain the corresponding `WORKOS_APPS` or `AUTH0_APPS` registry for those clients.
+The current OAuth clients read Django app registries. The structured `identity` block selects the OAuth provider and validates configuration; retain the corresponding `WORKOS_APPS` or `AUTH0_APPS` registry for those clients.
 
 ```python
 # Django settings.py
@@ -35,6 +35,8 @@ from swap_layer.identity.platform.management.factory import get_management_clien
 management = get_management_client()
 users = management.users.list_users(per_page=20)
 ```
+
+`get_management_client()` currently follows Django's `IDENTITY_PROVIDER` setting (default `"workos"`) rather than `identity.provider`. WorkOS management reads its API key from `identity.workos_apps`; Auth0 management reads `AUTH0_APPS` and `AUTH0_DEVELOPER_DOMAIN`, with the same `default`-to-`developer` app mapping.
 
 Common list methods return lists of object dictionaries. WorkOS `list_users_page`, `list_organizations_page`, `list_organization_members_page`, `list_logs_page`, and `list_roles_page` expose vendor response envelopes where applicable. WorkOS uses cursor arguments (`after`/`before`); numeric pages beyond zero are explicitly unsupported. Auth0 uses page/per-page arguments.
 

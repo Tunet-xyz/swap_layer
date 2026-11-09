@@ -90,6 +90,12 @@ GitHub security advisory when impact warrants it.
   probes can cause provider charges or file changes, so approve each such call;
   no maintainer agent, account, or token is involved.
 
+The [threat model](docs/THREAT_MODEL.md),
+[security assurance case](docs/SECURITY_ASSURANCE.md),
+[audit scope](docs/AUDIT_SCOPE.md), and
+[secure development](docs/SECURE_DEVELOPMENT.md) documents describe the design
+assumptions, evidence, and residual risks in more detail.
+
 ## Releases and advisories
 
 Security fixes are released from a reviewed commit on `main` through the

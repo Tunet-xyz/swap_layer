@@ -30,7 +30,7 @@ Exposes SwapLayer **configuration, testing, and code generation tools** as AI as
 
 ## Security
 
-Automatically redacts sensitive data (API keys, secrets, tokens) from all responses.
+Omits credential fields (API keys, secrets, tokens) from configuration output. It is not a general secret scanner, so do not put credentials in tool arguments; see [docs/mcp.md](../../../docs/mcp.md).
 
 ## Documentation
 

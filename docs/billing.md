@@ -27,11 +27,13 @@ PayPal configuration is `billing={'provider':'paypal','paypal':{'client_id':...,
 | Entitlements and catalog discovery | Stripe-specific extensions | No equivalent common guarantee |
 | Webhook verification | Stripe signature and endpoint secret | PayPal verification API; Square signature also needs notification URL |
 
+PayPal `verify_webhook_signature(payload, signature)` uses `signature` as the transmission ID and reads `auth_algo`, `cert_url`, `transmission_sig` and `transmission_time` from the JSON `payload`. It requires a `webhook_id` (configured, or passed as `webhook_secret`) and fails closed: any verification status other than `SUCCESS` raises.
+
 Normalized objects include provider IDs and status fields; IDs cannot be moved between accounts/vendors by changing configuration. Some provider-specific invoice/customer operations are partial mappings. Test the exact operations your application needs in a non-production account; mocked unit tests are not live account certification.
 
 ## Amounts and idempotency
 
-Use finite integer **provider minor units**, represented by `Decimal` where the interface requires it. `Decimal("1234")` is GBP 12.34. PayPal treats HUF, JPY and TWD as zero-decimal currencies, so `Decimal("1234")` means 1234 units there. HUF/TWD rules can differ across vendors: review amount conversion during provider migration. PayPal numeric fractional minor units and malformed response precision are rejected rather than rounded/truncated. Vendor-specific raw money strings are major-unit values and are outside the common numeric amount convention.
+Use finite integer **provider minor units**, represented by `Decimal` where the interface requires it. `Decimal("1234")` is GBP 12.34. PayPal treats HUF, JPY and TWD as zero-decimal currencies, so `Decimal("1234")` means 1234 units there. HUF/TWD rules can differ across vendors: review amount conversion during provider migration. PayPal numeric fractional minor units and malformed response precision are rejected rather than rounded/truncated; Stripe and Square pass amounts through `int()`, which truncates fractions. Raw money strings are outside the common numeric amount convention: PayPal reads them as major-unit values and Square as minor units.
 
 [PayPal's currency rules](https://developer.paypal.com/api/codes/currency/) define its zero-decimal behavior. Each provider controls supported currencies, account restrictions and API limits.
 

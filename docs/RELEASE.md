@@ -1,17 +1,88 @@
-# Releasing SwapLayer 1.x
+# Release procedure
 
-Follow [VERSIONING.md](../VERSIONING.md). Versions advance independently of the other libraries. The initial stable release is 1.0.0; use patch releases for compatible fixes, minor releases for compatible features, and major releases for breaking documented APIs. Package, runtime, public contract and MCP server identities must agree.
+Follow the shared [versioning policy](../VERSIONING.md). The GitHub Actions
+workflows are manual-only: only the owner (`@bezu-1`) starts, reruns, or
+re-enables them, and only the owner approves the protected `pypi` environment.
+Agents run the equivalent checks locally and never dispatch, rerun, re-enable,
+or approve a workflow. Pull requests, issues, comments, and mentions never
+start one.
 
-## Verify locally
+## 1. Prepare
 
-Install `requirements/build.txt` with `python -m pip install --require-hashes -r requirements/build.txt`, then install `.[all,dev]` for source checks. Run pytest with coverage, Ruff, full-source mypy, Bandit, and a third-party dependency audit. Test supported Python versions, minimum/current Django adapters, clean core and provider extras, stdio startup and artifact contents. Changes to admin displays also need a real isolated-browser flow check.
+1. Confirm one release identity: `version` in `pyproject.toml`,
+   `swap_layer.__version__`, `server.version` in both copies of the MCP
+   contract (`mcp/agent-contract.json` and
+   `src/swap_layer/mcp/agent-contract.json`), the dated `CHANGELOG.md` entry,
+   and the supported-versions table in `SECURITY.md`.
+2. Review the compatibility impact, migration notes, provider guides, and
+   documentation. Versions advance independently of the other Tunet libraries.
 
-Build from the exact intended Git tree, excluding other agents' uncommitted work. Set `SOURCE_DATE_EPOCH` from the release commit and run `python -m build --no-isolation`; run strict Twine metadata checks and record SHA-256 hashes. Inspect both wheel and sdist for the MIT license, typing marker, versioned public contract, documentation and absence of private files/secrets. Run the installed wheel in a fresh environment.
+## 2. Verify
 
-The provider suite uses mocks and SDK response objects; it is not live account certification or an independent audit. Record skipped/unavailable checks, including native platform checks that could not run.
+Run the checks the release workflow runs, on the supported Python versions, the
+minimum and current Django, and both the core install and the provider extras:
 
-## Publish with owner approval
+```bash
+python -m pip install -e ".[all,dev]"
+python -m ruff check src tests
+python -m mypy src/swap_layer
+python -m bandit -r src
+AWS_EC2_METADATA_DISABLED=true python -m pytest --cov=swap_layer --cov-branch
+```
 
-Create an immutable annotated `v1.0.0` tag on the verified revision. The owner manually starts `publish.yaml` on that tag or `main` and approves the `pypi` environment. Agents must not dispatch, rerun or enable workflows or approve the environment. Every job checks the owner actor, uses pinned actions and read-only default permissions. Only the isolated upload job receives OIDC permission; no long-lived PyPI or agent tokens are required.
+Audit the installed dependencies with `pip-audit` (the security workflow runs
+it with `--strict`), start `swaplayer-mcp` over stdio, check affected Django
+admin pages in an isolated browser profile, inspect the source and history for
+secrets, and record any check you could not run. The provider suite uses mocks
+and SDK response objects; it is not live account certification or an
+independent audit.
 
-Configure the PyPI trusted publisher for `Tunet-xyz/swap_layer`, workflow `publish.yaml`, environment `pypi`. Verify the project/version metadata and downloaded artifact hashes on PyPI before announcing availability. Never replace a published version; fix forward with a new version.
+## 3. Build
+
+```bash
+python -m pip install --require-hashes -r requirements/build.txt
+export SOURCE_DATE_EPOCH="$(git show -s --format=%ct HEAD)"
+python -m build --no-isolation
+python -m twine check dist/*
+```
+
+Build from the exact intended Git tree, with no uncommitted changes. Record
+SHA-256 checksums, inspect both archives (the MIT license, `py.typed`, the
+versioned public contract, the documentation, and no private files or secrets),
+and smoke-test the exact wheel in a clean environment.
+
+## 4. Publish
+
+1. Commit and push the verified source under the owner's authorization, then
+   create an annotated `v<version>` tag on that exact commit. Only repository
+   administrators can create `v*` tags, and nobody can move or delete one.
+2. The owner starts `publish.yaml` from `main` or that tag; it stops on any
+   other ref, including a tag that does not match the package version. The
+   build job repeats the lint, type, Bandit, and test checks, builds the
+   distributions with the hash-locked tools, runs `twine check`, and writes
+   `SHA256SUMS`.
+3. The upload job runs in the `pypi` environment, which only `main` and `v*`
+   tags may use and which needs the owner's approval; administrators cannot
+   bypass it, and agents cannot give that approval. PyPI Trusted Publishing
+   gives the job a short-lived OIDC token, so no long-lived PyPI token exists.
+   The trusted publisher must name `Tunet-xyz/swap_layer`, `publish.yaml`, and
+   the `pypi` environment; otherwise a workflow edited on another branch could
+   publish.
+
+Do not publish when a check was skipped without a recorded reason, evidence is
+missing, the checkout is dirty, the tag and version disagree, or a security
+finding is unresolved. A rerun must start from the same commit or from a new,
+reviewed release candidate.
+
+## 5. After publication
+
+Verify the version, file hashes, metadata, and links on PyPI, and install the
+release in a clean environment before announcing it. A prepared or tagged
+version is not a release until it is on PyPI.
+
+Then update anything that described the publication as pending, such as the
+changelog heading or the README's release status.
+
+Never put PyPI credentials, agent tokens, or production data in release
+artifacts or workflow logs. Never move a release tag, overwrite PyPI files, or
+reuse a published version; fix a bad release with a new version.

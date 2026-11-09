@@ -15,7 +15,7 @@ export SWAPLAYER_STORAGE_MEDIA_ROOT=./media
 swaplayer-mcp
 ```
 
-For Django configuration, set `DJANGO_SETTINGS_MODULE` and initialize Django before calling the CLI's `main()` or `create_mcp_server()`. Merely setting the module name does not initialize Django in this CLI. Programmatic callers may instead call `swap_layer.configure(...)` before creating the server. Provider extras are separate from the MCP extra.
+For Django configuration, set `DJANGO_SETTINGS_MODULE` and initialize Django before calling the CLI's `main()` or `create_mcp_server()`. Merely setting the module name does not initialize Django in this CLI. Programmatic callers may instead call `swap_layer.configure(...)` before creating the server. Identity and verification settings cannot be expressed as `SWAPLAYER_` variables; configure them through Django or `configure(...)`. Provider extras are separate from the MCP extra.
 
 ## Tools
 

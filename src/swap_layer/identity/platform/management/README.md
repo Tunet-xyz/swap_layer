@@ -28,8 +28,13 @@ providers/auth0/management/
 ├── logs.py                 # Auth0LogManagement
 └── __init__.py
 
-providers/workos/
-└── management.py           # WorkOSManagementClient (stub - to be implemented)
+providers/workos/management/
+├── client.py               # WorkOSManagementClient (composes modules)
+├── users.py                # WorkOSUserManagement
+├── organizations.py        # WorkOSOrganizationManagement
+├── roles.py                # WorkOSRoleManagement
+├── logs.py                 # WorkOSLogManagement
+└── __init__.py
 ```
 
 ### Abstraction Layers
@@ -50,7 +55,7 @@ Add to `INSTALLED_APPS` in Django settings:
 ```python
 INSTALLED_APPS = [
     # ...
-    'swap_layer.identity.platform.apps.IdentityPlatformConfig',
+    'swap_layer.identity.platform.apps.AuthenticationConfig',
 ]
 ```
 
@@ -65,7 +70,7 @@ IDENTITY_PROVIDER = 'auth0'
 AUTH0_DEVELOPER_DOMAIN = 'yourapp.us.auth0.com'
 
 AUTH0_APPS = {
-    'default': {
+    'developer': {  # get_management_client() maps app_name 'default' to 'developer'
         # OAuth credentials (for user authentication)
         'client_id': os.environ['AUTH0_CLIENT_ID'],
         'client_secret': os.environ['AUTH0_CLIENT_SECRET'],
@@ -106,7 +111,7 @@ WORKOS_APPS = {
 }
 ```
 
-Note: WorkOS management implementation is currently a stub and needs to be completed.
+Note: WorkOS management is implemented in `providers/workos/management/`. It uses cursor pagination, and several role and log operations raise `NotImplementedError`.
 
 ## Usage
 
@@ -303,18 +308,19 @@ def admin_create_user_complete(request):
         password=data['password'],
         metadata={'created_by': 'admin'}
     )
+    user_id = user.get('user_id') or user['id']  # Auth0: user_id; WorkOS: id
     
     # 2. Add to organization
     if org_id := data.get('organization_id'):
         mgmt.organizations.add_organization_members(
             org_id=org_id,
-            user_ids=[user['user_id']]
+            user_ids=[user_id]
         )
     
     # 3. Assign roles
     if role_ids := data.get('role_ids'):
         mgmt.roles.assign_user_roles(
-            user_id=user['user_id'],
+            user_id=user_id,
             role_ids=role_ids
         )
     
@@ -329,7 +335,7 @@ Sometimes you need provider-specific features that aren't in the abstraction. Yo
 from swap_layer.identity.platform.providers.auth0.management import Auth0ManagementClient
 
 # Use Auth0-specific client
-mgmt = Auth0ManagementClient(app_name='default')
+mgmt = Auth0ManagementClient(app_name='developer')
 
 # Auth0-specific operations
 role_permissions = mgmt.roles.get_role_permissions(role_id='rol_abc')
@@ -346,7 +352,7 @@ mgmt.roles.add_role_permissions(
 
 ## Switching Providers
 
-To switch from Auth0 to WorkOS (or vice versa), just change the configuration:
+To switch from Auth0 to WorkOS (or vice versa), change the configuration:
 
 ```python
 # From Auth0
@@ -356,7 +362,7 @@ IDENTITY_PROVIDER = 'auth0'
 IDENTITY_PROVIDER = 'workos'
 ```
 
-Your code using `get_management_client()` will work with either provider!
+`get_management_client()` then returns that provider's client, but the providers differ: WorkOS uses cursor pagination, returns `id` rather than `user_id`, and raises `NotImplementedError` for several role and log operations (for example `get_role`, `remove_user_roles`, `get_user_permissions`, `get_log` and `get_user_logs`). User and organization IDs do not carry over between providers.
 
 ## Benefits
 

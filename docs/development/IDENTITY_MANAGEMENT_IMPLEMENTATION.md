@@ -1,3 +1,5 @@
+> Historical design note (January 2026). It does not describe current behavior; see the current [identity guide](../identity-platform.md).
+
 # Identity Management - Modular Architecture Implementation
 
 **Date**: January 6, 2026  
