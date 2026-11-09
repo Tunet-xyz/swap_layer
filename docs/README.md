@@ -12,6 +12,7 @@ examples. These guides cover each service.
 | [SMS](sms.md) | Twilio and AWS SNS |
 | [Storage](storage.md) | Local, native GCS, and Django backends, and tenant boundaries |
 | [Identity](identity-platform.md) | Django OAuth and management adapters |
+| [Auth0 and WorkOS](auth0-vs-workos-comparison.md) | How the two identity providers differ in SwapLayer |
 | [Verification](identity-verification.md) | Stripe Identity |
 | [Architecture](architecture.md) | Configuration, adapters, and trust boundaries |
 | [MCP tools](mcp.md) | The local `swaplayer-mcp` tools and their credential boundaries |
