@@ -31,6 +31,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changelog: 0.5.0 to 0.7.0 are marked as never published to PyPI, entries
   are added for the published 0.2.1 and 0.2.4 to 0.2.6, and version links
   point at existing tags and PyPI pages.
+- README sections follow the order the Tunet libraries share: features, version
+  status, installation, quick start, usage, MCP server, scope and limitations,
+  documentation, development, contributing, and license, with PyPI, Python, and
+  license badges. Install commands no longer pin the unpublished 1.0.0; the
+  version section says how to install it from the tag, and the configuration
+  notes say identity and verification settings cannot come from environment
+  variables.
 
 ## [1.0.0] - 2026-11-05 (tagged; not yet published to PyPI)
 
