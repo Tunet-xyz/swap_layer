@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   build:
-    if: github.event_name == 'workflow_dispatch' && github.actor == 'bezu-1'
+    if: github.event_name == 'workflow_dispatch' && github.actor == 'bezu-1' && github.triggering_actor == 'bezu-1'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -47,13 +47,13 @@ jobs:
 
   pypi-publish:
     name: Upload release to PyPI
-    if: github.event_name == 'workflow_dispatch' && github.actor == 'bezu-1'
+    if: github.event_name == 'workflow_dispatch' && github.actor == 'bezu-1' && github.triggering_actor == 'bezu-1'
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment:
       name: pypi
-      url: https://pypi.org/p/swaplayer
+      url: https://pypi.org/p/SwapLayer
     permissions:
       id-token: write
       contents: read
