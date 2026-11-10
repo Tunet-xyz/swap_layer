@@ -35,7 +35,8 @@ it with `--strict`), start `swaplayer-mcp` over stdio, check affected Django
 admin pages in an isolated browser profile, inspect the source and history for
 secrets, and record any check you could not run. The provider suite uses mocks
 and SDK response objects; it is not live account certification or an
-independent audit.
+independent audit. The owner runs the manual test, security, and CodeQL
+workflows on the release commit.
 
 ## 3. Build
 
@@ -45,6 +46,10 @@ export SOURCE_DATE_EPOCH="$(git show -s --format=%ct HEAD)"
 python -m build --no-isolation
 python -m twine check dist/*
 ```
+
+`requirements/build.txt` is the hash-locked output of the `uv pip compile`
+command in its header. Dependabot leaves it and `requirements/build.in` alone,
+so to update the release tools, edit `build.in` and run that command again.
 
 Build from the exact intended Git tree, with no uncommitted changes. Record
 SHA-256 checksums, inspect both archives (the MIT license, `py.typed`, the
