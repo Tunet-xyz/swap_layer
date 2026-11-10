@@ -1,5 +1,6 @@
 import hashlib
 import mimetypes
+import os
 import shutil
 from datetime import datetime, timedelta
 from pathlib import Path, PureWindowsPath
@@ -13,6 +14,11 @@ from ..adapter import (
     StorageMoveError,
     StorageProviderAdapter,
     StorageUploadError,
+)
+
+# Names Windows maps to devices in any directory, with or without an extension.
+_WINDOWS_DEVICE_NAMES = frozenset(
+    {"CON", "PRN", "AUX", "NUL"} | {f"{port}{n}" for port in ("COM", "LPT") for n in range(1, 10)}
 )
 
 
@@ -60,6 +66,14 @@ class LocalFileStorageProvider(StorageProviderAdapter):
             or ".." in file_path.split("/")
         ):
             raise ValueError("Storage paths must be relative keys within the storage root")
+        if os.name == "nt" and any(
+            part.split(".")[0].upper() in _WINDOWS_DEVICE_NAMES or part.endswith((".", " "))
+            for part in file_path.split("/")
+            if part
+        ):
+            raise ValueError(
+                "Storage keys cannot use Windows device names or end a segment with a dot or space"
+            )
         candidate = self.base_path / file_path
         for component in (candidate, *candidate.parents):
             if component == self.base_path:
@@ -69,13 +83,33 @@ class LocalFileStorageProvider(StorageProviderAdapter):
             ):
                 raise ValueError("Storage paths cannot contain symbolic links or junctions")
         resolved = candidate.resolve()
-        if resolved != candidate:
+        # Compare text, not Path objects: Windows paths compare case-insensitively.
+        if str(resolved) != str(candidate):
             # Covers Windows junctions even on Python versions without
-            # Path.is_junction(), including links into another tenant's path.
+            # Path.is_junction(), links into another tenant's path, and on
+            # Windows a key whose case differs from the stored names.
             raise ValueError("Storage paths cannot resolve through links or junctions")
         if not resolved.is_relative_to(self.base_path) or resolved == self.base_path:
             raise ValueError("Storage path escapes the storage root")
+        self._require_exact_names(candidate)
         return candidate
+
+    def _require_exact_names(self, candidate: Path) -> None:
+        """
+        Reject keys that reach stored files only because the file system ignores case.
+
+        On case-insensitive file systems (Windows, default macOS), "ACME/x" would
+        open "acme/x"; tenant prefixes must not meet that way.
+        """
+        current = self.base_path
+        for part in candidate.relative_to(self.base_path).parts:
+            if not os.path.lexists(current / part):
+                return
+            if part not in os.listdir(current):
+                raise ValueError(
+                    "Storage keys must match stored names exactly; this file system ignores case"
+                )
+            current = current / part
 
     def _metadata_path(self, full_path: Path) -> Path:
         key = full_path.relative_to(self.base_path).as_posix() + ".meta"
@@ -99,6 +133,17 @@ class LocalFileStorageProvider(StorageProviderAdapter):
     ) -> dict[str, Any]:
         """Upload a file to local storage."""
         try:
+            # The metadata sidecar holds one "key:value" line per entry.
+            lines = []
+            for key, value in (metadata or {}).items():
+                text = str(value)
+                if not isinstance(key, str) or not key or any(c in key for c in ":\r\n") or any(
+                    c in text for c in "\r\n"
+                ):
+                    raise ValueError(
+                        "Local storage metadata needs single-line values and keys without ':'"
+                    )
+                lines.append(f"{key}:{text}\n")
             full_path = self._get_full_path(file_path)
             full_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -114,11 +159,10 @@ class LocalFileStorageProvider(StorageProviderAdapter):
             etag = self._calculate_etag(full_path)
 
             # Store metadata in a sidecar file if provided
-            if metadata:
+            if lines:
                 metadata_path = self._metadata_path(full_path)
-                with open(metadata_path, "w") as f:
-                    for key, value in metadata.items():
-                        f.write(f"{key}:{value}\n")
+                with open(metadata_path, "w", encoding="utf-8") as f:
+                    f.writelines(lines)
 
             return {
                 "url": self.get_file_url(file_path),
@@ -192,7 +236,8 @@ class LocalFileStorageProvider(StorageProviderAdapter):
         custom_metadata = {}
         metadata_path = self._metadata_path(full_path)
         if metadata_path.exists():
-            with open(metadata_path) as f:
+            # errors=replace: older sidecars were written in the locale encoding
+            with open(metadata_path, encoding="utf-8", errors="replace") as f:
                 for line in f:
                     if ":" in line:
                         key, value = line.strip().split(":", 1)

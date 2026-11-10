@@ -68,6 +68,7 @@ Usage:
 import contextvars
 import logging
 import re
+import string
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import timedelta
@@ -116,6 +117,12 @@ DEFAULT_ROLE_PERMISSIONS: dict[str, set[StoragePermission]] = {
 # One identity value is one path segment: letters, digits, "_" and "-", with
 # single dots only between them (no ".", "..", leading, trailing or doubled dots).
 _IDENTITY_SEGMENT = re.compile(r"[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*")
+
+# Attribute names a LogRecord reserves; logging rejects them in ``extra``.
+_LOG_RECORD_FIELDS = frozenset(vars(logging.LogRecord("", 0, "", 0, "", (), None))) | {
+    "message",
+    "asctime",
+}
 
 # Set only while system_context() constructs its context.
 _SYSTEM_CONTEXT_FACTORY: contextvars.ContextVar[bool] = contextvars.ContextVar(
@@ -240,6 +247,17 @@ class StorageSecurityContext:
                 not isinstance(value, str) or not _IDENTITY_SEGMENT.fullmatch(value)
             ):
                 raise ValueError("Storage identity fields must be safe single path segments")
+        values = {"organization_id": self.organization_id, "platform": self.platform, "role": self.role}
+        for _, name, spec, conversion in string.Formatter().parse(self.scope_format):
+            if name is None:
+                continue
+            if name not in values or spec or conversion:
+                raise ValueError(
+                    "scope_format placeholders must be plain {organization_id}, {platform} or {role}"
+                )
+            # An unset placeholder would drop a path segment and merge tenants' prefixes.
+            if not values[name]:
+                raise ValueError(f"scope_format uses {{{name}}} but the context has no {name}")
 
     def get_permissions(self) -> set[StoragePermission]:
         """
@@ -470,17 +488,21 @@ class ScopedStorageProvider:
 
     def _audit_log(self, operation: str, path: str, **extra):
         """Log storage operation for audit trail."""
+        # Context metadata cannot replace the operation fields or LogRecord attributes
+        # (a key such as "message" would make logging raise).
+        record = {
+            key: value
+            for key, value in self._context.to_audit_dict().items()
+            if key not in _LOG_RECORD_FIELDS
+        }
+        record.update(extra)
+        record.update(storage_operation=operation, storage_path=path)
         logger.info(
             f"Storage.{operation}: path='{path}' "
             f"user={self._context.user_id} "
             f"org={self._context.organization_id} "
             f"platform={self._context.platform}",
-            extra={
-                "storage_operation": operation,
-                "storage_path": path,
-                **self._context.to_audit_dict(),
-                **extra,
-            },
+            extra=record,
         )
 
     # ─── File Operations ───────────────────────────────────────────────
@@ -505,23 +527,24 @@ class ScopedStorageProvider:
         scoped_path = self._context.scope_path(file_path)
         self._audit_log("upload_file", scoped_path, content_type=content_type, public=public)
 
-        # Inject security metadata; caller metadata cannot replace these keys
-        security_metadata = dict(metadata or {})
-        security_metadata.update(
-            {
-                "uploaded_by": self._context.user_id or "unknown",
-                "organization_id": self._context.organization_id or "system",
-                "platform": self._context.platform or "unknown",
-            }
-        )
-
         return self._provider.upload_file(
             file_path=scoped_path,
             file_data=file_data,
             content_type=content_type,
-            metadata=security_metadata,
+            metadata=self._security_metadata(metadata),
             public=public,
         )
+
+    def _security_metadata(self, metadata: dict[str, str] | None) -> dict[str, str]:
+        """Caller metadata plus the security keys, which the caller cannot replace."""
+        security = {
+            "uploaded_by": self._context.user_id or "unknown",
+            "organization_id": self._context.organization_id or "system",
+            "platform": self._context.platform or "unknown",
+        }
+        combined = {key: value for key, value in (metadata or {}).items() if key not in security}
+        combined.update(security)
+        return combined
 
     def upload_from_string(
         self,
@@ -540,13 +563,15 @@ class ScopedStorageProvider:
         scoped_path = self._context.scope_path(file_path)
         self._audit_log("upload_from_string", scoped_path, content_type=content_type)
 
+        security_metadata = self._security_metadata(metadata)
+
         # Delegate to provider if it supports upload_from_string, otherwise adapt
         if hasattr(self._provider, "upload_from_string"):
             return cast(dict[str, Any], self._provider.upload_from_string(
                 file_path=scoped_path,
                 data=data,
                 content_type=content_type,
-                metadata=metadata,
+                metadata=security_metadata,
             ))
 
         # Fallback: convert to BinaryIO and use upload_file
@@ -560,7 +585,7 @@ class ScopedStorageProvider:
             file_path=scoped_path,
             file_data=file_data,
             content_type=content_type,
-            metadata=metadata,
+            metadata=security_metadata,
         )
 
     def download_file(self, file_path: str, destination: str | None = None) -> bytes:
