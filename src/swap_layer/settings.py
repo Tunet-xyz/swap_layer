@@ -41,6 +41,7 @@ Usage:
 import base64
 import binascii
 import os
+import typing
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
@@ -64,9 +65,14 @@ _settings_cache: "SwapLayerSettings | None" = None
 
 
 class _ConfigModel(BaseModel):
-    """Avoid printing input credentials in Pydantic exception strings."""
+    """
+    Base for every settings model.
 
-    model_config = {"hide_input_in_errors": True}
+    Unknown keys are rejected so a misspelt setting fails validation instead of
+    being dropped, and input values (credentials) are kept out of error text.
+    """
+
+    model_config = {"hide_input_in_errors": True, "extra": "forbid"}
 
 
 class StripeConfig(_ConfigModel):
@@ -289,6 +295,65 @@ class IdentityVerificationConfig(_ConfigModel):
         return self
 
 
+def legacy_app_config(model: type[BaseModel], raw: Any) -> Any:
+    """
+    Keep only ``model``'s fields from a legacy Django app dict.
+
+    WORKOS_APPS and AUTH0_APPS entries may hold the application's own keys
+    too; SWAPLAYER settings, by contrast, reject unknown keys.
+    """
+    if isinstance(raw, dict):
+        return {key: value for key, value in raw.items() if key in model.model_fields}
+    return raw
+
+
+def _legacy_apps(model: type[BaseModel], apps: Any) -> Any:
+    if isinstance(apps, dict):
+        return {name: legacy_app_config(model, app) for name, app in apps.items()}
+    return apps
+
+
+def _nested_model(annotation: Any) -> tuple[str | None, type[BaseModel] | None]:
+    """Classify a field type as a nested model, a mapping of models, or a scalar."""
+    for candidate in (annotation, *typing.get_args(annotation)):
+        if isinstance(candidate, type) and issubclass(candidate, BaseModel):
+            return "model", candidate
+        if typing.get_origin(candidate) is dict:
+            args = typing.get_args(candidate)
+            if len(args) == 2 and isinstance(args[1], type) and issubclass(args[1], BaseModel):
+                return "mapping", args[1]
+    return None, None
+
+
+def _env_path(model: type[BaseModel], parts: list[str]) -> list[str] | None:
+    """
+    Map lower-case, underscore-separated name parts onto a settings field path.
+
+    Longer field names win, so ``raise_on_error`` is one field rather than three
+    nested ones. Mapping fields (``workos_apps``, ``auth0_apps``) take the next
+    part(s) as the app name. Returns None when the parts match no field.
+    """
+    fields = model.model_fields
+    for length in range(len(parts), 0, -1):
+        name = "_".join(parts[:length])
+        if name not in fields:
+            continue
+        rest = parts[length:]
+        if not rest:
+            return [name]
+        kind, nested = _nested_model(fields[name].annotation)
+        if kind == "model" and nested is not None:
+            tail = _env_path(nested, rest)
+            if tail is not None:
+                return [name, *tail]
+        elif kind == "mapping" and nested is not None:
+            for split in range(1, len(rest)):
+                tail = _env_path(nested, rest[split:])
+                if tail is not None:
+                    return [name, "_".join(rest[:split]), *tail]
+    return None
+
+
 # ============================================================================
 # Main Settings Class
 # ============================================================================
@@ -353,56 +418,33 @@ class SwapLayerSettings(_ConfigModel):
         Returns:
             Configured SwapLayerSettings instance
         """
-        # Known multi-word field names that should not be split
-        known_fields = {
-            "secret_key",
-            "publishable_key",
-            "webhook_secret",
-            "webhook_id",
-            "account_sid",
-            "auth_token",
-            "from_number",
-            "api_key",
-            "client_id",
-            "client_secret",
-            "cookie_password",
-            "media_root",
-            "media_url",
-            "base_path",
-            "base_url",
-            "api_version",
-            "webhook_notification_url",
-            "webhook_signature_key",
-            "location_id",
-            "access_token",
-            "bucket_name", "credentials_path", "project_id", "storage_class",
-            "aws_access_key_id", "aws_secret_access_key", "region_name", "sender_id",
-        }
-
         config: dict[str, Any] = {}
 
-        # Parse environment variables into nested config structure
+        # Parse environment variables into nested config structure. Names are
+        # matched against the settings schema, so compound field names
+        # (raise_on_error, stripe_secret_key, workos_apps) and app names keep
+        # their underscores. Unmatched names are kept as written and then
+        # rejected by validation, so a misspelt variable is reported.
         for key, value in os.environ.items():
             if not key.startswith(prefix):
                 continue
 
-            # Remove prefix and convert to lowercase
-            remaining = key[len(prefix) :].lower()
-            parts = remaining.split("_")
-
-            for length in range(len(parts), 1, -1):
-                field = "_".join(parts[-length:])
-                if field in known_fields:
-                    parts = parts[:-length] + [field]
-                    break
+            parts = key[len(prefix) :].lower().split("_")
+            path = _env_path(cls, parts) or parts
 
             # Build nested dictionary
             current = config
-            for part in parts[:-1]:
-                if part not in current:
-                    current[part] = {}
-                current = current[part]
-            current[parts[-1]] = value
+            for part in path[:-1]:
+                current = current.setdefault(part, {})
+                if not isinstance(current, dict):
+                    raise ConfigurationError(
+                        f"Environment variables set both {prefix}{part.upper()} and fields below it"
+                    )
+            if isinstance(current.get(path[-1]), dict):
+                raise ConfigurationError(
+                    f"Environment variable {key} conflicts with nested {key}_* variables"
+                )
+            current[path[-1]] = value
 
         try:
             return cls(**config)
@@ -548,9 +590,9 @@ class SwapLayerSettings(_ConfigModel):
             config["identity"] = {"provider": identity_provider}
 
             if identity_provider == "workos" and hasattr(settings, "WORKOS_APPS"):
-                config["identity"]["workos_apps"] = settings.WORKOS_APPS
+                config["identity"]["workos_apps"] = _legacy_apps(WorkOSAppConfig, settings.WORKOS_APPS)
             elif identity_provider == "auth0" and hasattr(settings, "AUTH0_APPS"):
-                config["identity"]["auth0_apps"] = settings.AUTH0_APPS
+                config["identity"]["auth0_apps"] = _legacy_apps(Auth0AppConfig, settings.AUTH0_APPS)
                 config["identity"]["auth0_domain"] = getattr(
                     settings, "AUTH0_DEVELOPER_DOMAIN", None
                 )

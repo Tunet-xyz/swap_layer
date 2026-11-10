@@ -13,6 +13,7 @@ from swap_layer.settings import (
     IdentityPlatformConfig,
     WorkOSAppConfig,
     get_swaplayer_settings,
+    legacy_app_config,
 )
 
 
@@ -49,7 +50,7 @@ def workos_app_config(app_name: str) -> WorkOSAppConfig:
             f"WorkOS configuration for '{app_name}' not found in "
             "SWAPLAYER.identity.workos_apps or settings.WORKOS_APPS"
         )
-    return WorkOSAppConfig.model_validate(raw)
+    return WorkOSAppConfig.model_validate(legacy_app_config(WorkOSAppConfig, raw))
 
 
 def auth0_app_config(app_name: str) -> tuple[Auth0AppConfig, str]:
@@ -65,7 +66,7 @@ def auth0_app_config(app_name: str) -> tuple[Auth0AppConfig, str]:
                 f"Auth0 configuration for '{app_name}' not found in "
                 "SWAPLAYER.identity.auth0_apps or settings.AUTH0_APPS"
             )
-        app = Auth0AppConfig.model_validate(raw)
+        app = Auth0AppConfig.model_validate(legacy_app_config(Auth0AppConfig, raw))
         domain = _django_setting("AUTH0_DEVELOPER_DOMAIN", "")
     if not domain:
         raise ValueError(
