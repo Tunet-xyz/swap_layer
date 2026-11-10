@@ -661,7 +661,8 @@ class PayPalPaymentProvider(PaymentProviderAdapter):
         missing = sorted(self._WEBHOOK_HEADERS[field].upper() for field, value in fields.items() if not value)
         if missing:
             raise ValueError(f"PayPal webhook headers missing: {', '.join(missing)}")
-        event = json.loads(payload.decode("utf-8")) if isinstance(payload, bytes) else payload
+        raw = payload.decode("utf-8") if isinstance(payload, bytes) else payload
+        event = json.loads(raw) if isinstance(raw, str) else raw
         if not isinstance(event, dict):
             raise ValueError("PayPal webhook payload must be a JSON object")
         verification = self._request(

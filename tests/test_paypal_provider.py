@@ -304,3 +304,12 @@ def test_amount_conversion_preserves_decimal_precision():
     money = PayPalPaymentProvider._money(amount, "GBP")
     assert money["value"] == "1000000000000000000000000000.01"
     assert PayPalPaymentProvider._amount_from_money(money) == int(amount)
+
+
+def test_verify_webhook_signature_accepts_a_text_payload():
+    provider = make_provider()
+    provider.session.request = Mock(return_value=DummyResponse({"verification_status": "SUCCESS"}))
+
+    event = provider.verify_webhook_signature(PAYPAL_EVENT.decode("utf-8"), signature="", headers=PAYPAL_HEADERS)
+
+    assert event["id"] == "WH-EVENT-1"

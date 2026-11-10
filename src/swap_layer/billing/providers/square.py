@@ -715,7 +715,9 @@ class SquarePaymentProvider(PaymentProviderAdapter):
         signed_payload = f"{notification_url}{raw_body}".encode()
         digest = hmac.new(signature_key.encode("utf-8"), signed_payload, hashlib.sha256).digest()
         expected = base64.b64encode(digest).decode("utf-8")
-        if not hmac.compare_digest(expected, signature):
+        if not isinstance(signature, str) or not hmac.compare_digest(
+            expected.encode("ascii"), signature.encode("utf-8")
+        ):
             raise ValueError("Invalid Square webhook signature")
         event = json.loads(raw_body)
         if not isinstance(event, dict):

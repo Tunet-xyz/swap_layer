@@ -301,3 +301,11 @@ def test_billing_factory_returns_square_from_swaplayer_settings():
     assert provider.access_token == "square-token"
     assert provider.location_id == "LOC-123"
     assert provider.sandbox is True
+
+
+@pytest.mark.parametrize("signature", [None, "", "sïgnature", b"bytes"])
+def test_malformed_signatures_are_invalid_not_type_errors(signature):
+    provider = make_provider()
+    payload = square_event(datetime.now(timezone.utc))
+    with pytest.raises(ValueError, match="Invalid Square webhook signature"):
+        provider.verify_webhook_signature(payload, signature)
