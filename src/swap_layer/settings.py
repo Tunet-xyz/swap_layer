@@ -439,11 +439,12 @@ class SwapLayerSettings(_ConfigModel):
 
             # Build nested dictionary
             current = config
-            for part in path[:-1]:
+            for depth, part in enumerate(path[:-1], start=1):
                 current = current.setdefault(part, {})
                 if not isinstance(current, dict):
+                    parent = prefix + "_".join(path[:depth]).upper()
                     raise ConfigurationError(
-                        f"Environment variables set both {prefix}{part.upper()} and fields below it"
+                        f"Environment variables set both {parent} and fields below it"
                     )
             if isinstance(current.get(path[-1]), dict):
                 raise ConfigurationError(

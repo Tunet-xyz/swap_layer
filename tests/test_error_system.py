@@ -315,24 +315,26 @@ class TestErrorContext:
         assert "github.com" in context
 
     def test_sensitive_keys_masked(self):
-        """Should mask sensitive keys in configuration display."""
+        """Only public settings fields are shown; everything else is masked."""
         config = {
             "api_key": "secret_key_123",
             "password": "my_password",
             "auth_token": "token_abc",
-            "normal_field": "visible_value",
+            "client_secrt": "misspelt_secret",  # a typo must not reveal the value
+            "provider": "visible_value",
         }
 
         formatted = ErrorContext._format_config(config)
 
-        # Sensitive fields should be masked
+        # Sensitive and unknown fields should be masked
         assert "******** (masked)" in formatted
         assert "secret_key_123" not in formatted
         assert "my_password" not in formatted
         assert "token_abc" not in formatted
+        assert "misspelt_secret" not in formatted
 
-        # Normal fields should be visible
-        assert "visible_value" in formatted
+        # Public settings fields should be visible
+        assert "provider: visible_value" in formatted
 
 
 class TestStartupValidationErrors:

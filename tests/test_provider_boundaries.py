@@ -38,10 +38,10 @@ def test_tenant_storage_lifecycle_and_permissions(tmp_path):
 
 def test_error_context_omits_exception_inputs_and_nested_list_secrets():
     output = ErrorContext.build_config_error_context(
-        ValueError("private-input-value"), {"apps": [{"api_key": "private-key-value", "name": "public"}]}
+        ValueError("private-input-value"), {"apps": [{"api_key": "private-key-value", "provider": "public"}]}
     )
     assert "private-" not in output
-    assert "public" in output
+    assert "provider: public" in output
 
 
 def test_settings_validation_does_not_print_input_secrets():

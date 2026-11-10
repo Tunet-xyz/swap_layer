@@ -406,37 +406,31 @@ class ErrorContext:
 
     @staticmethod
     def _format_config(config: Any, indent: int = 0) -> str:
-        """Format configuration for display (mask secrets)."""
+        """
+        Format configuration for display.
+
+        Only public settings fields show their values; every other value,
+        including one under a misspelt key, is masked.
+        """
+        from ._redaction import redact_config
+
+        return ErrorContext._format_redacted(redact_config(config, mask="******** (masked)"), indent)
+
+    @staticmethod
+    def _format_redacted(config: Any, indent: int) -> str:
         if isinstance(config, dict):
             lines = []
+            prefix = "  " * indent
             for key, value in config.items():
-                prefix = "  " * indent
-                if ErrorContext._is_sensitive_key(key):
-                    lines.append(f"{prefix}{key}: {'*' * 8} (masked)")
-                elif isinstance(value, (dict, list, tuple)):
+                if isinstance(value, (dict, list)):
                     lines.append(f"{prefix}{key}:")
-                    lines.append(ErrorContext._format_config(value, indent + 1))
+                    lines.append(ErrorContext._format_redacted(value, indent + 1))
                 else:
                     lines.append(f"{prefix}{key}: {value}")
             return "\n".join(lines)
-        if isinstance(config, (list, tuple)):
-            return "\n".join(ErrorContext._format_config(item, indent) for item in config)
-        return str(config)
-
-    @staticmethod
-    def _is_sensitive_key(key: str) -> bool:
-        """Check if a key contains sensitive data."""
-        sensitive_keywords = [
-            "key",
-            "secret",
-            "token",
-            "password",
-            "api_key",
-            "auth_token",
-            "client_secret",
-            "cookie_password",
-        ]
-        return any(keyword in key.lower() for keyword in sensitive_keywords)
+        if isinstance(config, list):
+            return "\n".join(ErrorContext._format_redacted(item, indent) for item in config)
+        return "" if config is None else str(config)
 
 
 # ============================================================================

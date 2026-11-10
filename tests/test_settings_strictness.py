@@ -105,3 +105,29 @@ def test_conflicting_environment_variables_are_reported(clean_env):
     clean_env.setenv("SWAPLAYER_BILLING_PROVIDER", "stripe")
     with pytest.raises(ConfigurationError, match="SWAPLAYER_BILLING"):
         SwapLayerSettings.from_env()
+
+
+@pytest.mark.parametrize(
+    ("name", "value"),
+    [
+        ("SWAPLAYER_BILLING_PAYPAL_CLIENT_SECRT", "private-paypal-secret"),
+        ("SWAPLAYER_IDENTITY_WORKOS_APPS_DEFAULT_COOKIE_PASSWRD", "private-cookie"),
+        ("SWAPLAYER_BILLING_SQUARE_WEBHOOK_SIGNATURE_KY", "private-signature-key"),
+        ("SWAPLAYER_BILLING_STRIPE", "sk_live_private-section-value"),
+    ],
+)
+def test_misspelt_variables_never_log_their_values(clean_env, caplog, name, value):
+    clean_env.setenv("SWAPLAYER_BILLING_PROVIDER", "paypal")
+    clean_env.setenv(name, value)
+    with caplog.at_level("DEBUG"), pytest.raises((ValidationError, ConfigurationError)) as exc_info:
+        SwapLayerSettings.from_env()
+    assert value not in caplog.text
+    assert value not in str(exc_info.value)
+    assert "******** (masked)" in caplog.text or isinstance(exc_info.value, ConfigurationError)
+
+
+def test_conflict_error_names_the_full_variable(clean_env):
+    clean_env.setenv("SWAPLAYER_BILLING_STRIPE", "x")
+    clean_env.setenv("SWAPLAYER_BILLING_STRIPE_SECRET_KEY", "sk_test_1")
+    with pytest.raises(ConfigurationError, match="SWAPLAYER_BILLING_STRIPE"):
+        SwapLayerSettings.from_env()
