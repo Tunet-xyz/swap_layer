@@ -28,8 +28,8 @@ Usage:
                 'publishable_key': os.environ.get('STRIPE_PUBLISHABLE_KEY'),
             }
         },
-        email={
-            'provider': 'django',
+        communications={
+            'email': {'provider': 'django'},
         },
         # ... other modules
     )
@@ -184,9 +184,9 @@ class SMSProviderConfig(_ConfigModel):
     @model_validator(mode="after")
     def validate_provider_config(self):
         if self.provider == "twilio" and not self.twilio:
-            raise ProviderConfigMismatchError("sms", "twilio", "twilio")
+            raise ProviderConfigMismatchError("communications.sms", "twilio", "twilio")
         if self.provider == "sns" and not self.sns:
-            raise ProviderConfigMismatchError("sms", "sns", "sns")
+            raise ProviderConfigMismatchError("communications.sms", "sns", "sns")
         return self
 
 
@@ -409,11 +409,13 @@ class SwapLayerSettings(_ConfigModel):
         Examples:
             SWAPLAYER_BILLING_PROVIDER=stripe
             SWAPLAYER_BILLING_STRIPE_SECRET_KEY=sk_test_...
-            SWAPLAYER_EMAIL_PROVIDER=django
-            SWAPLAYER_SMS_PROVIDER=twilio
-            SWAPLAYER_SMS_TWILIO_ACCOUNT_SID=AC...
-            SWAPLAYER_SMS_TWILIO_AUTH_TOKEN=...
-            SWAPLAYER_SMS_TWILIO_FROM_NUMBER=+1555...
+            SWAPLAYER_COMMUNICATIONS_EMAIL_PROVIDER=django
+            SWAPLAYER_COMMUNICATIONS_SMS_PROVIDER=twilio
+            SWAPLAYER_COMMUNICATIONS_SMS_TWILIO_ACCOUNT_SID=AC...
+            SWAPLAYER_COMMUNICATIONS_SMS_TWILIO_AUTH_TOKEN=...
+            SWAPLAYER_COMMUNICATIONS_SMS_TWILIO_FROM_NUMBER=+1555...
+            SWAPLAYER_IDENTITY_WORKOS_APPS_DEFAULT_API_KEY=...
+            SWAPLAYER_RAISE_ON_ERROR=false
 
         Args:
             prefix: Environment variable prefix (default: 'SWAPLAYER_')
@@ -472,7 +474,7 @@ class SwapLayerSettings(_ConfigModel):
             # New way (recommended)
             SWAPLAYER = {
                 'billing': {'provider': 'stripe', 'stripe': {'secret_key': 'sk_...'}},
-                'email': {'provider': 'django'},
+                'communications': {'email': {'provider': 'django'}},
             }
 
             # Old way (still supported for backward compatibility)
@@ -484,7 +486,7 @@ class SwapLayerSettings(_ConfigModel):
         except ImportError as exc:
             raise ConfigurationError(
                 "Django is not installed.",
-                hint="Install SwapLayer with the Django extra: pip install 'SwapLayer[django]'",
+                hint='Install SwapLayer with the Django extra: pip install "SwapLayer[django]"',
             ) from exc
 
         if not settings.configured:

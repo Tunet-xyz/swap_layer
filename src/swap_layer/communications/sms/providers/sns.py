@@ -10,7 +10,7 @@ class SNSSMSProvider(SMSProviderAdapter):
     AWS SNS SMS provider.
 
     To complete this implementation:
-    1. Install boto3: pip install boto3
+    1. Install the AWS extra: pip install "SwapLayer[aws]"
     2. Configure AWS credentials in settings or environment
     3. Implement all abstract methods using boto3 SNS client
 
@@ -43,7 +43,7 @@ class SNSSMSProvider(SMSProviderAdapter):
             self.sender_id = sender_id or legacy_setting("AWS_SNS_DEFAULT_SENDER_ID")
 
         except ImportError:
-            raise ImportError("boto3 library not installed. Run: pip install boto3")
+            raise ImportError('boto3 is not installed. Run: pip install "SwapLayer[aws]"')
 
     def send_sms(
         self,

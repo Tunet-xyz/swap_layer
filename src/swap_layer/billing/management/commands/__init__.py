@@ -1,1 +1,1 @@
-# Management commands for payments module
+# Management commands for the billing module

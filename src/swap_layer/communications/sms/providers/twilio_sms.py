@@ -17,7 +17,7 @@ class TwilioSMSProvider(SMSProviderAdapter):
     Twilio SMS provider implementation.
 
     Requires:
-        pip install twilio
+        pip install "SwapLayer[sms]"
 
     Configuration in settings.py:
         TWILIO_ACCOUNT_SID = os.environ.get('TWILIO_ACCOUNT_SID')
@@ -63,7 +63,7 @@ class TwilioSMSProvider(SMSProviderAdapter):
             self.from_number = from_number
 
         except ImportError:
-            raise ImportError("Twilio library not installed. Run: pip install twilio")
+            raise ImportError('Twilio is not installed. Run: pip install "SwapLayer[sms]"')
 
     def send_sms(
         self,

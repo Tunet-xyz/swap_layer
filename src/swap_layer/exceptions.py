@@ -161,7 +161,7 @@ class TwilioConfigError(ConfigurationError):
             ],
             docs_url="https://www.twilio.com/docs/iam/keys/api-key",
             related_settings=[
-                "SWAPLAYER.sms.twilio.account_sid",
+                "SWAPLAYER.communications.sms.twilio.account_sid",
             ],
         )
 
@@ -181,7 +181,7 @@ class TwilioConfigError(ConfigurationError):
             ],
             docs_url="https://www.twilio.com/docs/glossary/what-e164",
             related_settings=[
-                "SWAPLAYER.sms.twilio.from_number",
+                "SWAPLAYER.communications.sms.twilio.from_number",
             ],
         )
 
@@ -233,38 +233,50 @@ def module_docs_url(module: str) -> str:
     return DOCS_BASE_URL + MODULE_DOCS.get(module, "README.md")
 
 
+# Settings paths for the former root-level email/sms keys.
+_MODULE_PATHS = {"email": "communications.email", "sms": "communications.sms"}
+_MODULE_TITLES = {
+    "billing": "Billing",
+    "communications.email": "Email",
+    "communications.sms": "SMS",
+    "storage": "Storage",
+    "identity": "Identity",
+    "verification": "Verification",
+}
+# Complete, valid examples keyed by (settings module, provider).
+_PROVIDER_EXAMPLES = {
+    ("billing", "stripe"): "billing={'provider': 'stripe', 'stripe': {'secret_key': 'sk_test_...', 'publishable_key': 'pk_test_...'}}",
+    ("billing", "paypal"): "billing={'provider': 'paypal', 'paypal': {'client_id': '...', 'client_secret': '...', 'webhook_id': '...'}}",
+    ("billing", "square"): "billing={'provider': 'square', 'square': {'access_token': '...', 'location_id': '...'}}",
+    ("communications.sms", "twilio"): "communications={'sms': {'provider': 'twilio', 'twilio': {'account_sid': 'AC...', 'auth_token': '...', 'from_number': '+1555...'}}}",
+    ("communications.sms", "sns"): "communications={'sms': {'provider': 'sns', 'sns': {'region_name': 'us-east-1', 'sender_id': 'MyApp'}}}",
+    ("identity", "workos"): "identity={'provider': 'workos', 'workos_apps': {'default': {'api_key': '...', 'client_id': '...', 'cookie_password': '<Fernet key>'}}}",
+    ("identity", "auth0"): "identity={'provider': 'auth0', 'auth0_apps': {'default': {'client_id': '...', 'client_secret': '...'}}, 'auth0_domain': 'myapp.auth0.com'}",
+    ("verification", "stripe"): "verification={'provider': 'stripe', 'stripe_secret_key': 'sk_test_...'}",
+}
+
+
 class ProviderConfigMismatchError(ConfigurationError):
     """Provider is selected but configuration is missing."""
 
     def __init__(self, module: str, provider: str, missing_config: str):
-        examples_map = {
-            "stripe": [
-                "billing={'provider': 'stripe', 'stripe': {'secret_key': 'sk_test_...', 'publishable_key': 'pk_test_...'}}",
-            ],
-            "twilio": [
-                "sms={'provider': 'twilio', 'twilio': {'account_sid': 'AC...', 'auth_token': '...', 'from_number': '+1555...'}}",
-            ],
-            "sns": [
-                "sms={'provider': 'sns', 'sns': {'region_name': 'us-east-1', 'sender_id': 'MyApp'}}",
-            ],
-            "workos": [
-                "identity={'provider': 'workos', 'workos_apps': {'default': {'api_key': '...', 'client_id': '...', 'cookie_password': '...'}}}",
-            ],
-            "auth0": [
-                "identity={'provider': 'auth0', 'auth0_apps': {'default': {'client_id': '...', 'client_secret': '...'}}, 'auth0_domain': 'myapp.auth0.com'}",
-            ],
-        }
+        module = _MODULE_PATHS.get(module, module)
+        top, _, rest = module.partition(".")
+        fallback = (
+            f"{top}={{'{rest}': {{'provider': '{provider}', '{missing_config}': {{...}}}}}}"
+            if rest
+            else f"{module}={{'provider': '{provider}', '{missing_config}': {{...}}}}"
+        )
 
         super().__init__(
-            f"❌ {module.title()} provider '{provider}' selected but {missing_config} not configured",
+            f"❌ {_MODULE_TITLES.get(module, module.title())} provider '{provider}' selected "
+            f"but {missing_config} not configured",
             hint=f"When you set provider='{provider}', you must also provide the {missing_config} configuration.",
-            examples=examples_map.get(
-                provider, [f"{module}={{'provider': '{provider}', '{provider}': {{...}}}}"]
-            ),
+            examples=[_PROVIDER_EXAMPLES.get((module, provider), fallback)],
             docs_url=module_docs_url(module),
             related_settings=[
                 f"SWAPLAYER.{module}.provider",
-                f"SWAPLAYER.{module}.{provider}",
+                f"SWAPLAYER.{module}.{missing_config}",
             ],
         )
 

@@ -3,7 +3,7 @@ Django management command to check SwapLayer configuration.
 
 Usage:
     python manage.py swaplayer_check
-    python manage.py swaplayer_check --module payments
+    python manage.py swaplayer_check --module billing
     python manage.py swaplayer_check --verbose
 """
 
@@ -57,7 +57,7 @@ class Command(BaseCommand):
             self.stdout.write('            "provider": "stripe",')
             self.stdout.write('            "stripe": {"secret_key": "sk_test_..."}')
             self.stdout.write("        },")
-            self.stdout.write('        "email": {"provider": "django"},')
+            self.stdout.write('        "communications": {"email": {"provider": "django"}},')
             self.stdout.write("    }")
             raise CommandError("SwapLayer configuration is invalid")
 

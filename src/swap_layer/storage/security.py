@@ -36,7 +36,7 @@ Usage:
         user_id='auth0|123',
         organization_id='org-456',
         role='admin',
-        platform='safety_az_central',
+        platform='web',
         scope_format='{organization_id}',  # required — org at bucket root
     )
 
@@ -186,7 +186,7 @@ class StorageSecurityContext:
         user_id: Authenticated user identifier
         organization_id: Tenant/organization boundary for path scoping
         role: User's role (determines permissions; unknown roles get none)
-        platform: Application platform (e.g., 'safety_az_central')
+        platform: Application platform (e.g., 'web')
         permissions: Explicit permissions (if None, derived from role)
         scope_format: **Required.** Format string for the path prefix.
             Supports ``{organization_id}``, ``{platform}``, and ``{role}``
@@ -411,7 +411,7 @@ def validate_storage_context(
             ctx = build_storage_context(request)
             validate_storage_context(
                 ctx,
-                required_platform='safety_az_central',
+                required_platform='web',
                 required_permissions={StoragePermission.WRITE},
                 require_user=True,
             )
@@ -690,6 +690,7 @@ def storage_context(
             user_id='auth0|123',
             organization_id='org-456',
             role='admin',
+            scope_format='{organization_id}',
         )
         with storage_context(provider, ctx) as scoped:
             scoped.upload_file('docs/report.pdf', file_data)
