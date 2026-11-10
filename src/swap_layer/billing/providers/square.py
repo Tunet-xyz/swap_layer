@@ -4,7 +4,9 @@ import base64
 import hashlib
 import hmac
 import json
+import re
 import uuid
+from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Any, NoReturn
 
@@ -17,6 +19,27 @@ from ..adapter import (
     PaymentValidationError,
     ResourceNotFoundError,
 )
+
+# Square retries a webhook for up to 24 hours after the event and signs only
+# the notification URL and body, so the signed created_at bounds replays.
+SQUARE_WEBHOOK_MAX_AGE = 25 * 60 * 60  # seconds: the retry window plus delivery slack
+SQUARE_WEBHOOK_CLOCK_SKEW = 5 * 60  # seconds an event may appear to come from the future
+_RFC3339 = re.compile(r"(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(?:\.(\d+))?(Z|[+-]\d{2}:\d{2})")
+
+
+def _parse_rfc3339(value: Any) -> datetime | None:
+    if not isinstance(value, str):
+        return None
+    match = _RFC3339.fullmatch(value.strip())
+    if not match:
+        return None
+    seconds, fraction, offset = match.groups()
+    offset = "+00:00" if offset == "Z" else offset
+    try:
+        parsed = datetime.fromisoformat(f"{seconds}.{(fraction or '0')[:6].ljust(6, '0')}{offset}")
+    except ValueError:
+        return None
+    return parsed
 
 
 class SquarePaymentProvider(PaymentProviderAdapter):
@@ -31,7 +54,15 @@ class SquarePaymentProvider(PaymentProviderAdapter):
         sandbox: bool = True,
         api_version: str = "2026-05-20",
         timeout: int = 30,
+        webhook_max_age: int | None = SQUARE_WEBHOOK_MAX_AGE,
     ):
+        """
+        Args:
+            webhook_max_age: Oldest signed ``created_at`` (in seconds) a webhook
+                may carry. Store processed ``event_id`` values for at least this
+                long and pass them to ``dispatch_webhook_event`` to reject
+                repeats. ``None`` disables the age check.
+        """
         if not access_token or not location_id:
             raise ValueError("Square access_token and location_id are required")
 
@@ -39,6 +70,7 @@ class SquarePaymentProvider(PaymentProviderAdapter):
         self.location_id = location_id
         self.webhook_signature_key = webhook_signature_key
         self.webhook_notification_url = webhook_notification_url
+        self.webhook_max_age = webhook_max_age
         self.sandbox = sandbox
         self.api_version = api_version
         self.timeout = timeout
@@ -683,6 +715,15 @@ class SquarePaymentProvider(PaymentProviderAdapter):
         if not hmac.compare_digest(expected, signature):
             raise ValueError("Invalid Square webhook signature")
         event = json.loads(raw_body)
+        if not isinstance(event, dict):
+            raise ValueError("Square webhook payload must be a JSON object")
+        if self.webhook_max_age is not None:
+            created_at = _parse_rfc3339(event.get("created_at"))
+            if created_at is None:
+                raise ValueError("Square webhook event has no valid created_at timestamp")
+            age = (datetime.now(timezone.utc) - created_at).total_seconds()
+            if age > self.webhook_max_age or age < -SQUARE_WEBHOOK_CLOCK_SKEW:
+                raise ValueError("Square webhook event is outside the accepted time window")
         return {
             "type": event.get("type"),
             "data": event.get("data"),

@@ -330,6 +330,8 @@ class StripeIdentityVerificationProvider(IdentityVerificationProviderAdapter):
             Dict with parsed event data
         """
         endpoint_secret = self.webhook_secret
+        if not endpoint_secret:
+            raise IdentityVerificationError("Stripe Identity webhook secret is not configured")
 
         try:
             event = self._client.construct_event(payload, signature, endpoint_secret)
