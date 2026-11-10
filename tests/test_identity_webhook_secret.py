@@ -45,3 +45,26 @@ def test_configured_webhook_secret_verifies_signature():
     assert event["id"] == "evt_1"
     with pytest.raises(IdentityVerificationError, match="Invalid signature"):
         provider.handle_webhook(PAYLOAD, stripe_signature("whsec_other"))
+
+
+def test_webhook_secret_comes_from_settings_and_environment(monkeypatch):
+    from swap_layer.identity.verification.factory import get_identity_verification_provider
+    from swap_layer.settings import SwapLayerSettings
+
+    settings = SwapLayerSettings(
+        verification={
+            "provider": "stripe",
+            "stripe_secret_key": "sk_test_identity",
+            "stripe_webhook_secret": "whsec_from_settings",
+        }
+    )
+    with patch(
+        "swap_layer.identity.verification.factory.get_swaplayer_settings", return_value=settings
+    ):
+        provider = get_identity_verification_provider()
+    assert provider.webhook_secret == "whsec_from_settings"
+    assert provider.handle_webhook(PAYLOAD, stripe_signature("whsec_from_settings"))["id"] == "evt_1"
+
+    monkeypatch.setenv("SWAPLAYER_VERIFICATION_STRIPE_SECRET_KEY", "sk_test_identity")
+    monkeypatch.setenv("SWAPLAYER_VERIFICATION_STRIPE_WEBHOOK_SECRET", "whsec_from_env")
+    assert SwapLayerSettings.from_env().verification.stripe_webhook_secret == "whsec_from_env"

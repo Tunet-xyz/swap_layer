@@ -287,6 +287,9 @@ class IdentityVerificationConfig(_ConfigModel):
     stripe_secret_key: str | None = Field(
         None, description="Stripe secret key for identity verification"
     )
+    stripe_webhook_secret: str | None = Field(
+        None, description="Stripe signing secret for Identity webhooks (whsec_...)"
+    )
 
     @model_validator(mode="after")
     def validate_provider_config(self):
@@ -603,6 +606,7 @@ class SwapLayerSettings(_ConfigModel):
                 "provider": getattr(settings, "IDENTITY_VERIFICATION_PROVIDER", "stripe"),
                 "stripe_secret_key": getattr(settings, "STRIPE_IDENTITY_SECRET_KEY", None)
                 or getattr(settings, "STRIPE_SECRET_KEY", None),
+                "stripe_webhook_secret": getattr(settings, "STRIPE_IDENTITY_WEBHOOK_SECRET", None),
             }
 
         try:

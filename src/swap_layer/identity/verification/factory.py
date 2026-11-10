@@ -16,10 +16,12 @@ def get_identity_verification_provider() -> IdentityVerificationProviderAdapter:
     """
     settings = get_swaplayer_settings()
     stripe_secret_key = None
+    stripe_webhook_secret = None
 
     if settings.verification:
         provider = settings.verification.provider
         stripe_secret_key = settings.verification.stripe_secret_key
+        stripe_webhook_secret = settings.verification.stripe_webhook_secret
     else:
         from django.conf import settings as django_settings
 
@@ -28,7 +30,9 @@ def get_identity_verification_provider() -> IdentityVerificationProviderAdapter:
     if provider == "stripe":
         from .providers.stripe import StripeIdentityVerificationProvider
 
-        return StripeIdentityVerificationProvider(secret_key=stripe_secret_key)
+        return StripeIdentityVerificationProvider(
+            secret_key=stripe_secret_key, webhook_secret=stripe_webhook_secret
+        )
     # Add other providers here as they are implemented
     # elif provider == 'onfido':
     #     from .providers.onfido import OnfidoIdentityVerificationProvider
