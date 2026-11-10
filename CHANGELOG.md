@@ -15,6 +15,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A CodeQL workflow (`codeql.yaml`) with the security-extended queries, which
   only the owner starts, and weekly Dependabot updates for pip and GitHub
   Actions dependencies, as in the other Tunet libraries.
+- `verification.stripe_webhook_secret` (environment
+  `SWAPLAYER_VERIFICATION_STRIPE_WEBHOOK_SECRET`) holds the Stripe Identity
+  webhook signing secret; the legacy `STRIPE_IDENTITY_WEBHOOK_SECRET` setting is
+  still read.
+- Auth0 apps accept `management_client_id` and `management_client_secret` for
+  the Management API.
+- `IdentityPlatformError`, and its subclass `OAuthStateError`, in
+  `swap_layer.identity.platform.adapter`.
+- `TwilioSMSProvider(timeout=...)` and
+  `SquarePaymentProvider(webhook_max_age=...)`.
+- The MCP `explain` tool and the `opensource://swap_layer/docs/<topic>`
+  resources serve the README, SECURITY.md, and the docs guides as packaged with
+  the release; `tools/sync_mcp_guidance.py` refreshes the packaged copies.
 
 ### Changed
 
@@ -27,22 +40,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Documentation has the layout shared by the Tunet libraries: a reworked docs
   index, the same sections in the release procedure and MCP README, and new
   threat model, security assurance, audit scope, and secure-development
-  documents. Guides are corrected against the code: the management client
-  follows Django `IDENTITY_PROVIDER`, PayPal webhook verification reads its
-  transmission fields from the payload, Stripe and Square truncate fractional
-  amounts, Twilio opt-out/opt-in only return a status, the `smtp` email provider
-  sends through Django's `EMAIL_BACKEND`, and identity and verification settings
-  cannot come from environment variables. Historical design notes are labelled.
+  documents. Guides are corrected against the code (for example, the `smtp`
+  email provider sends through Django's `EMAIL_BACKEND`), and historical design
+  notes are labelled.
 - Changelog: 0.5.0 to 0.7.0 are marked as never published to PyPI, entries
   are added for the published 0.2.1 and 0.2.4 to 0.2.6, and version links
   point at existing tags and PyPI pages.
 - README sections follow the order the Tunet libraries share: features, version
   status, installation, quick start, usage, MCP server, scope and limitations,
   documentation, development, contributing, and license, with PyPI, Python, and
-  license badges. Install commands no longer pin the unpublished 1.0.0; the
-  version section says how to install it from the tag, and the configuration
-  notes say identity and verification settings cannot come from environment
-  variables.
+  license badges. Install commands no longer pin the unpublished 1.0.0, and the
+  version section says how to install from `main` until the next release.
 - The Product URL points at `www.tunet.xyz`, which serves the product page, and
   the README names the other Tunet libraries. Doc titles no longer carry the
   version, the docs call the owner the owner, and the development notes folder
@@ -52,6 +60,122 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   kebab-case names.
 - The copyright year in LICENSE and the README is 2026, the year the project
   started.
+- One MCP server: `swaplayer-mcp` (also `python -m swap_layer.mcp`, and
+  `python mcp/server.py` from a checkout) serves the public agent contract as
+  `swap-layer-public-contract-mcp`, with resources under
+  `opensource://swap_layer/`, 17 tools, and 4 prompts, and needs no MCP SDK;
+  `SwapLayer[mcp]` is needed only for `create_mcp_server()`. Tools have plain
+  names such as `get_config` and `send_test_email`
+  (`swaplayer_setup_quickstart` is now `prepare_provider_setup`, and
+  `swaplayer_get_migration_guide` is `plan_provider_migration`), arguments are
+  camelCase (`projectType`, `fromProvider`, `toProvider`, `useCase`,
+  `errorMessage`, `testUpload`), and the `explain` topics are the packaged
+  guides.
+- MCP `get_config` returns only public settings fields, and
+  `swaplayer_check --verbose` masks every other value. `troubleshoot` matches
+  `errorMessage` without returning it, and `check_storage(testUpload=true)`
+  works under `swaplayer-mcp-check/`. The MCP client examples name the server
+  `swaplayer-mcp` and use `SWAPLAYER_` variables, and the VS Code example uses
+  VS Code's `servers` format.
+- The billing service is `billing` in the docs, the MCP tools, and error
+  messages; `get_provider("payments")` and `"payment"` still work.
+- Stripe and Square reject a fraction of a minor unit with
+  `PaymentValidationError` instead of truncating it, and read an integral
+  string as minor units.
+- PayPal `verify_webhook_signature(payload, signature, headers=request.headers)`
+  reads the `PAYPAL-*` transmission headers, and a missing header raises. The
+  PayPal customer methods manage a local `paypal:<email>` handle and say so
+  with `"local_only": True`, and `create_billing_portal_session` is unsupported
+  for PayPal.
+- Square webhooks need a signed `created_at` at most 25 hours old and at most
+  5 minutes in the future (`webhook_max_age=None` turns the check off), and
+  Stripe Identity `handle_webhook` needs a webhook secret.
+- A WorkOS `cookie_password` must be a Fernet key, which WorkOS SDK 10 uses to
+  seal sessions, in `identity.workos_apps` and the legacy `WORKOS_APPS` alike.
+- WorkOS `get_authorization_url` keeps the OAuth state in the session, and
+  `exchange_code_for_user(request, code)` accepts a callback only with that
+  state, once, within 10 minutes; otherwise it raises `OAuthStateError`.
+- Identity clients and `get_management_client()` read `SWAPLAYER.identity`
+  (`provider`, `workos_apps`, `auth0_apps`, `auth0_domain`) before the legacy
+  `IDENTITY_PROVIDER`, `WORKOS_APPS`, `AUTH0_APPS`, and
+  `AUTH0_DEVELOPER_DOMAIN` settings.
+- Identifiers in Auth0, WorkOS, Square, and PayPal REST paths are
+  percent-encoded, and empty or dot-only identifiers raise `ValueError`. Auth0
+  log helpers validate log types and date bounds and quote user IDs, and the
+  Auth0 management token cache key starts with `swap_layer:`.
+- `StorageSecurityContext` is immutable. `organization_id`, `platform`, and
+  `role` must be plain path segments, every scope placeholder needs a value,
+  and permissions come from a known role or an explicit permission set (a
+  context with neither has none). System access is only through
+  `system_context(reason=...)`, `upload_file(public=True)` needs the `ADMIN`
+  permission, and caller metadata cannot replace `uploaded_by`,
+  `organization_id`, or `platform`.
+- Email sends get a 30-second SMTP timeout when `EMAIL_TIMEOUT` (or the
+  mailer's `timeout`) is unset, and Twilio requests time out after 30 seconds.
+  Email `metadata` goes to Anymail's `metadata` and `tags`, not to message
+  headers.
+- The SMTP provider's `validate_webhook_signature` returns `False`, Twilio
+  `opt_out_number` and `opt_in_number` return the status `not_supported`, and
+  SNS validates numbers with the provider's own AWS settings.
+- Django app configs are `BillingAppConfig`, `EmailAppConfig`, `SMSAppConfig`,
+  `IdentityPlatformAppConfig`, `IdentityVerificationAppConfig`, and
+  `StorageAppConfig`, with the labels `swap_layer_billing`, `swap_layer_email`,
+  `swap_layer_sms`, `swap_layer_identity_platform`,
+  `swap_layer_identity_verification`, and `swap_layer_storage`.
+- Every service error (`PaymentError`, `EmailSendError`,
+  `TemplateNotFoundError`, `SMSError`, `IdentityVerificationError`,
+  `StorageError`, and the new `IdentityPlatformError`) derives from
+  `SwapLayerError`.
+- Settings reject unknown nested keys (legacy `WORKOS_APPS` and `AUTH0_APPS`
+  entries may still carry extra keys), and every settings field, identity and
+  verification included, can come from a `SWAPLAYER_` variable; a misspelt
+  variable fails validation. Configuration errors describe a rejected value
+  without repeating it, name real settings paths, and link to the
+  `docs/<area>.md` guides.
+- Package metadata lists the Django 4.2, 5.2, and 6.1 series and
+  `Typing :: Typed`, and its keywords are sorted, add `mcp`, and drop
+  `python`. The sdist includes `examples/`, `tools/`, and `CODE_OF_CONDUCT.md`.
+- `publish.yaml` runs `twine check --strict`, and the tests workflow also runs
+  the suite on Django 4.2 in a `minimum-dependencies` job.
+
+### Deprecated
+
+- The former Django app config class names (`BillingConfig`, `EmailConfig`,
+  `SmsConfig`, `AuthenticationConfig`, `IdentityConfig`, `StorageConfig`) still
+  import through 1.x, with a `DeprecationWarning`.
+
+### Removed
+
+- The `swaplayer_*` MCP tool names, with no aliases, and the `installation`,
+  `django-integration`, and `providers` topics of `explain`.
+- The unused `swap_layer.config` module, and an Auth0 `management.py` module
+  that the `management` package shadowed.
+- `AGENTS.md`, `CLAUDE.md`, and `.github` from the sdist.
+
+### Fixed
+
+- The email and SMS Django apps load: their app names pointed at
+  `swap_layer.email` and `swap_layer.sms`. Docstring imports use the
+  `swap_layer.communications` paths.
+- The Auth0 client saves its OAuth state and nonce, so the callback no longer
+  fails with `MismatchingStateError`.
+
+### Migration
+
+- Look Django apps up by their new labels, for example
+  `apps.get_app_config("swap_layer_billing")` instead of `"billing"`.
+- Give WorkOS a Fernet key as its `cookie_password`, for example from
+  `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`.
+- Pass the request headers to PayPal webhook verification, keep Square
+  `event_id` values for at least 25 hours, and configure a Stripe Identity
+  webhook secret before handling those webhooks.
+- Call `exchange_code_for_user` from the callback for a sign-in that
+  `get_authorization_url` started in the same session.
+- Build system storage contexts with `system_context(reason=...)`, give tenant
+  contexts a role or explicit permissions, and give `public=True` uploads the
+  `ADMIN` permission.
+- Update MCP clients to the new tool names and camelCase arguments, and remove
+  unknown keys from nested settings.
 
 ## [1.0.0] - 2026-11-05 (tagged; not yet published to PyPI)
 

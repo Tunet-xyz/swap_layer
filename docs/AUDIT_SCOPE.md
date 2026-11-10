@@ -9,8 +9,8 @@ are not release evidence.
 - All code under `src/swap_layer`: settings and factories, the provider
   adapters, storage security and key validation, webhook verification, the
   Django and FastAPI integrations, the Django admin helpers, and the
-  `swaplayer-mcp` tools.
-- The contract server and agent contract in `mcp/`.
+  `swaplayer-mcp` server with its packaged contract and guides.
+- The contract copy and the source-checkout launcher in `mcp/`.
 - Build, dependency, and release configuration.
 
 ## Out of scope unless separately commissioned

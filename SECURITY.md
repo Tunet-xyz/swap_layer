@@ -76,7 +76,7 @@ GitHub security advisory when impact warrants it.
 - Keep provider secrets in environment variables or a secret manager, never in
   source control, and rotate provider API keys regularly.
 - Use HTTPS in production, verify provider webhook signatures, and give WorkOS
-  a cookie password of at least 32 characters.
+  a Fernet key as its cookie password.
 - For tenant isolation, use `StorageSecurityContext` with an explicit
   `scope_format` through `storage_context()` or `ScopedStorageProvider`.
   Contexts trust identity your application has already verified. With several

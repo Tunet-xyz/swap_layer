@@ -44,13 +44,14 @@ workflows on the release commit.
 python -m pip install --require-hashes -r requirements/build.txt
 export SOURCE_DATE_EPOCH="$(git show -s --format=%ct HEAD)"
 python -m build --no-isolation
-python -m twine check dist/*
+python -m twine check --strict dist/*
 ```
 
 Build from the exact intended Git tree, with no uncommitted changes. Record
 SHA-256 checksums, inspect both archives (the MIT license, `py.typed`, the
-versioned public contract, the documentation, and no private files or secrets),
-and smoke-test the exact wheel in a clean environment.
+versioned public contract and packaged guides, the documentation, examples, and
+tools, and no private files or secrets), and smoke-test the exact wheel in a
+clean environment.
 
 `requirements/build.txt` is the hash-locked output of the `uv pip compile`
 command in its header. Dependabot version updates leave it and
@@ -69,8 +70,8 @@ markers.
 2. The owner starts `publish.yaml` from `main` or that tag; it stops on any
    other ref, including a tag that does not match the package version. The
    build job repeats the lint, type, Bandit, and test checks, builds the
-   distributions with the hash-locked tools, runs `twine check`, and writes
-   `SHA256SUMS`.
+   distributions with the hash-locked tools, runs `twine check --strict`, and
+   writes `SHA256SUMS`.
 3. The upload job runs in the `pypi` environment, which only `main` and `v*`
    tags may use and which needs the owner's approval; administrators cannot
    bypass it, and agents cannot give that approval. PyPI Trusted Publishing

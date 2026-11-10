@@ -20,7 +20,7 @@ state.
 | Service | Selectable provider values | Notes |
 | --- | --- | --- |
 | `email` | `django`, `smtp` | SendGrid, Mailgun, SES, and similar services use Django's Anymail backend settings. |
-| `payments` | `stripe`, `paypal`, `square` | Capabilities differ; see the billing guide. |
+| `billing` | `stripe`, `paypal`, `square` | Capabilities differ; see the billing guide. |
 | `sms` | `twilio`, `sns` | SNS history, delivery lookup, and balance are limited placeholders. |
 | `storage` | `local`, `django`, `gcs` | S3/Azure use `django` with a configured Django storage backend. |
 | `identity` | `workos`, `auth0` | Django OAuth integration; use the documented app registry. |
@@ -30,8 +30,9 @@ Structured settings use `billing`, `communications.email`, `communications.sms`,
 `storage`, `identity`, and `verification`. In plain Python call
 `configure(...)`. In Django assign a `SwapLayerSettings` instance or dictionary
 to `SWAPLAYER`. Environment configuration uses complete paths such as
-`SWAPLAYER_BILLING_STRIPE_SECRET_KEY`; identity and verification settings cannot
-be set from the environment.
+`SWAPLAYER_BILLING_STRIPE_SECRET_KEY` or
+`SWAPLAYER_IDENTITY_WORKOS_APPS_DEFAULT_API_KEY`. A misspelt `SWAPLAYER_`
+variable or an unknown settings key fails validation.
 
 ## Version 1.0
 
@@ -43,12 +44,13 @@ Python 3.10–3.13 is tested, and the Django integrations support Django 4.2–6
 (`Django<7`).
 
 SwapLayer 1.0.0 is tagged (`v1.0.0`) but not yet published to PyPI, which still
-serves 0.3.0. Until it is published, install 1.0.0 from the tag, adding extras
-as needed:
+serves 0.3.0. The tag predates the changes listed under Unreleased in the
+changelog, so until the next release is published, install from `main`, adding
+extras as needed:
 
 ```bash
-pip install "SwapLayer @ git+https://github.com/Tunet-xyz/swap_layer@v1.0.0"
-pip install "SwapLayer[stripe] @ git+https://github.com/Tunet-xyz/swap_layer@v1.0.0"
+pip install "SwapLayer @ git+https://github.com/Tunet-xyz/swap_layer@main"
+pip install "SwapLayer[stripe] @ git+https://github.com/Tunet-xyz/swap_layer@main"
 ```
 
 Upgrading from 0.x: replace root `email`/`sms` settings with `communications`;
@@ -61,7 +63,9 @@ keyword arguments after the common positional idempotency key. PayPal now
 handles zero-decimal HUF/JPY/TWD without dividing by 100; review
 provider-specific amount conventions when migrating. Tenant scopes must contain
 `{organization_id}` and reject unsafe paths; omitted contexts no longer grant
-system access. See the [changelog](https://github.com/Tunet-xyz/swap_layer/blob/main/CHANGELOG.md).
+system access. Django app labels are `swap_layer_<area>` (for example
+`swap_layer_billing`), a WorkOS `cookie_password` must be a Fernet key, and the
+MCP tools have new names. See the [changelog](https://github.com/Tunet-xyz/swap_layer/blob/main/CHANGELOG.md).
 
 ## Installation
 
@@ -74,7 +78,7 @@ pip install "SwapLayer[email]"      # Django and django-anymail
 pip install "SwapLayer[sms]"        # Twilio 9.x; add [aws] for SNS
 pip install "SwapLayer[gcs]"        # Native Google Cloud Storage
 pip install "SwapLayer[identity]"   # Django, WorkOS 10.x, Authlib
-pip install "SwapLayer[mcp]"        # Local MCP SDK 1.x
+pip install "SwapLayer[mcp]"        # MCP SDK 1.x, for create_mcp_server()
 ```
 
 Other extras: `django`, `fastapi`, `paypal`, `square`, `aws`, `azure`, `all`,
@@ -116,8 +120,10 @@ with storage_context(storage, context) as scoped:
 ```
 
 This produces `tenants/org-123/hello.txt`. Contexts consume identity already
-verified by your application; they do not verify JWTs. Unscoped access needs an
-explicit system context, such as `StorageSecurityContext.system_context()`.
+verified by your application; they do not verify JWTs. A context's permissions
+come from its role (`admin`, `manager`, `member`, or `viewer`) or an explicit
+permission set; a context with neither has none. Unscoped access needs
+`StorageSecurityContext.system_context(reason=...)`.
 
 ## Billing
 
@@ -129,32 +135,36 @@ configure(billing={"provider": "stripe", "stripe": {
     "secret_key": os.environ["STRIPE_SECRET_KEY"],
     "webhook_secret": os.environ.get("STRIPE_WEBHOOK_SECRET"),
 }})
-payments = get_provider("payments")
+billing = get_provider("billing")
 # Uses your provider account; run against a test account first.
-customer = payments.create_customer(email="customer@example.com")
+customer = billing.create_customer(email="customer@example.com")
 ```
 
 Pass integer provider minor currency units, represented by `Decimal` where
-required by the adapter, to payment amounts. Provider IDs, tax rules, recurring
-billing, and capability differences require application review. Stripe exposes
-the broadest catalog, usage-meter, Entitlements, and webhook administration
-surface.
+required by the adapter, to payment amounts; a fraction of a minor unit raises
+`PaymentValidationError`. Provider IDs, tax rules, recurring billing, and
+capability differences require application review. Stripe exposes the broadest
+catalog, usage-meter, Entitlements, and webhook administration surface.
 
 ## MCP server
 
-SwapLayer includes a local stdio MCP server, installed with the `mcp` extra:
+SwapLayer includes a local stdio MCP server; `pip install SwapLayer` is enough:
 
 ```bash
 swaplayer-mcp
 ```
 
-It exposes 13 documentation, configuration, and test tools. Test email/SMS
-sends and storage probes use the caller's local credentials and can cause
-provider charges or file changes, so clients must obtain approval before those
-calls. The package includes no hosted agent service, shared provider account,
-or owner credential. From a source checkout, `python mcp/server.py`
-runs the dependency-free public contract server, which makes no network
-connections. See [docs/mcp.md](https://github.com/Tunet-xyz/swap_layer/blob/main/docs/mcp.md) and
+`python -m swap_layer.mcp` starts the same server. From a source checkout, run
+`python mcp/server.py`. It serves SwapLayer's public agent contract and
+packaged guides (resources under `opensource://swap_layer/`, 17 tools, and 4
+prompts) and reads the caller's `SWAPLAYER_` environment configuration. Most
+tools return guidance or example code. `send_test_email`, `send_test_sms`, and
+`check_storage` with `testUpload` use the caller's own provider credentials and
+can cause provider charges or file changes, so clients must obtain approval
+before those calls. The package includes no hosted agent service, shared
+provider account, or owner credential. Install `SwapLayer[mcp]` only to embed
+the server with the MCP SDK through `swap_layer.mcp.create_mcp_server()`. See
+[docs/mcp.md](https://github.com/Tunet-xyz/swap_layer/blob/main/docs/mcp.md) and
 [mcp/README.md](https://github.com/Tunet-xyz/swap_layer/blob/main/mcp/README.md) for the tools, methods, and limits.
 
 ## Scope and limitations
@@ -196,6 +206,10 @@ python -m pytest --cov=swap_layer --cov-branch
 These are the checks the manual CI workflows run. The
 [security assurance case](https://github.com/Tunet-xyz/swap_layer/blob/main/docs/SECURITY_ASSURANCE.md) lists the full
 evidence commands, including the dependency audit.
+
+After editing README.md, SECURITY.md, or a docs guide, run
+`python tools/sync_mcp_guidance.py`: the MCP server serves packaged copies of
+them, and `tests/test_mcp_guidance.py` fails until those copies match.
 
 ## Contributing and releases
 

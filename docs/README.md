@@ -15,8 +15,8 @@ examples. These guides cover each service.
 | [Auth0 and WorkOS](auth0-vs-workos-comparison.md) | How the two identity providers differ in SwapLayer |
 | [Verification](identity-verification.md) | Stripe Identity |
 | [Architecture](architecture.md) | Configuration, adapters, and trust boundaries |
-| [MCP tools](mcp.md) | The local `swaplayer-mcp` tools and their credential boundaries |
-| [MCP contract server](../mcp/README.md) | The dependency-free public contract server |
+| [MCP server](mcp.md) | The local `swaplayer-mcp` server: configuration, tools, and credential boundaries |
+| [MCP contract](../mcp/README.md) | The public agent contract, the source-checkout launcher, methods, and limits |
 
 Structured settings are `billing`, `communications`, `storage`, `identity`, and
 `verification`. Provider labels and method names in these guides supersede 0.x

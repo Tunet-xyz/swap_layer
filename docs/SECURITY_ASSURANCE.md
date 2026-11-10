@@ -11,11 +11,11 @@ or live certification against any provider.
 | Local storage keys reject traversal, absolute paths, symlinks, and junctions | `storage/providers/local.py` | `tests/test_release_security.py` |
 | Scoped storage needs an explicit context and checks permissions | `storage/security.py` | `tests/test_release_security.py`, `tests/test_provider_boundaries.py` |
 | PayPal and Square webhooks are verified before use | `billing/providers/paypal.py`, `billing/providers/square.py` | `tests/test_paypal_provider.py`, `tests/test_square_provider.py` |
-| Recognized credential fields are masked in errors and redacted in MCP configuration output | `exceptions.py`, `mcp/server.py` | `tests/test_error_system.py`, `tests/test_mcp.py`, `tests/test_release_security.py` |
+| Credential fields are masked in errors, and configuration output shows only public fields | `exceptions.py`, `_redaction.py` | `tests/test_error_system.py`, `tests/test_config_output.py`, `tests/test_release_security.py` |
 | SwapLayer's own HTTP clients use timeouts | `http.py`, the PayPal and Square clients | `tests/test_provider_boundaries.py`, `tests/test_release_security.py` |
-| Runtime MCP tools carry read-only annotations that match what they do | `mcp/server.py` | `tests/test_mcp.py` |
+| MCP tools carry read-only annotations that match what they do | `mcp/server.py` | `tests/test_mcp_server.py` |
 | Optional providers import lazily | provider factories | `tests/test_optional_dependencies.py`, `tests/test_import_without_django.py` |
-| One release identity across metadata and both MCP contracts | `pyproject.toml`, the contracts | `tests/test_release_identity.py` |
+| One release identity across metadata and both copies of the MCP contract | `pyproject.toml`, the contracts | `tests/test_release_identity.py` |
 
 ## Evidence commands
 
@@ -39,7 +39,7 @@ for the assessed commit.
 
 | Workflow | What it runs |
 | --- | --- |
-| `tests.yaml` | Ruff, mypy, and pytest with branch coverage |
+| `tests.yaml` | Ruff, mypy, and pytest with branch coverage on Python 3.10–3.13, and the tests on Django 4.2 in the `minimum-dependencies` job |
 | `security.yaml` | Bandit and a strict dependency audit |
 | `codeql.yaml` | CodeQL with the security-extended queries |
 | `publish.yaml` | The same checks, a hash-locked build with checksums, and PyPI publication |

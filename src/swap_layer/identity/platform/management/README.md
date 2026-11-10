@@ -55,7 +55,7 @@ Add to `INSTALLED_APPS` in Django settings:
 ```python
 INSTALLED_APPS = [
     # ...
-    'swap_layer.identity.platform.apps.AuthenticationConfig',
+    'swap_layer.identity.platform',  # IdentityPlatformAppConfig
 ]
 ```
 
@@ -106,7 +106,7 @@ WORKOS_APPS = {
     'default': {
         'api_key': os.environ['WORKOS_API_KEY'],
         'client_id': os.environ['WORKOS_CLIENT_ID'],
-        'cookie_password': os.environ['WORKOS_COOKIE_PASSWORD'],
+        'cookie_password': os.environ['WORKOS_COOKIE_PASSWORD'],  # a Fernet key
     }
 }
 ```
@@ -283,6 +283,7 @@ from swap_layer.identity.platform.management.factory import get_management_clien
 def admin_users_list(request):
     mgmt = get_management_client()
     
+    # Auth0 pages by number; WorkOS takes cursors (after/before) and rejects page > 0.
     users = mgmt.users.list_users(
         page=int(request.GET.get('page', 0)),
         per_page=int(request.GET.get('per_page', 50)),
@@ -366,7 +367,7 @@ IDENTITY_PROVIDER = 'workos'
 
 ## Benefits
 
-1. **Provider Independence**: Switch between Auth0, WorkOS, or custom providers with config change
+1. **Provider Independence**: Switch between Auth0 and WorkOS with a configuration change
 2. **Modular Design**: Each concern (users, orgs, roles, logs) is a separate module
 3. **Consistent Interface**: Same API regardless of identity provider
 4. **Easy Testing**: Mock the adapter interfaces for unit tests

@@ -25,20 +25,20 @@ treating them as genuine.
 - Webhook requests from providers are untrusted until their signatures are
   verified.
 - Local storage relies on the filesystem permissions of its root directory.
-- The `swaplayer-mcp` tools run on the caller's machine with the caller's
-  credentials, over stdio without authentication. The contract server in
-  `mcp/` makes no network calls.
+- The `swaplayer-mcp` server runs on the caller's machine with the caller's
+  credentials, over stdio without authentication. Its guidance tools make no
+  network calls.
 
 ## Threats and controls
 
 | Threat | Package control | Residual responsibility |
 | --- | --- | --- |
-| Credential exposure | No credentials ship with the package; settings validation hides input values in its errors; configuration errors mask secret values; MCP configuration output redacts recognized credential fields | Keep secrets in environment variables or a secret manager, and keep settings objects out of logs |
+| Credential exposure | No credentials ship with the package; settings validation hides input values in its errors; configuration errors mask secret values; MCP configuration output shows only public settings fields | Keep secrets in environment variables or a secret manager, and keep settings objects out of logs |
 | Cross-tenant storage access | Scoped storage needs an explicit context with an organization and a `scope_format` containing `{organization_id}`, checks the permission for each operation, and fails without a context; local keys reject `..`, absolute paths, symlinks, and junctions | Build contexts from verified identity, and keep storage roots writable only by trusted processes |
 | Forged billing webhooks | Stripe events use the SDK's signature check, PayPal events use PayPal's verification API, and Square events use an HMAC-SHA256 check with constant-time comparison | Configure webhook secrets, reject unverified events, and de-duplicate events durably |
 | Hanging or repeated provider calls | 30-second default timeouts for SwapLayer's HTTP session and the PayPal and Square clients; bounded retries with backoff | Review each provider SDK's timeouts, and pass idempotency keys for payment writes |
 | Token or session mix-up between tenants | Auth0 management tokens are cached per app, domain, and client; each WorkOS client holds its own credentials | Keep each tenant's provider app configuration separate |
-| Unintended provider actions from local tools | Runtime MCP tools that send, write, or probe storage are marked as not read-only; the contract server is read-only | Approve each test send or storage probe, and use test accounts |
+| Unintended provider actions from local tools | MCP tools that send, write, or probe storage are marked as not read-only; the guidance tools are read-only | Approve each test send or storage probe, and use test accounts |
 | Supply-chain substitution | Pinned workflow actions, hash-locked build tools, Trusted Publishing, owner-approved releases | Pin and verify releases, and keep provider SDKs updated |
 
 ## Required invariants
@@ -51,8 +51,8 @@ treating them as genuine.
    context.
 4. Billing webhook verification rejects an event whose signature or secret is
    missing or wrong.
-5. The contract server reads only its packaged contract and makes no network
-   calls.
+5. The MCP guidance tools read only the packaged contract and guides and make
+   no network calls.
 
 ## Out of scope
 
