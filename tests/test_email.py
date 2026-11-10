@@ -21,8 +21,9 @@ class TestDjangoEmailProvider(unittest.TestCase):
     def setUp(self):
         self.provider = DjangoEmailAdapter()
 
+    @patch("swap_layer.communications.email.providers.django_email.default_email_connection")
     @patch("swap_layer.communications.email.providers.django_email.EmailMultiAlternatives")
-    def test_send_email_success(self, mock_email_class):
+    def test_send_email_success(self, mock_email_class, mock_connection_factory):
         """Test successful email sending."""
         mock_msg = MagicMock()
         mock_email_class.return_value = mock_msg
@@ -32,7 +33,7 @@ class TestDjangoEmailProvider(unittest.TestCase):
         )
 
         self.assertEqual(result["status"], "sent")
-        mock_msg.send.assert_called_once()
+        mock_connection_factory.return_value.send_messages.assert_called_once_with([mock_msg])
         mock_email_class.assert_called_with(
             subject="Hello",
             body="World",

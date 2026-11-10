@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Any
 
 from swap_layer._compat import legacy_setting
+from swap_layer.http import DEFAULT_TIMEOUT
 
 from ..adapter import (
     SMSInvalidPhoneNumberError,
@@ -29,6 +30,7 @@ class TwilioSMSProvider(SMSProviderAdapter):
         account_sid: str | None = None,
         auth_token: str | None = None,
         from_number: str | None = None,
+        timeout: float = DEFAULT_TIMEOUT,
     ):
         """
         Initialize Twilio SMS provider.
@@ -37,8 +39,10 @@ class TwilioSMSProvider(SMSProviderAdapter):
             account_sid: Twilio Account SID (falls back to settings.TWILIO_ACCOUNT_SID)
             auth_token: Twilio Auth Token (falls back to settings.TWILIO_AUTH_TOKEN)
             from_number: Twilio phone number (falls back to settings.TWILIO_FROM_NUMBER)
+            timeout: Seconds to wait for each Twilio API request
         """
         try:
+            from twilio.http.http_client import TwilioHttpClient
             from twilio.rest import Client
 
             # Use provided config or fallback to Django settings for backward compatibility
@@ -52,7 +56,10 @@ class TwilioSMSProvider(SMSProviderAdapter):
             if not account_sid or not auth_token:
                 raise ValueError("TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN must be configured")
 
-            self.client = Client(account_sid, auth_token)
+            # Twilio's default HTTP client waits indefinitely; bound every request.
+            self.client = Client(
+                account_sid, auth_token, http_client=TwilioHttpClient(timeout=timeout)
+            )
             self.from_number = from_number
 
         except ImportError:

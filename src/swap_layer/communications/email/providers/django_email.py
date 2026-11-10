@@ -3,6 +3,7 @@ from typing import Any
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 
+from .._connection import default_email_connection
 from ..adapter import EmailProviderAdapter, EmailSendError
 
 
@@ -75,7 +76,7 @@ class DjangoEmailAdapter(EmailProviderAdapter):
                 if hasattr(msg, "tags") and "tags" in metadata:
                     msg.tags = metadata["tags"]
 
-            msg.send()
+            default_email_connection().send_messages([msg])
 
             return {
                 "status": "sent",

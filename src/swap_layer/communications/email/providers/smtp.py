@@ -5,9 +5,10 @@ from string import Template
 from typing import Any
 
 from django.conf import settings
-from django.core.mail import EmailMultiAlternatives, get_connection
+from django.core.mail import EmailMultiAlternatives
 from django.core.mail.message import EmailMessage
 
+from .._connection import default_email_connection
 from ..adapter import EmailProviderAdapter, EmailSendError, TemplateNotFoundError
 
 logger = logging.getLogger(__name__)
@@ -35,9 +36,9 @@ class SMTPEmailProvider(EmailProviderAdapter):
         self.connection = None
 
     def _get_connection(self):
-        """Get or create email backend connection."""
+        """Get or create the email backend connection (SMTP waits are bounded)."""
         if self.connection is None:
-            self.connection = get_connection()
+            self.connection = default_email_connection()
         return self.connection
 
     def send_email(
@@ -106,8 +107,8 @@ class SMTPEmailProvider(EmailProviderAdapter):
                         mimetype=attachment.get("mimetype", "application/octet-stream"),
                     )
 
-            # Send email
-            result = msg.send(fail_silently=False)
+            # Send email through the bounded (and, in bulk sends, already open) connection
+            result = self._get_connection().send_messages([msg]) or 0
 
             # Generate a unique message ID (Django doesn't provide one)
             message_id = f"smtp_{uuid.uuid4().hex}"
