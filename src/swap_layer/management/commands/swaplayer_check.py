@@ -9,7 +9,11 @@ Usage:
 
 from django.core.management.base import BaseCommand, CommandError
 
+from swap_layer._redaction import redact_config
 from swap_layer.settings import validate_swaplayer_config
+
+# Credential values are replaced by this marker; no characters are shown.
+SECRET_MASK = "********"
 
 
 class Command(BaseCommand):
@@ -112,38 +116,24 @@ class Command(BaseCommand):
         self.stdout.write(self.style.HTTP_INFO("=" * 60))
 
     def _print_config(self, config, indent=0):
-        """Print configuration with sensitive values masked."""
+        """Print configuration; every non-public value is masked completely."""
+        self._print_value(redact_config(config, mask=SECRET_MASK), indent)
+
+    def _print_value(self, value, indent):
         prefix = " " * indent
-
-        for field_name, field_value in config.__dict__.items():
-            if field_value is None:
-                continue
-
-            # Mask sensitive values
-            if any(
-                keyword in field_name.lower() for keyword in ["key", "secret", "token", "password"]
-            ):
-                if isinstance(field_value, str):
-                    masked = (
-                        field_value[:8] + "..." + field_value[-4:]
-                        if len(field_value) > 12
-                        else "***"
-                    )
-                    self.stdout.write(f"{prefix}{field_name}: {masked}")
+        if isinstance(value, dict):
+            for key, item in value.items():
+                if item is None:
+                    continue
+                if isinstance(item, (dict, list)):
+                    self.stdout.write(f"{prefix}{key}:")
+                    self._print_value(item, indent + 2)
                 else:
-                    self.stdout.write(f"{prefix}{field_name}: [MASKED]")
-            elif isinstance(field_value, dict):
-                self.stdout.write(f"{prefix}{field_name}:")
-                for key, val in field_value.items():
-                    if any(
-                        keyword in key.lower() for keyword in ["key", "secret", "token", "password"]
-                    ):
-                        masked = "***"
-                        self.stdout.write(f"{prefix}  {key}: {masked}")
-                    else:
-                        self.stdout.write(f"{prefix}  {key}: {val}")
-            elif hasattr(field_value, "__dict__"):
-                self.stdout.write(f"{prefix}{field_name}:")
-                self._print_config(field_value, indent + 2)
-            else:
-                self.stdout.write(f"{prefix}{field_name}: {field_value}")
+                    self.stdout.write(f"{prefix}{key}: {item}")
+        elif isinstance(value, list):
+            for item in value:
+                if isinstance(item, (dict, list)):
+                    self.stdout.write(f"{prefix}-")
+                    self._print_value(item, indent + 2)
+                else:
+                    self.stdout.write(f"{prefix}- {item}")

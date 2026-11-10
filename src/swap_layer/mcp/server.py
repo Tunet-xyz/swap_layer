@@ -11,9 +11,8 @@ import uuid
 from io import BytesIO
 from typing import Any
 
-from pydantic import BaseModel
-
 from swap_layer import __version__
+from swap_layer._redaction import redact_config
 
 try:
     import mcp.types as types
@@ -25,38 +24,10 @@ except ImportError:
     MCP_AVAILABLE = False
     Server = None  # type: ignore
 
-# Sensitive keys that should be redacted from configuration output
-SENSITIVE_KEYS = {
-    "secret_key",
-    "api_key",
-    "password",
-    "token",
-    "account_sid",
-    "auth_token",
-    "client_secret",
-    "cookie_password",
-}
-
 
 def _redact_config(value: Any) -> Any:
-    """Omit credential fields recursively, including nested validated settings."""
-    if isinstance(value, BaseModel):
-        value = value.model_dump()
-    if isinstance(value, dict):
-        return {
-            key: _redact_config(item)
-            for key, item in value.items()
-            if not (
-                str(key).lower() in SENSITIVE_KEYS
-                or any(
-                    marker in str(key).lower()
-                    for marker in ("secret", "password", "token", "api_key", "credential", "private_key")
-                )
-            )
-        }
-    if isinstance(value, (list, tuple)):
-        return [_redact_config(item) for item in value]
-    return value
+    """Return configuration with every non-public field omitted, recursively."""
+    return redact_config(value)
 
 # Packaged guidance works from wheels without a source checkout or Django.
 _GUIDANCE: dict[str, Any] = json.loads(pathlib.Path(__file__).with_name("guidance.json").read_text(encoding="utf-8"))

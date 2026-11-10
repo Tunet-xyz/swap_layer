@@ -101,7 +101,7 @@ async def test_mcp_redacts_nested_current_settings():
     assert "private-" not in serialized
     assert "public-client" in serialized
     assert single["config"]["provider"] == "stripe"
-    assert _redact_config({"nested": [{"AWS_SECRET_ACCESS_KEY": "private", "label": "kept"}]}) == {"nested": [{"label": "kept"}]}
+    assert _redact_config({"nested": [{"AWS_SECRET_ACCESS_KEY": "private", "provider": "kept"}]}) == {"nested": [{"provider": "kept"}]}
 
 
 @pytest.mark.asyncio
