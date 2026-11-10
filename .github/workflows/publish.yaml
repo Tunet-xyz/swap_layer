@@ -13,6 +13,7 @@ concurrency:
 jobs:
   build:
     if: github.event_name == 'workflow_dispatch' && github.actor == 'bezu-1' && github.triggering_actor == 'bezu-1'
+    name: Build and verify distributions
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -21,12 +22,12 @@ jobs:
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with: {python-version: "3.13"}
       - name: Require main or the matching version tag
-        env: {RELEASE_REF: "${{ github.ref }}"}
+        env: {REF: "${{ github.ref }}"}
         run: |
           version="$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")"
-          case "$RELEASE_REF" in
+          case "$REF" in
             refs/heads/main|"refs/tags/v$version") ;;
-            *) echo "::error::Choose main or v$version."; exit 1 ;;
+            *) echo "::error::Publish from main or tag v$version, not $REF."; exit 1 ;;
           esac
       - run: python -m pip install --require-hashes -r requirements/build.txt
       - run: python -m pip install ".[all,dev]"
