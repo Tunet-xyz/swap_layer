@@ -334,3 +334,20 @@ async def test_migration_guide():
     assert "customer" in billing["data_migration_note"].lower()
     assert (await _get_migration_guide("unknown_service", "a", "b"))["status"] == "error"
     assert (await _get_migration_guide("email", "sendgrid", "unknown"))["warnings"]
+
+
+@pytest.mark.parametrize(
+    ("path", "servers_key"),
+    [("docs/mcp-config-example.json", "mcpServers"), ("examples/vscode-mcp.json", "servers")],
+)
+def test_client_config_examples_start_the_server_with_real_settings(path, servers_key):
+    from swap_layer.settings import SwapLayerSettings, _env_path
+
+    config = json.loads((ROOT / path).read_text(encoding="utf-8"))
+    (name, entry), = config[servers_key].items()
+    assert name == entry["command"] == "swaplayer-mcp"
+    assert "DJANGO_SETTINGS_MODULE" not in entry["env"]  # the CLI reads SWAPLAYER_ variables
+    for variable in entry["env"]:
+        assert variable.startswith("SWAPLAYER_"), variable
+        parts = variable.removeprefix("SWAPLAYER_").lower().split("_")
+        assert _env_path(SwapLayerSettings, parts) is not None, variable

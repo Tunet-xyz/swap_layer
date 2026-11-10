@@ -1,11 +1,12 @@
 {
-  "mcpServers": {
-    "swaplayer": {
+  "servers": {
+    "swaplayer-mcp": {
+      "type": "stdio",
       "command": "swaplayer-mcp",
       "args": [],
       "env": {
-        "DJANGO_SETTINGS_MODULE": "your_project.settings",
-        "PYTHONPATH": "${workspaceFolder}"
+        "SWAPLAYER_STORAGE_PROVIDER": "local",
+        "SWAPLAYER_STORAGE_MEDIA_ROOT": "${workspaceFolder}/media"
       }
     }
   }
