@@ -343,7 +343,8 @@ class SMTPEmailProvider(EmailProviderAdapter):
         """
         Validate webhook signature (not applicable for SMTP).
 
-        SMTP doesn't have webhooks. Always returns True.
+        SMTP has no signed webhooks, so no payload can be verified. Always
+        returns False.
         """
         logger.warning("SMTP provider does not support webhooks")
-        return True
+        return False
