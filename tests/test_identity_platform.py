@@ -66,6 +66,8 @@ class TestWorkOSClient(unittest.TestCase):
         self.sdk_patcher.start()
         self.provider = WorkOSClient(app_name="default")
         self.mock_request = MagicMock()
+        self.mock_request.session = {}
+        self.mock_request.method = "GET"
 
     def tearDown(self):
         self.sdk_patcher.stop()
@@ -83,6 +85,9 @@ class TestWorkOSClient(unittest.TestCase):
 
         self.assertIn("workos.com", result)
         self.mock_sdk_client.user_management.get_authorization_url.assert_called_once()
+        call = self.mock_sdk_client.user_management.get_authorization_url.call_args
+        self.assertEqual(call.kwargs["state"], "random_state")
+        self.assertIn("random_state", self.mock_request.session["swaplayer_workos_oauth_states"])
 
     def test_exchange_code_for_user_success(self):
         """Test exchanging authorization code for user data."""
@@ -105,6 +110,9 @@ class TestWorkOSClient(unittest.TestCase):
         mock_response.sealed_session = "sealed_session_value"
 
         self.mock_sdk_client.user_management.authenticate_with_code.return_value = mock_response
+        self.provider.get_authorization_url(self.mock_request, "https://example.com/callback")
+        state = self.mock_sdk_client.user_management.get_authorization_url.call_args.kwargs["state"]
+        self.mock_request.GET = {"code": "auth_code_123", "state": state}
         result = self.provider.exchange_code_for_user(
             request=self.mock_request, code="auth_code_123"
         )

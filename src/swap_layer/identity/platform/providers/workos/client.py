@@ -5,12 +5,19 @@ Thread-safe implementation using WorkOS SDK v6+/v7 client pattern.
 Each instance maintains its own WorkOSClient with dedicated credentials.
 """
 
+import secrets
+import time
 from typing import Any
 
 from workos import WorkOSClient as WorkOSSDKClient
 from workos.session import Session
 
-from ...adapter import AuthProviderAdapter
+from ...adapter import AuthProviderAdapter, OAuthStateError
+
+# Pending sign-in states, kept in the Django session until their callback.
+STATE_SESSION_KEY = "swaplayer_workos_oauth_states"
+STATE_LIFETIME_SECONDS = 600
+MAX_PENDING_STATES = 10
 
 
 def _seal_auth_response(response: Any, user: Any, cookie_password: str) -> str:
@@ -92,17 +99,44 @@ class WorkOSClient(AuthProviderAdapter):
         """
         Generate OAuth authorization URL for WorkOS AuthKit.
 
+        The state (a random one unless you pass your own) is stored in the
+        Django session; exchange_code_for_user accepts only a callback that
+        returns it, once, within 10 minutes.
+
         Args:
-            request: Django HTTP request (unused, for interface compatibility)
+            request: Django HTTP request whose session records the state
             redirect_uri: URL to redirect after authentication
-            state: Optional state parameter for CSRF protection
+            state: Optional state value; one is generated when omitted
 
         Returns:
             Authorization URL to redirect the user to
         """
+        state = state or secrets.token_urlsafe(32)
+        now = time.time()
+        pending = {
+            key: expiry
+            for key, expiry in dict(request.session.get(STATE_SESSION_KEY) or {}).items()
+            if isinstance(expiry, (int, float)) and expiry > now
+        }
+        pending[state] = now + STATE_LIFETIME_SECONDS
+        newest = sorted(pending.items(), key=lambda item: item[1])[-MAX_PENDING_STATES:]
+        request.session[STATE_SESSION_KEY] = dict(newest)
         return self._workos_client.user_management.get_authorization_url(
             provider="authkit", redirect_uri=redirect_uri, state=state
         )
+
+    @staticmethod
+    def _consume_state(request) -> None:
+        """Accept the callback only if it returns a pending, unexpired state."""
+        params = request.GET if getattr(request, "method", "GET") == "GET" else request.POST
+        state = params.get("state")
+        pending = dict(request.session.get(STATE_SESSION_KEY) or {})
+        expiry = pending.pop(state, None) if isinstance(state, str) and state else None
+        request.session[STATE_SESSION_KEY] = pending
+        if not isinstance(expiry, (int, float)) or expiry < time.time():
+            raise OAuthStateError(
+                "The sign-in state is missing, expired, or was not issued to this session."
+            )
 
     def exchange_code_for_user(self, request, code: str) -> dict[str, Any]:
         """
@@ -112,12 +146,16 @@ class WorkOSClient(AuthProviderAdapter):
         Sealed sessions are created explicitly after authentication.
 
         Args:
-            request: Django HTTP request (unused, for interface compatibility)
+            request: Django HTTP callback request; its state must match the session
             code: Authorization code from OAuth callback
 
         Returns:
             Dict containing normalized user data and sealed session
+
+        Raises:
+            OAuthStateError: If the callback's state was not issued to this session
         """
+        self._consume_state(request)
         response = self._workos_client.user_management.authenticate_with_code(code=code)
 
         user = response.user
@@ -170,6 +208,7 @@ class WorkOSClient(AuthProviderAdapter):
         Args:
             request: Django HTTP request containing session to clear
         """
-        # Remove WorkOS sealed session if it exists
-        if "workos_sealed_session" in request.session:
-            del request.session["workos_sealed_session"]
+        # Remove WorkOS sealed session and pending sign-in states if they exist
+        for key in ("workos_sealed_session", STATE_SESSION_KEY):
+            if key in request.session:
+                del request.session[key]

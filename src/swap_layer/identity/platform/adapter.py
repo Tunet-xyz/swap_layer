@@ -1,6 +1,16 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
+from swap_layer.exceptions import SwapLayerError
+
+
+class IdentityPlatformError(SwapLayerError):
+    """Base exception for identity platform (OAuth/SSO) operations."""
+
+
+class OAuthStateError(IdentityPlatformError):
+    """The OAuth callback's state is missing, expired, or not from this session."""
+
 
 class AuthProviderAdapter(ABC):
     """
