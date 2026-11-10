@@ -41,14 +41,6 @@ dependencies = [
   "tenacity>=8.0.0",
 ]
 
-[project.urls]
-Homepage = "https://github.com/Tunet-xyz/swap_layer"
-Product = "https://www.tunet.xyz/engineering/swap-layer/"
-Documentation = "https://github.com/Tunet-xyz/swap_layer/blob/main/docs/README.md"
-Repository = "https://github.com/Tunet-xyz/swap_layer"
-Issues = "https://github.com/Tunet-xyz/swap_layer/issues"
-Changelog = "https://github.com/Tunet-xyz/swap_layer/blob/main/CHANGELOG.md"
-
 [project.optional-dependencies]
 django = ["Django>=4.2,<7"]
 fastapi = ["fastapi>=0.100.0"]
@@ -90,6 +82,14 @@ dev = [
   "bandit>=1.9",
   "pip-audit>=2.10",
 ]
+
+[project.urls]
+Homepage = "https://github.com/Tunet-xyz/swap_layer"
+Product = "https://www.tunet.xyz/engineering/swap-layer/"
+Documentation = "https://github.com/Tunet-xyz/swap_layer/blob/main/docs/README.md"
+Repository = "https://github.com/Tunet-xyz/swap_layer"
+Issues = "https://github.com/Tunet-xyz/swap_layer/issues"
+Changelog = "https://github.com/Tunet-xyz/swap_layer/blob/main/CHANGELOG.md"
 
 [project.scripts]
 swaplayer-mcp = "swap_layer.mcp.server:main"
