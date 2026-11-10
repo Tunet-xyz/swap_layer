@@ -40,7 +40,7 @@ jobs:
         run: |
           export SOURCE_DATE_EPOCH="$(git show -s --format=%ct HEAD)"
           python -m build --no-isolation --outdir dist/packages
-          python -m twine check dist/packages/*
+          python -m twine check --strict dist/packages/*
           sha256sum dist/packages/* > dist/SHA256SUMS
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with: {name: release-distributions, path: dist/, if-no-files-found: error}
