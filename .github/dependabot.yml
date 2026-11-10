@@ -5,14 +5,14 @@ updates:
     schedule: {interval: weekly}
     # Keep the declared floors (this is a library) and raise major updates in
     # their own pull requests. The uv build lock and the floor pins change by hand.
-    versioning-strategy: widen
+    versioning-strategy: increase-if-necessary
     exclude-paths: [requirements/build.in, requirements/build.txt, requirements/minimum.txt]
     commit-message: {prefix: build, include: scope}
     groups:
       python-dependencies: {patterns: ["*"], update-types: [minor, patch]}
     ignore:
       # The MCP server uses the SDK 1.x decorator API, which SDK 2 removed.
-      - {dependency-name: mcp, update-types: ["version-update:semver-major"]}
+      - {dependency-name: mcp, versions: [">=2"]}
   - package-ecosystem: github-actions
     directory: /
     schedule: {interval: weekly}
