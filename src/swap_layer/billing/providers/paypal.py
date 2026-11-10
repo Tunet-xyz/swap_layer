@@ -4,6 +4,8 @@ from typing import Any, NoReturn
 
 import requests
 
+from swap_layer.http import quote_path_segment
+
 from ..adapter import (
     PaymentConnectionError,
     PaymentError,
@@ -206,7 +208,7 @@ class PayPalPaymentProvider(PaymentProviderAdapter):
         return self._normalize_product(product)
 
     def get_product(self, product_id: str) -> dict[str, Any]:
-        return self._normalize_product(self._request("GET", f"/v1/catalogs/products/{product_id}"))
+        return self._normalize_product(self._request("GET", f"/v1/catalogs/products/{quote_path_segment(product_id)}"))
 
     def update_product(
         self,
@@ -224,7 +226,7 @@ class PayPalPaymentProvider(PaymentProviderAdapter):
             patches.append({"op": "replace", "path": "/description", "value": description})
         if not patches:
             return self.get_product(product_id)
-        self._request("PATCH", f"/v1/catalogs/products/{product_id}", json=patches)
+        self._request("PATCH", f"/v1/catalogs/products/{quote_path_segment(product_id)}", json=patches)
         return self.get_product(product_id)
 
     def list_products(self, limit: int = 10, active: bool | None = None) -> list[dict[str, Any]]:
@@ -268,7 +270,7 @@ class PayPalPaymentProvider(PaymentProviderAdapter):
         return self._normalize_price(plan)
 
     def get_price(self, price_id: str) -> dict[str, Any]:
-        return self._normalize_price(self._request("GET", f"/v1/billing/plans/{price_id}"))
+        return self._normalize_price(self._request("GET", f"/v1/billing/plans/{quote_path_segment(price_id)}"))
 
     def list_prices(self, product_id: str | None = None, limit: int = 10) -> list[dict[str, Any]]:
         payload = self._request("GET", f"/v1/billing/plans?page_size={limit}")
@@ -307,7 +309,7 @@ class PayPalPaymentProvider(PaymentProviderAdapter):
 
     def get_subscription(self, subscription_id: str) -> dict[str, Any]:
         return self._normalize_subscription(
-            self._request("GET", f"/v1/billing/subscriptions/{subscription_id}")
+            self._request("GET", f"/v1/billing/subscriptions/{quote_path_segment(subscription_id)}")
         )
 
     def update_subscription(
@@ -333,7 +335,7 @@ class PayPalPaymentProvider(PaymentProviderAdapter):
                 }
             )
         if patches:
-            self._request("PATCH", f"/v1/billing/subscriptions/{subscription_id}", json=patches)
+            self._request("PATCH", f"/v1/billing/subscriptions/{quote_path_segment(subscription_id)}", json=patches)
         return self.get_subscription(subscription_id)
 
     def cancel_subscription(
@@ -341,7 +343,7 @@ class PayPalPaymentProvider(PaymentProviderAdapter):
     ) -> dict[str, Any]:
         self._request(
             "POST",
-            f"/v1/billing/subscriptions/{subscription_id}/cancel",
+            f"/v1/billing/subscriptions/{quote_path_segment(subscription_id)}/cancel",
             json={"reason": "Cancelled"},
         )
         return {"id": subscription_id, "status": "cancelled", "cancel_at_period_end": at_period_end}
@@ -351,7 +353,7 @@ class PayPalPaymentProvider(PaymentProviderAdapter):
     ) -> dict[str, Any]:
         self._request(
             "POST",
-            f"/v1/billing/subscriptions/{subscription_id}/suspend",
+            f"/v1/billing/subscriptions/{quote_path_segment(subscription_id)}/suspend",
             json={"reason": "Paused"},
         )
         return {"id": subscription_id, "status": "suspended"}
@@ -364,7 +366,7 @@ class PayPalPaymentProvider(PaymentProviderAdapter):
     ) -> dict[str, Any]:
         self._request(
             "POST",
-            f"/v1/billing/subscriptions/{subscription_id}/activate",
+            f"/v1/billing/subscriptions/{quote_path_segment(subscription_id)}/activate",
             json={"reason": "Resumed"},
         )
         return {"id": subscription_id, "status": "active"}
@@ -419,12 +421,12 @@ class PayPalPaymentProvider(PaymentProviderAdapter):
     def confirm_payment_intent(
         self, payment_intent_id: str, payment_method_id: str | None = None
     ) -> dict[str, Any]:
-        order = self._request("POST", f"/v2/checkout/orders/{payment_intent_id}/capture", json={})
+        order = self._request("POST", f"/v2/checkout/orders/{quote_path_segment(payment_intent_id)}/capture", json={})
         return self._normalize_order(order)
 
     def get_payment_intent(self, payment_intent_id: str) -> dict[str, Any]:
         return self._normalize_order(
-            self._request("GET", f"/v2/checkout/orders/{payment_intent_id}")
+            self._request("GET", f"/v2/checkout/orders/{quote_path_segment(payment_intent_id)}")
         )
 
     def create_checkout_session(
@@ -500,7 +502,7 @@ class PayPalPaymentProvider(PaymentProviderAdapter):
         return self._normalize_invoice(invoice)
 
     def get_invoice(self, invoice_id: str) -> dict[str, Any]:
-        return self._normalize_invoice(self._request("GET", f"/v2/invoicing/invoices/{invoice_id}"))
+        return self._normalize_invoice(self._request("GET", f"/v2/invoicing/invoices/{quote_path_segment(invoice_id)}"))
 
     def list_invoices(self, customer_id: str, limit: int = 10) -> list[dict[str, Any]]:
         payload = self._request("GET", f"/v2/invoicing/invoices?page_size={limit}")
@@ -510,13 +512,13 @@ class PayPalPaymentProvider(PaymentProviderAdapter):
         return self.get_invoice(invoice_id)
 
     def pay_invoice(self, invoice_id: str, **kwargs: Any) -> dict[str, Any]:
-        self._request("POST", f"/v2/invoicing/invoices/{invoice_id}/send", json=kwargs or {})
+        self._request("POST", f"/v2/invoicing/invoices/{quote_path_segment(invoice_id)}/send", json=kwargs or {})
         return self.get_invoice(invoice_id)
 
     def void_invoice(self, invoice_id: str, **kwargs: Any) -> dict[str, Any]:
         self._request(
             "POST",
-            f"/v2/invoicing/invoices/{invoice_id}/cancel",
+            f"/v2/invoicing/invoices/{quote_path_segment(invoice_id)}/cancel",
             json=kwargs or {"subject": "Invoice voided"},
         )
         return {"id": invoice_id, "status": "voided"}
@@ -539,11 +541,11 @@ class PayPalPaymentProvider(PaymentProviderAdapter):
         payload = {}
         if amount is not None:
             payload["amount"] = self._money(amount, kwargs.pop("currency", "USD"))
-        refund = self._request("POST", f"/v2/payments/captures/{capture_id}/refund", json=payload)
+        refund = self._request("POST", f"/v2/payments/captures/{quote_path_segment(capture_id)}/refund", json=payload)
         return self._normalize_refund(refund)
 
     def get_refund(self, refund_id: str) -> dict[str, Any]:
-        return self._normalize_refund(self._request("GET", f"/v2/payments/refunds/{refund_id}"))
+        return self._normalize_refund(self._request("GET", f"/v2/payments/refunds/{quote_path_segment(refund_id)}"))
 
     def list_refunds(
         self, payment_intent_id: str | None = None, charge_id: str | None = None, limit: int = 10

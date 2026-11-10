@@ -4,6 +4,7 @@ Auth0 Organization Management Implementation
 
 from typing import TYPE_CHECKING, Any
 
+from swap_layer.http import quote_path_segment
 from swap_layer.identity.platform.management.adapter import OrganizationManagementAdapter
 
 if TYPE_CHECKING:
@@ -53,7 +54,7 @@ class Auth0OrganizationManagement(OrganizationManagementAdapter):
         Returns:
             Organization object
         """
-        return self.base_client._make_object_request("GET", f"/organizations/{org_id}")
+        return self.base_client._make_object_request("GET", f"/organizations/{quote_path_segment(org_id)}")
 
     def create_organization(
         self,
@@ -128,7 +129,7 @@ class Auth0OrganizationManagement(OrganizationManagementAdapter):
 
         payload.update(kwargs)
 
-        return self.base_client._make_object_request("PATCH", f"/organizations/{org_id}", json=payload)
+        return self.base_client._make_object_request("PATCH", f"/organizations/{quote_path_segment(org_id)}", json=payload)
 
     def delete_organization(self, org_id: str) -> None:
         """
@@ -137,7 +138,7 @@ class Auth0OrganizationManagement(OrganizationManagementAdapter):
         Args:
             org_id: Organization ID
         """
-        self.base_client._make_object_request("DELETE", f"/organizations/{org_id}")
+        self.base_client._make_object_request("DELETE", f"/organizations/{quote_path_segment(org_id)}")
 
     def list_organization_members(
         self, org_id: str, page: int = 0, per_page: int = 50, **kwargs
@@ -156,7 +157,7 @@ class Auth0OrganizationManagement(OrganizationManagementAdapter):
         """
         params: dict[str, Any] = {"page": page, "per_page": per_page, **kwargs}
         return self.base_client._make_list_request(
-            "GET", f"/organizations/{org_id}/members", params=params
+            "GET", f"/organizations/{quote_path_segment(org_id)}/members", params=params
         )
 
     def add_organization_members(self, org_id: str, user_ids: list[str], **kwargs) -> None:
@@ -169,7 +170,7 @@ class Auth0OrganizationManagement(OrganizationManagementAdapter):
             **kwargs: Additional Auth0-specific parameters
         """
         payload: dict[str, Any] = {"members": user_ids, **kwargs}
-        self.base_client._make_object_request("POST", f"/organizations/{org_id}/members", json=payload)
+        self.base_client._make_object_request("POST", f"/organizations/{quote_path_segment(org_id)}/members", json=payload)
 
     def remove_organization_members(self, org_id: str, user_ids: list[str], **kwargs) -> None:
         """
@@ -181,7 +182,7 @@ class Auth0OrganizationManagement(OrganizationManagementAdapter):
             **kwargs: Additional Auth0-specific parameters
         """
         payload: dict[str, Any] = {"members": user_ids, **kwargs}
-        self.base_client._make_object_request("DELETE", f"/organizations/{org_id}/members", json=payload)
+        self.base_client._make_object_request("DELETE", f"/organizations/{quote_path_segment(org_id)}/members", json=payload)
 
     def get_organization_member_roles(
         self, org_id: str, user_id: str, **kwargs
@@ -198,7 +199,7 @@ class Auth0OrganizationManagement(OrganizationManagementAdapter):
             List of role objects
         """
         return self.base_client._make_list_request(
-            "GET", f"/organizations/{org_id}/members/{user_id}/roles", params=kwargs
+            "GET", f"/organizations/{quote_path_segment(org_id)}/members/{quote_path_segment(user_id)}/roles", params=kwargs
         )
 
     def assign_organization_member_roles(
@@ -215,5 +216,5 @@ class Auth0OrganizationManagement(OrganizationManagementAdapter):
         """
         payload: dict[str, Any] = {"roles": role_ids, **kwargs}
         self.base_client._make_object_request(
-            "POST", f"/organizations/{org_id}/members/{user_id}/roles", json=payload
+            "POST", f"/organizations/{quote_path_segment(org_id)}/members/{quote_path_segment(user_id)}/roles", json=payload
         )

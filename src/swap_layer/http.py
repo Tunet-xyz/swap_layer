@@ -7,6 +7,7 @@ Provides resilient HTTP requests with exponential backoff for all provider integ
 import logging
 from collections.abc import Callable
 from typing import Any, TypeVar, cast
+from urllib.parse import quote
 
 import requests
 from requests.exceptions import (
@@ -28,6 +29,20 @@ RETRYABLE_STATUS_CODES = {429, 500, 502, 503, 504}
 # Exceptions that should trigger a retry
 RETRYABLE_EXCEPTIONS = (ConnectionError, Timeout)
 _RequestFunction = TypeVar("_RequestFunction", bound=Callable[..., Any])
+
+
+def quote_path_segment(value: Any) -> str:
+    """
+    Encode an identifier as exactly one URL path segment.
+
+    Every reserved character (including "/", "?", "#" and "|") is
+    percent-encoded, and empty or dot-only identifiers are rejected, so an
+    identifier can never change which endpoint a request reaches.
+    """
+    text = "" if value is None else str(value)
+    if not text.strip("."):
+        raise ValueError("Identifiers in request paths must be non-empty and not dot-only")
+    return quote(text, safe="")
 
 
 def is_retryable_error(exception: BaseException) -> bool:

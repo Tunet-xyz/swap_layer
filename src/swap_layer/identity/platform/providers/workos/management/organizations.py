@@ -7,6 +7,7 @@ Handles organization CRUD and membership management via the WorkOS Organizations
 from typing import TYPE_CHECKING, Any
 
 from swap_layer.exceptions import SwapLayerError
+from swap_layer.http import quote_path_segment
 from swap_layer.identity.platform.management._responses import object_list
 from swap_layer.identity.platform.management.adapter import OrganizationManagementAdapter
 
@@ -71,7 +72,7 @@ class WorkOSOrganizationManagement(OrganizationManagementAdapter):
         Returns:
             Organization object
         """
-        return self.base_client._make_request("GET", f"/organizations/{org_id}")
+        return self.base_client._make_request("GET", f"/organizations/{quote_path_segment(org_id)}")
 
     def create_organization(
         self, name: str, display_name: str | None = None, metadata: dict | None = None,
@@ -129,7 +130,7 @@ class WorkOSOrganizationManagement(OrganizationManagementAdapter):
         if domains is not None:
             data["domain_data"] = [{"domain": d, "state": "pending"} for d in domains]
         data.update(kwargs)
-        return self.base_client._make_request("PUT", f"/organizations/{org_id}", json=data)
+        return self.base_client._make_request("PUT", f"/organizations/{quote_path_segment(org_id)}", json=data)
 
     def delete_organization(self, org_id: str) -> None:
         """Delete an organization.
@@ -140,7 +141,7 @@ class WorkOSOrganizationManagement(OrganizationManagementAdapter):
         Returns:
             True if successful
         """
-        self.base_client._make_request("DELETE", f"/organizations/{org_id}")
+        self.base_client._make_request("DELETE", f"/organizations/{quote_path_segment(org_id)}")
 
     def list_organization_members(
         self, org_id: str, page: int = 0, per_page: int = 50, **kwargs
@@ -204,7 +205,7 @@ class WorkOSOrganizationManagement(OrganizationManagementAdapter):
             if membership.get("user_id") == user_id:
                 membership_id = membership.get("id")
                 self.base_client._make_request(
-                    "DELETE", f"/user_management/organization_memberships/{membership_id}"
+                    "DELETE", f"/user_management/organization_memberships/{quote_path_segment(membership_id)}"
                 )
                 return True
         return False
@@ -242,6 +243,6 @@ class WorkOSOrganizationManagement(OrganizationManagementAdapter):
                 membership_id = membership.get("id")
                 data: dict[str, Any] = {"role_slug": role_slug}
                 return self.base_client._make_request(
-                    "PUT", f"/user_management/organization_memberships/{membership_id}", json=data
+                    "PUT", f"/user_management/organization_memberships/{quote_path_segment(membership_id)}", json=data
                 )
         raise WorkOSAPIError(404, "Membership not found", {})

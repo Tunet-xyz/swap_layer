@@ -7,6 +7,7 @@ Note: Role creation is done via the WorkOS Dashboard, not the API.
 
 from typing import TYPE_CHECKING, Any
 
+from swap_layer.http import quote_path_segment
 from swap_layer.identity.platform.management._responses import object_list
 from swap_layer.identity.platform.management.adapter import RoleManagementAdapter
 
@@ -46,7 +47,7 @@ class WorkOSRoleManagement(RoleManagementAdapter):
             NotImplementedError: If organization_id not provided
         """
         if organization_id:
-            return self.base_client._make_request("GET", f"/organizations/{organization_id}/roles")
+            return self.base_client._make_request("GET", f"/organizations/{quote_path_segment(organization_id)}/roles")
         raise NotImplementedError("WorkOS requires organization_id to list roles")
 
     def get_role(self, role_id: str) -> dict[str, Any]:
@@ -129,7 +130,7 @@ class WorkOSRoleManagement(RoleManagementAdapter):
         membership_id = memberships[0].get("id")
         return self.base_client._make_request(
             "PUT",
-            f"/user_management/organization_memberships/{membership_id}",
+            f"/user_management/organization_memberships/{quote_path_segment(membership_id)}",
             json={"role_slug": role_id},
         )
 

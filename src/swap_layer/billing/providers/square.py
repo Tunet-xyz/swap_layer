@@ -12,6 +12,8 @@ from typing import Any, NoReturn
 
 import requests
 
+from swap_layer.http import quote_path_segment
+
 from ..adapter import (
     PaymentConnectionError,
     PaymentError,
@@ -164,7 +166,7 @@ class SquarePaymentProvider(PaymentProviderAdapter):
         return self._normalize_customer(customer)
 
     def get_customer(self, customer_id: str) -> dict[str, Any]:
-        customer = self._request("GET", f"/v2/customers/{customer_id}").get("customer", {})
+        customer = self._request("GET", f"/v2/customers/{quote_path_segment(customer_id)}").get("customer", {})
         return self._normalize_customer(customer)
 
     def update_customer(
@@ -183,13 +185,13 @@ class SquarePaymentProvider(PaymentProviderAdapter):
             payload["family_name"] = parts[1] if len(parts) > 1 else ""
         if metadata:
             payload["reference_id"] = metadata.get("reference_id") or metadata.get("id")
-        customer = self._request("PUT", f"/v2/customers/{customer_id}", json_body=payload).get(
+        customer = self._request("PUT", f"/v2/customers/{quote_path_segment(customer_id)}", json_body=payload).get(
             "customer", {}
         )
         return self._normalize_customer(customer)
 
     def delete_customer(self, customer_id: str) -> dict[str, Any]:
-        self._request("DELETE", f"/v2/customers/{customer_id}")
+        self._request("DELETE", f"/v2/customers/{quote_path_segment(customer_id)}")
         return {"id": customer_id, "deleted": True}
 
     # Product and Pricing
@@ -222,7 +224,7 @@ class SquarePaymentProvider(PaymentProviderAdapter):
         return self._normalize_product(item)
 
     def get_product(self, product_id: str) -> dict[str, Any]:
-        item = self._request("GET", f"/v2/catalog/object/{product_id}").get("object", {})
+        item = self._request("GET", f"/v2/catalog/object/{quote_path_segment(product_id)}").get("object", {})
         return self._normalize_product(item)
 
     def update_product(
@@ -234,7 +236,7 @@ class SquarePaymentProvider(PaymentProviderAdapter):
         active: bool | None = None,
         **extra_params: Any,
     ) -> dict[str, Any]:
-        existing = self._request("GET", f"/v2/catalog/object/{product_id}").get("object", {})
+        existing = self._request("GET", f"/v2/catalog/object/{quote_path_segment(product_id)}").get("object", {})
         item_data = existing.get("item_data", {})
         if name is not None:
             item_data["name"] = name
@@ -293,7 +295,7 @@ class SquarePaymentProvider(PaymentProviderAdapter):
         return normalized
 
     def get_price(self, price_id: str) -> dict[str, Any]:
-        variation = self._request("GET", f"/v2/catalog/object/{price_id}").get("object", {})
+        variation = self._request("GET", f"/v2/catalog/object/{quote_path_segment(price_id)}").get("object", {})
         return self._normalize_price(variation)
 
     def list_prices(self, product_id: str | None = None, limit: int = 10) -> list[dict[str, Any]]:
@@ -345,7 +347,7 @@ class SquarePaymentProvider(PaymentProviderAdapter):
         return self._normalize_subscription(subscription)
 
     def get_subscription(self, subscription_id: str) -> dict[str, Any]:
-        subscription = self._request("GET", f"/v2/subscriptions/{subscription_id}").get(
+        subscription = self._request("GET", f"/v2/subscriptions/{quote_path_segment(subscription_id)}").get(
             "subscription", {}
         )
         return self._normalize_subscription(subscription)
@@ -365,7 +367,7 @@ class SquarePaymentProvider(PaymentProviderAdapter):
         if price_id:
             payload["plan_variation_id"] = price_id
         subscription = self._request(
-            "PUT", f"/v2/subscriptions/{subscription_id}", json_body=payload
+            "PUT", f"/v2/subscriptions/{quote_path_segment(subscription_id)}", json_body=payload
         ).get("subscription", {})
         return self._normalize_subscription(subscription)
 
@@ -373,7 +375,7 @@ class SquarePaymentProvider(PaymentProviderAdapter):
         self, subscription_id: str, at_period_end: bool = True
     ) -> dict[str, Any]:
         subscription = self._request(
-            "POST", f"/v2/subscriptions/{subscription_id}/cancel", json_body={}
+            "POST", f"/v2/subscriptions/{quote_path_segment(subscription_id)}/cancel", json_body={}
         ).get("subscription", {})
         return (
             self._normalize_subscription(subscription)
@@ -392,7 +394,7 @@ class SquarePaymentProvider(PaymentProviderAdapter):
         if resumes_at is not None:
             payload["pause_effective_date"] = resumes_at
         subscription = self._request(
-            "POST", f"/v2/subscriptions/{subscription_id}/pause", json_body=payload
+            "POST", f"/v2/subscriptions/{quote_path_segment(subscription_id)}/pause", json_body=payload
         ).get("subscription", {})
         return (
             self._normalize_subscription(subscription)
@@ -408,7 +410,7 @@ class SquarePaymentProvider(PaymentProviderAdapter):
     ) -> dict[str, Any]:
         payload: dict[str, Any] = {}
         subscription = self._request(
-            "POST", f"/v2/subscriptions/{subscription_id}/resume", json_body=payload
+            "POST", f"/v2/subscriptions/{quote_path_segment(subscription_id)}/resume", json_body=payload
         ).get("subscription", {})
         return (
             self._normalize_subscription(subscription)
@@ -432,7 +434,7 @@ class SquarePaymentProvider(PaymentProviderAdapter):
         return {"id": payment_method_id, "customer_id": customer_id, "type": "card"}
 
     def detach_payment_method(self, payment_method_id: str) -> dict[str, Any]:
-        self._request("POST", f"/v2/cards/{payment_method_id}/disable", json_body={})
+        self._request("POST", f"/v2/cards/{quote_path_segment(payment_method_id)}/disable", json_body={})
         return {"id": payment_method_id, "customer_id": None}
 
     def list_payment_methods(
@@ -480,12 +482,12 @@ class SquarePaymentProvider(PaymentProviderAdapter):
         self, payment_intent_id: str, payment_method_id: str | None = None
     ) -> dict[str, Any]:
         payment = self._request(
-            "POST", f"/v2/payments/{payment_intent_id}/complete", json_body={}
+            "POST", f"/v2/payments/{quote_path_segment(payment_intent_id)}/complete", json_body={}
         ).get("payment", {})
         return self._normalize_payment(payment)
 
     def get_payment_intent(self, payment_intent_id: str) -> dict[str, Any]:
-        payment = self._request("GET", f"/v2/payments/{payment_intent_id}").get("payment", {})
+        payment = self._request("GET", f"/v2/payments/{quote_path_segment(payment_intent_id)}").get("payment", {})
         return self._normalize_payment(payment)
 
     def create_checkout_session(
@@ -540,7 +542,7 @@ class SquarePaymentProvider(PaymentProviderAdapter):
         }
 
     def get_checkout_session(self, session_id: str) -> dict[str, Any]:
-        link = self._request("GET", f"/v2/online-checkout/payment-links/{session_id}").get(
+        link = self._request("GET", f"/v2/online-checkout/payment-links/{quote_path_segment(session_id)}").get(
             "payment_link", {}
         )
         return {
@@ -572,7 +574,7 @@ class SquarePaymentProvider(PaymentProviderAdapter):
         return self._normalize_invoice(square_invoice)
 
     def get_invoice(self, invoice_id: str) -> dict[str, Any]:
-        invoice = self._request("GET", f"/v2/invoices/{invoice_id}").get("invoice", {})
+        invoice = self._request("GET", f"/v2/invoices/{quote_path_segment(invoice_id)}").get("invoice", {})
         return self._normalize_invoice(invoice)
 
     def list_invoices(self, customer_id: str, limit: int = 10) -> list[dict[str, Any]]:
@@ -586,7 +588,7 @@ class SquarePaymentProvider(PaymentProviderAdapter):
 
     def finalize_invoice(self, invoice_id: str, **kwargs: Any) -> dict[str, Any]:
         invoice = self._request(
-            "POST", f"/v2/invoices/{invoice_id}/publish", json_body=kwargs or {"version": 0}
+            "POST", f"/v2/invoices/{quote_path_segment(invoice_id)}/publish", json_body=kwargs or {"version": 0}
         ).get("invoice", {})
         return self._normalize_invoice(invoice)
 
@@ -595,7 +597,7 @@ class SquarePaymentProvider(PaymentProviderAdapter):
 
     def void_invoice(self, invoice_id: str, **kwargs: Any) -> dict[str, Any]:
         invoice = self._request(
-            "POST", f"/v2/invoices/{invoice_id}/cancel", json_body=kwargs or {"version": 0}
+            "POST", f"/v2/invoices/{quote_path_segment(invoice_id)}/cancel", json_body=kwargs or {"version": 0}
         ).get("invoice", {})
         return (
             self._normalize_invoice(invoice) if invoice else {"id": invoice_id, "status": "voided"}
@@ -629,7 +631,7 @@ class SquarePaymentProvider(PaymentProviderAdapter):
         return self._normalize_refund(refund)
 
     def get_refund(self, refund_id: str) -> dict[str, Any]:
-        refund = self._request("GET", f"/v2/refunds/{refund_id}").get("refund", {})
+        refund = self._request("GET", f"/v2/refunds/{quote_path_segment(refund_id)}").get("refund", {})
         return self._normalize_refund(refund)
 
     def list_refunds(

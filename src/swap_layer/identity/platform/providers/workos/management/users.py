@@ -6,6 +6,7 @@ Handles user CRUD operations via the WorkOS AuthKit user management API.
 
 from typing import TYPE_CHECKING, Any
 
+from swap_layer.http import quote_path_segment
 from swap_layer.identity.platform.management._responses import object_list
 from swap_layer.identity.platform.management.adapter import UserManagementAdapter
 
@@ -70,7 +71,7 @@ class WorkOSUserManagement(UserManagementAdapter):
         Returns:
             User object
         """
-        return self.base_client._make_request("GET", f"/user_management/users/{user_id}")
+        return self.base_client._make_request("GET", f"/user_management/users/{quote_path_segment(user_id)}")
 
     def create_user(
         self,
@@ -144,7 +145,7 @@ class WorkOSUserManagement(UserManagementAdapter):
         if metadata is not None:
             data["metadata"] = metadata
         data.update(kwargs)
-        return self.base_client._make_request("PUT", f"/user_management/users/{user_id}", json=data)
+        return self.base_client._make_request("PUT", f"/user_management/users/{quote_path_segment(user_id)}", json=data)
 
     def delete_user(self, user_id: str) -> None:
         """Delete a user.
@@ -155,7 +156,7 @@ class WorkOSUserManagement(UserManagementAdapter):
         Returns:
             True if successful
         """
-        self.base_client._make_request("DELETE", f"/user_management/users/{user_id}")
+        self.base_client._make_request("DELETE", f"/user_management/users/{quote_path_segment(user_id)}")
 
     def search_users(self, query: str, per_page: int = 50, **kwargs) -> list[dict[str, Any]]:
         """Search users by email.

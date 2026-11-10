@@ -4,6 +4,7 @@ Auth0 User Management Implementation
 
 from typing import TYPE_CHECKING, Any
 
+from swap_layer.http import quote_path_segment
 from swap_layer.identity.platform.management.adapter import UserManagementAdapter
 
 if TYPE_CHECKING:
@@ -66,7 +67,7 @@ class Auth0UserManagement(UserManagementAdapter):
         Returns:
             User object
         """
-        return self.base_client._make_object_request("GET", f"/users/{user_id}")
+        return self.base_client._make_object_request("GET", f"/users/{quote_path_segment(user_id)}")
 
     def create_user(
         self,
@@ -131,7 +132,7 @@ class Auth0UserManagement(UserManagementAdapter):
 
         payload.update(kwargs)
 
-        return self.base_client._make_object_request("PATCH", f"/users/{user_id}", json=payload)
+        return self.base_client._make_object_request("PATCH", f"/users/{quote_path_segment(user_id)}", json=payload)
 
     def delete_user(self, user_id: str) -> None:
         """
@@ -140,7 +141,7 @@ class Auth0UserManagement(UserManagementAdapter):
         Args:
             user_id: Auth0 user ID
         """
-        self.base_client._make_object_request("DELETE", f"/users/{user_id}")
+        self.base_client._make_object_request("DELETE", f"/users/{quote_path_segment(user_id)}")
 
     def search_users(self, query: str, per_page: int = 50, **kwargs) -> list[dict[str, Any]]:
         """
