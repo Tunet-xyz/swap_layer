@@ -17,46 +17,37 @@ except ImportError:  # pragma: no cover - exercised in environments without Djan
         pass
 
 
-def _mask_secret(value: str, show_prefix: int = 4, show_suffix: int = 4) -> str:
+# Documented vendor prefixes. A rejected value is described by these and by its
+# length only; error messages never repeat any character the caller supplied.
+_STRIPE_KEY_KINDS = (
+    ("sk_", "a secret key"),
+    ("rk_", "a restricted key"),
+    ("pk_", "a publishable key"),
+    ("whsec_", "a webhook signing secret"),
+)
+_TWILIO_SID_KINDS = (
+    ("SK", "an API key SID"),
+    ("MG", "a Messaging Service SID"),
+    ("PN", "a phone number SID"),
+)
+
+
+def _describe_rejected_value(value: str, known_kinds: Sequence[tuple[str, str]]) -> str:
     """
-    Safely mask a secret value for display in error messages.
-
-    Shows only the prefix and suffix to help identify the value type
-    without exposing the actual secret.
-
-    Args:
-        value: The secret value to mask
-        show_prefix: Number of characters to show at the start
-        show_suffix: Number of characters to show at the end
-
-    Returns:
-        Masked string like 'sk_t****abcd' or '****' for very short values
+    Describe a rejected credential without echoing any part of it.
 
     Examples:
-        >>> _mask_secret('example-secret-value', 4, 4)
-        'exam************alue'
-        >>> _mask_secret('short', 2, 2)
-        '*****'
-        >>> _mask_secret('abc')
-        '***'
+        >>> _describe_rejected_value("pk_test_123", _STRIPE_KEY_KINDS)
+        "The value looks like a publishable key ('pk_...', 11 characters)."
+        >>> _describe_rejected_value("abc", _STRIPE_KEY_KINDS)
+        'The value has 3 characters and no recognised prefix.'
     """
     if not value:
-        return "(empty)"
-
-    # For very short values, mask completely
-    if len(value) <= 6:
-        return "*" * min(len(value), 8)
-
-    # For short values, reduce what we show
-    if len(value) < (show_prefix + show_suffix + 4):
-        show_prefix = min(2, len(value) // 3)
-        show_suffix = min(2, len(value) // 3)
-
-    prefix = value[:show_prefix]
-    suffix = value[-show_suffix:] if show_suffix > 0 else ""
-    masked_length = max(8, len(value) - show_prefix - show_suffix)
-
-    return f"{prefix}{'*' * masked_length}{suffix}"
+        return "The value is empty."
+    for prefix, kind in known_kinds:
+        if value.startswith(prefix):
+            return f"The value looks like {kind} ('{prefix}...', {len(value)} characters)."
+    return f"The value has {len(value)} characters and no recognised prefix."
 
 
 class SwapLayerError(Exception):
@@ -135,13 +126,10 @@ class StripeKeyError(ConfigurationError):
     """Stripe API key is invalid or incorrectly formatted."""
 
     def __init__(self, key_type: str, provided_value: str):
-        # Mask the secret but show enough to identify format issues
-        masked = _mask_secret(provided_value, show_prefix=4, show_suffix=4)
-
         super().__init__(
             f"❌ Invalid Stripe {key_type}",
             hint=f"Stripe {key_type}s have a specific format. "
-            f"You provided a value starting with: '{provided_value[:4]}...' (full value: {masked})",
+            f"{_describe_rejected_value(provided_value, _STRIPE_KEY_KINDS)}",
             examples=[
                 f"sk_test_51A... (test mode {key_type})",
                 f"sk_live_51A... (live mode {key_type})",
@@ -164,13 +152,10 @@ class TwilioConfigError(ConfigurationError):
 
     @classmethod
     def invalid_account_sid(cls, provided_value: str) -> "TwilioConfigError":
-        # Mask the Account SID but show prefix to identify format issues
-        masked = _mask_secret(provided_value, show_prefix=4, show_suffix=4)
-
         return cls(
             "❌ Invalid Twilio Account SID",
             hint=f"Twilio Account SIDs always start with 'AC'. "
-            f"You provided a value starting with: '{provided_value[:4]}...' (full value: {masked})",
+            f"{_describe_rejected_value(provided_value, _TWILIO_SID_KINDS)}",
             examples=[
                 "AC1234567890abcdef1234567890abcd (34 characters)",
             ],
@@ -182,14 +167,13 @@ class TwilioConfigError(ConfigurationError):
 
     @classmethod
     def invalid_phone_number(cls, provided_value: str) -> "TwilioConfigError":
-        # Mask the phone number - only show if it starts with + and length
+        # Describe the format problem without repeating the number
         starts_with_plus = provided_value.startswith("+") if provided_value else False
-        masked = _mask_secret(provided_value, show_prefix=3, show_suffix=0)
 
         return cls(
             "❌ Invalid phone number format",
             hint=f"Phone numbers must be in E.164 format (starts with '+' and country code). "
-            f"You provided: '{masked}' (length: {len(provided_value)}, starts with '+': {starts_with_plus})",
+            f"The value has {len(provided_value)} characters (starts with '+': {starts_with_plus}).",
             examples=[
                 "+15555551234 (US number)",
                 "+442071838750 (UK number)",
