@@ -1,6 +1,5 @@
 """Regression checks for storage boundaries and local MCP credential handling."""
 
-import importlib.util
 import json
 from io import BytesIO
 from pathlib import Path
@@ -148,19 +147,27 @@ async def test_mcp_storage_probe_skips_cleanup_after_a_failed_upload():
     provider.delete_file.assert_not_called()
 
 
-def test_legacy_auth0_requests_have_bounded_timeout():
-    # Both a management.py module and management/ package exist; exercise the
-    # legacy file explicitly so it cannot silently retain an unbounded call.
-    path = Path(__file__).parents[1] / "src/swap_layer/identity/platform/providers/auth0/management.py"
-    spec = importlib.util.spec_from_file_location("legacy_auth0_management", path)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+def test_auth0_management_requests_have_bounded_timeout():
+    from swap_layer.identity.platform.providers.auth0.management import client as module
+
     response = Mock()
     response.json.return_value = {"access_token": "test-token", "expires_in": 3600}
     client = module.Auth0ManagementClient("developer")
-    with patch.object(module.cache, "get", return_value=None), patch.object(module.cache, "set"), patch.object(module.requests, "post", return_value=response) as post:
+    with patch.object(module.cache, "get", return_value=None), patch.object(module.cache, "set"), patch.object(module, "resilient_request", return_value=response) as post:
         assert client._get_management_token() == "test-token"
     assert post.call_args.kwargs["timeout"] == 30
-    with patch.object(client, "_get_management_token", return_value="test-token"), patch.object(module.requests, "request", return_value=response) as request:
-        client._make_request("GET", "/users")
-    assert request.call_args.kwargs["timeout"] == 30
+    with patch.object(client, "_get_management_token", return_value="test-token"):
+        session = client._get_session()
+    assert session.timeout == 30
+
+
+def test_no_module_is_shadowed_by_a_package():
+    """A file x.py next to a package x/ can never be imported; neither may ship."""
+    root = Path(__file__).parents[1] / "src" / "swap_layer"
+    shadowed = [
+        str(package.relative_to(root))
+        for package in root.rglob("*")
+        if package.is_dir() and (package / "__init__.py").exists() and package.with_suffix(".py").exists()
+    ]
+    assert shadowed == []
+    assert not (root / "config.py").exists()
