@@ -70,14 +70,20 @@ class DjangoEmailAdapter(EmailProviderAdapter):
             if metadata:
                 msg.metadata = {key: value for key, value in metadata.items() if key != "tags"}  # type: ignore[attr-defined]
                 if "tags" in metadata:
-                    msg.tags = list(metadata["tags"])  # type: ignore[attr-defined]
+                    tags = metadata["tags"]
+                    # One tag given as a string stays one tag.
+                    msg.tags = [tags] if isinstance(tags, str) else list(tags)  # type: ignore[attr-defined]
 
             default_email_connection().send_messages([msg])
 
+            # Anymail sets an AnymailStatus object (attributes, not a dict) after sending;
+            # message_id is a set when the service returned one id per recipient.
+            message_id = getattr(getattr(msg, "anymail_status", None), "message_id", None)
+            if isinstance(message_id, set):
+                message_id = sorted(str(item) for item in message_id)
             return {
                 "status": "sent",
-                "message_id": getattr(msg, "anymail_status", {}).get("message_id")
-                or "sent-via-django",
+                "message_id": "sent-via-django" if message_id is None else message_id,
             }
 
         except Exception as e:

@@ -1,6 +1,7 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
+import pytest
 from django.conf import settings
 
 from swap_layer.communications.email.adapter import EmailProviderAdapter
@@ -63,6 +64,24 @@ def test_metadata_is_not_sent_as_message_headers():
     assert "u-123" not in message.message().as_string()
     assert message.metadata == {"user_id": "u-123"}
     assert message.tags == ["onboarding"]
+
+
+
+def test_string_tags_stay_one_tag_and_anymail_status_is_read():
+    pytest.importorskip("anymail")
+    import django.core.mail
+    from django.test import override_settings
+
+    with override_settings(EMAIL_BACKEND="anymail.backends.test.EmailBackend", ANYMAIL={}):
+        django.core.mail.outbox = []
+        result = DjangoEmailAdapter().send_email(
+            to=["user@example.com"], subject="Hello", text_body="World",
+            metadata={"tags": "welcome", "user_id": "u-1"},
+        )
+    (message,) = django.core.mail.outbox
+    assert message.tags == ["welcome"]
+    assert result["status"] == "sent"
+    assert result["message_id"] == message.anymail_status.message_id
 
 
 if __name__ == "__main__":
