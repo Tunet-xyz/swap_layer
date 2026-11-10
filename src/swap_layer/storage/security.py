@@ -65,6 +65,7 @@ Usage:
         scoped.list_files(prefix='')  # Full access, logged as system operation
 """
 
+import contextvars
 import logging
 import re
 from contextlib import contextmanager
@@ -97,7 +98,9 @@ class StoragePermission(Enum):
     ADMIN = "admin"  # Bucket-level operations, ACL changes
 
 
-# Role -> permission mapping (customizable per project)
+# Role -> permission mapping (customizable per project). Tenant contexts get
+# permissions only from this mapping or an explicit set; full access belongs to
+# StorageSecurityContext.system_context() alone.
 DEFAULT_ROLE_PERMISSIONS: dict[str, set[StoragePermission]] = {
     "admin": {
         StoragePermission.READ,
@@ -108,29 +111,34 @@ DEFAULT_ROLE_PERMISSIONS: dict[str, set[StoragePermission]] = {
     "manager": {StoragePermission.READ, StoragePermission.WRITE, StoragePermission.DELETE},
     "member": {StoragePermission.READ, StoragePermission.WRITE},
     "viewer": {StoragePermission.READ},
-    "system": {
-        StoragePermission.READ,
-        StoragePermission.WRITE,
-        StoragePermission.DELETE,
-        StoragePermission.ADMIN,
-    },
 }
+
+# One identity value is one path segment: letters, digits, "_" and "-", with
+# single dots only between them (no ".", "..", leading, trailing or doubled dots).
+_IDENTITY_SEGMENT = re.compile(r"[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*")
+
+# Set only while system_context() constructs its context.
+_SYSTEM_CONTEXT_FACTORY: contextvars.ContextVar[bool] = contextvars.ContextVar(
+    "swap_layer_storage_system_context", default=False
+)
 
 
 def validate_path_segment(segment: str) -> str:
     """
-    Validate a path segment contains only safe characters.
+    Validate a storage path prefix.
 
-    Prevents path traversal attacks (../) and injection via path components.
+    The prefix may contain several "/"-separated segments. Each must be
+    non-empty, must not consist only of dots, and may use only letters,
+    digits, underscores, hyphens and dots.
 
     Args:
-        segment: Path segment to validate
+        segment: Path prefix to validate
 
     Returns:
-        The validated segment
+        The validated prefix
 
     Raises:
-        ValueError: If segment contains unsafe characters
+        ValueError: If the prefix contains unsafe characters or segments
     """
     if ".." in segment:
         raise ValueError(f"Path traversal detected in segment: '{segment}'")
@@ -141,16 +149,23 @@ def validate_path_segment(segment: str) -> str:
             f"Only alphanumeric characters, underscores, hyphens, dots, and slashes are allowed."
         )
 
+    for part in segment.strip("/").split("/"):
+        if not part.strip("."):
+            raise ValueError(
+                f"Invalid path segment: '{segment}'. Empty and dot-only segments are not allowed."
+            )
+
     return segment
 
 
-@dataclass
+@dataclass(frozen=True)
 class StorageSecurityContext:
     """
     Security context for storage operations.
 
     Mirrors RLSContext from database security. Holds identity claims that
     determine path scoping and permission boundaries for storage operations.
+    Contexts are immutable once validated; build a new one to change claims.
 
     Path Scoping Strategy:
         All paths are automatically prefixed with a tenant namespace derived
@@ -170,7 +185,7 @@ class StorageSecurityContext:
     Attributes:
         user_id: Authenticated user identifier
         organization_id: Tenant/organization boundary for path scoping
-        role: User's role (determines permissions)
+        role: User's role (determines permissions; unknown roles get none)
         platform: Application platform (e.g., 'safety_az_central')
         permissions: Explicit permissions (if None, derived from role)
         scope_format: **Required.** Format string for the path prefix.
@@ -178,7 +193,7 @@ class StorageSecurityContext:
             placeholders.  Examples: ``'{organization_id}'``,
             ``'orgs/{organization_id}'``,
             ``'tenants/{organization_id}/data'``.
-        is_system: Whether this is a system-level context (bypasses scoping)
+        is_system: Set only by ``system_context()``; bypasses scoping
         metadata: Additional context metadata for audit logging
     """
 
@@ -191,47 +206,59 @@ class StorageSecurityContext:
     is_system: bool = False
     metadata: dict[str, Any] = field(default_factory=dict)
 
-    # Configurable role->permission mapping
+    # Configurable role->permission mapping (copied so contexts never share sets)
     role_permissions: dict[str, set[StoragePermission]] = field(
-        default_factory=lambda: DEFAULT_ROLE_PERMISSIONS.copy()
+        default_factory=lambda: {
+            role: set(permissions) for role, permissions in DEFAULT_ROLE_PERMISSIONS.items()
+        }
     )
 
     def __post_init__(self):
         """Validate context on creation."""
-        if not self.is_system:
-            if not self.organization_id:
+        if self.is_system:
+            if not _SYSTEM_CONTEXT_FACTORY.get():
                 raise ValueError(
-                    "StorageSecurityContext requires organization_id for tenant isolation. "
-                    "Use StorageSecurityContext.system_context() for system operations."
+                    "System storage access requires "
+                    "StorageSecurityContext.system_context(reason=...)."
                 )
-            if not self.scope_format:
-                raise ValueError(
-                    "StorageSecurityContext requires scope_format for path scoping. "
-                    "Example: scope_format='{organization_id}' to place files "
-                    "under the org id at the bucket root."
-                )
-            if "{organization_id}" not in self.scope_format:
-                raise ValueError("scope_format must include {organization_id} for tenant isolation")
-            for value in (self.organization_id, self.platform, self.role):
-                if value is not None and (
-                    not re.fullmatch(r"[a-zA-Z0-9_\-.]+", value) or ".." in value
-                ):
-                    raise ValueError("Storage identity fields must be safe single path segments")
+            return
+        if not self.organization_id:
+            raise ValueError(
+                "StorageSecurityContext requires organization_id for tenant isolation. "
+                "Use StorageSecurityContext.system_context() for system operations."
+            )
+        if not self.scope_format:
+            raise ValueError(
+                "StorageSecurityContext requires scope_format for path scoping. "
+                "Example: scope_format='{organization_id}' to place files "
+                "under the org id at the bucket root."
+            )
+        if "{organization_id}" not in self.scope_format:
+            raise ValueError("scope_format must include {organization_id} for tenant isolation")
+        for value in (self.organization_id, self.platform, self.role):
+            if value is not None and (
+                not isinstance(value, str) or not _IDENTITY_SEGMENT.fullmatch(value)
+            ):
+                raise ValueError("Storage identity fields must be safe single path segments")
 
     def get_permissions(self) -> set[StoragePermission]:
         """
         Get effective permissions for this context.
 
-        Returns explicit permissions if set, otherwise derives from role.
+        System contexts have every permission. Otherwise explicit permissions
+        apply if set, then the role mapping. A context with neither, or with a
+        role the mapping does not know, has no permissions.
         """
+        if self.is_system:
+            return set(StoragePermission)
+
         if self.permissions is not None:
-            return self.permissions
+            return set(self.permissions)
 
         if self.role:
-            return self.role_permissions.get(self.role, set())
+            return set(self.role_permissions.get(self.role, set()))
 
-        # No role or permissions = read-only default
-        return {StoragePermission.READ}
+        return set()
 
     def has_permission(self, permission: StoragePermission) -> bool:
         """Check if context has a specific permission."""
@@ -278,15 +305,11 @@ class StorageSecurityContext:
         if self.is_system:
             return path
 
-        prefix = self._resolve_prefix()
-
-        # Validate the prefix
-        validate_path_segment(prefix)
-
-        # Normalize: strip leading/trailing slashes
-        prefix = prefix.strip("/")
+        # Normalize: strip leading/trailing slashes, then validate every segment
+        prefix = self._resolve_prefix().strip("/")
         if not prefix:
             raise ValueError("Storage scope prefix cannot be empty")
+        validate_path_segment(prefix)
         if (
             path.startswith("/")
             or "\\" in path
@@ -320,15 +343,15 @@ class StorageSecurityContext:
             return False
 
     def to_audit_dict(self) -> dict[str, Any]:
-        """Return context info for audit logging."""
+        """Return context info for audit logging; metadata cannot replace identity fields."""
         return {
+            **self.metadata,
             "user_id": self.user_id,
             "organization_id": self.organization_id,
             "role": self.role,
             "platform": self.platform,
             "is_system": self.is_system,
-            "permissions": [p.value for p in self.get_permissions()],
-            **self.metadata,
+            "permissions": sorted(p.value for p in self.get_permissions()),
         }
 
     @classmethod
@@ -336,19 +359,24 @@ class StorageSecurityContext:
         """
         Create a system-level context that bypasses tenant scoping.
 
-        Use sparingly. All system operations are logged.
+        This is the only way to build a system context. Use sparingly. All
+        system operations are logged.
 
         Args:
             reason: Reason for system access (logged for audit)
         """
         logger.warning(f"Creating system-level StorageSecurityContext - reason: {reason}")
-        return cls(
-            scope_format="",
-            user_id="system",
-            role="system",
-            is_system=True,
-            metadata={"system_reason": reason},
-        )
+        token = _SYSTEM_CONTEXT_FACTORY.set(True)
+        try:
+            return cls(
+                scope_format="",
+                user_id="system",
+                role="system",
+                is_system=True,
+                metadata={"system_reason": reason},
+            )
+        finally:
+            _SYSTEM_CONTEXT_FACTORY.reset(token)
 
 
 def validate_storage_context(
@@ -465,19 +493,27 @@ class ScopedStorageProvider:
         metadata: dict[str, str] | None = None,
         public: bool = False,
     ) -> dict[str, Any]:
-        """Upload a file with tenant scoping and permission check."""
-        self._context.check_permission(StoragePermission.WRITE, "upload_file")
-        scoped_path = self._context.scope_path(file_path)
-        self._audit_log("upload_file", scoped_path, content_type=content_type)
+        """
+        Upload a file with tenant scoping and permission check.
 
-        # Inject security metadata
-        security_metadata = {
-            "uploaded_by": self._context.user_id or "unknown",
-            "organization_id": self._context.organization_id or "system",
-            "platform": self._context.platform or "unknown",
-        }
-        if metadata:
-            security_metadata.update(metadata)
+        ``public=True`` changes the object's access control, so it also
+        requires the ADMIN permission.
+        """
+        self._context.check_permission(StoragePermission.WRITE, "upload_file")
+        if public:
+            self._context.check_permission(StoragePermission.ADMIN, "upload_file(public=True)")
+        scoped_path = self._context.scope_path(file_path)
+        self._audit_log("upload_file", scoped_path, content_type=content_type, public=public)
+
+        # Inject security metadata; caller metadata cannot replace these keys
+        security_metadata = dict(metadata or {})
+        security_metadata.update(
+            {
+                "uploaded_by": self._context.user_id or "unknown",
+                "organization_id": self._context.organization_id or "system",
+                "platform": self._context.platform or "unknown",
+            }
+        )
 
         return self._provider.upload_file(
             file_path=scoped_path,
