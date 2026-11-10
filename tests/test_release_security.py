@@ -94,7 +94,7 @@ async def test_mcp_redacts_nested_current_settings():
     )
     with patch("swap_layer.settings.get_swaplayer_settings", return_value=settings):
         result = await _get_config("all")
-        single = await _get_config("payments")
+        single = await _get_config("billing")
     assert result["status"] == single["status"] == "success"
     serialized = json.dumps(result)
     assert "private-" not in serialized

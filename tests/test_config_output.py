@@ -81,7 +81,7 @@ def assert_no_credentials(text: str) -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "service", ["all", "payments", "email", "sms", "storage", "identity", "verification"]
+    "service", ["all", "billing", "email", "sms", "storage", "identity", "verification"]
 )
 async def test_mcp_config_shows_only_public_fields(service):
     with patch("swap_layer.settings.get_swaplayer_settings", return_value=full_settings()):
