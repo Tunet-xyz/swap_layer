@@ -15,9 +15,9 @@ def get_identity_client(app_name="default") -> AuthProviderAdapter:
         provider = settings.identity.provider
     else:
         # Fallback to legacy Django settings for backward compatibility
-        from django.conf import settings as django_settings
+        from ._config import identity_provider
 
-        provider = getattr(django_settings, "IDENTITY_PROVIDER", "workos")
+        provider = identity_provider()
 
     if provider == "workos":
         from .providers.workos.client import WorkOSClient

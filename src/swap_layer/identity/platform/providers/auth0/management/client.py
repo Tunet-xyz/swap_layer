@@ -11,7 +11,6 @@ import logging
 from hashlib import sha256
 from typing import Any
 
-from django.conf import settings
 from django.core.cache import cache
 
 from swap_layer.http import ResilientSession, resilient_request
@@ -56,24 +55,19 @@ class Auth0ManagementClient(IdentityManagementClient):
         Args:
             app_name: Auth0 app configuration name from settings
         """
-        self.app_name = app_name
-        self.config = getattr(settings, "AUTH0_APPS", {}).get(app_name)
-        if not self.config:
-            raise ValueError(
-                f"Auth0 configuration for '{app_name}' not found in settings.AUTH0_APPS"
-            )
+        from swap_layer.identity.platform._config import auth0_app_config
 
-        self.domain = getattr(settings, "AUTH0_DEVELOPER_DOMAIN", "")
+        self.app_name = app_name
+        app, self.domain = auth0_app_config(app_name)
+        self.config = app.model_dump()
         self.base_url = f"https://{self.domain}/api/v2"
         self.token_url = f"https://{self.domain}/oauth/token"
 
         # Management API credentials (different from OAuth client credentials)
         # These should be configured as a "Machine to Machine" application
         # with Management API permissions
-        self.client_id = self.config.get("management_client_id") or self.config["client_id"]
-        self.client_secret = (
-            self.config.get("management_client_secret") or self.config["client_secret"]
-        )
+        self.client_id = app.management_client_id or app.client_id
+        self.client_secret = app.management_client_secret or app.client_secret
 
         # Token caching
         audience = sha256(f"{self.domain}:{self.client_id}".encode()).hexdigest()

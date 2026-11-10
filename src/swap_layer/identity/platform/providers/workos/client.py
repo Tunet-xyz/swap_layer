@@ -7,7 +7,6 @@ Each instance maintains its own WorkOSClient with dedicated credentials.
 
 from typing import Any
 
-from django.conf import settings
 from workos import WorkOSClient as WorkOSSDKClient
 from workos.session import Session
 
@@ -61,22 +60,17 @@ class WorkOSClient(AuthProviderAdapter):
         Initialize WorkOS client with app-specific configuration.
 
         Args:
-            app_name: Key in WORKOS_APPS settings dict
+            app_name: Key in SWAPLAYER.identity.workos_apps (or legacy settings.WORKOS_APPS)
 
         Raises:
-            ValueError: If app_name not found in settings
+            ValueError: If app_name is not configured
         """
-        from swap_layer.settings import WorkOSAppConfig
+        from swap_layer.identity.platform._config import workos_app_config
 
         self.app_name = app_name
-        self.config = getattr(settings, "WORKOS_APPS", {}).get(app_name)
-        if not self.config:
-            raise ValueError(
-                f"WorkOS configuration for '{app_name}' not found in settings.WORKOS_APPS"
-            )
-
-        # Apply the same checks as SWAPLAYER.identity.workos_apps (cookie password included)
-        app = WorkOSAppConfig.model_validate(self.config)
+        # Validated by WorkOSAppConfig whichever setting supplies it
+        app = workos_app_config(app_name)
+        self.config = app.model_dump()
 
         # Store credentials
         self._api_key = app.api_key

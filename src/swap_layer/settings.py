@@ -242,6 +242,12 @@ class Auth0AppConfig(_ConfigModel):
 
     client_id: str = Field(..., description="Auth0 client ID")
     client_secret: str = Field(..., description="Auth0 client secret")
+    management_client_id: str | None = Field(
+        None, description="Machine-to-machine client ID for the Management API (optional)"
+    )
+    management_client_secret: str | None = Field(
+        None, description="Machine-to-machine client secret for the Management API (optional)"
+    )
 
 
 class IdentityPlatformConfig(_ConfigModel):

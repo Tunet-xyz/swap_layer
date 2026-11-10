@@ -4,8 +4,7 @@ Factory function for identity management clients.
 Returns the appropriate management client based on configuration.
 """
 
-from django.conf import settings
-
+from .._config import identity_provider, workos_app_config
 from .adapter import IdentityManagementClient
 
 
@@ -13,7 +12,8 @@ def get_management_client(app_name: str = "default") -> IdentityManagementClient
     """
     Factory function to return the configured Identity Management Client.
 
-    This allows switching vendors by changing the IDENTITY_PROVIDER Django setting.
+    The provider comes from SWAPLAYER.identity.provider (or the legacy
+    IDENTITY_PROVIDER Django setting when SwapLayer settings have no identity).
 
     Args:
         app_name: Application name from provider configuration
@@ -29,7 +29,7 @@ def get_management_client(app_name: str = "default") -> IdentityManagementClient
         >>> users = mgmt.users.list_users()
         >>> mgmt.users.create_user(email='new@example.com')
     """
-    provider = getattr(settings, "IDENTITY_PROVIDER", "workos")
+    provider = identity_provider()
 
     if provider == "auth0":
         from ..providers.auth0.management.client import Auth0ManagementClient
@@ -40,16 +40,9 @@ def get_management_client(app_name: str = "default") -> IdentityManagementClient
         return Auth0ManagementClient(app_name=app_name)
 
     elif provider == "workos":
-        # Get WorkOS API key from settings
-        from swap_layer.settings import get_swaplayer_settings
-
         from ..providers.workos.management.client import WorkOSManagementClient
 
-        identity = get_swaplayer_settings().identity
-        if identity is None or not identity.workos_apps or app_name not in identity.workos_apps:
-            raise ValueError(f"WorkOS configuration for '{app_name}' not found")
-        api_key = identity.workos_apps[app_name].api_key
-        return WorkOSManagementClient(api_key=api_key)
+        return WorkOSManagementClient(api_key=workos_app_config(app_name).api_key)
 
     else:
         raise ValueError(
