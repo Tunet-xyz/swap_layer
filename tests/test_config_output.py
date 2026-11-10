@@ -8,7 +8,7 @@ import pytest
 from django.core.management import call_command
 
 from swap_layer._redaction import PUBLIC_CONFIG_FIELDS, redact_config
-from swap_layer.management.commands.swaplayer_check import SECRET_MASK, Command
+from swap_layer.management.commands.swaplayer_check import MASKED_VALUE, Command
 from swap_layer.mcp.server import _get_config
 from swap_layer.settings import SwapLayerSettings
 
@@ -141,10 +141,10 @@ def run_check(*args: str, settings: SwapLayerSettings | None = None) -> str:
 def test_check_verbose_masks_every_credential():
     output = run_check("--verbose")
     assert_no_credentials(output)
-    assert f"cookie_password: {SECRET_MASK}" in output
-    assert f"client_secret: {SECRET_MASK}" in output
-    assert f"webhook_signature_key: {SECRET_MASK}" in output
-    assert f"aws_access_key_id: {SECRET_MASK}" in output
+    assert f"cookie_password: {MASKED_VALUE}" in output
+    assert f"client_secret: {MASKED_VALUE}" in output
+    assert f"webhook_signature_key: {MASKED_VALUE}" in output
+    assert f"aws_access_key_id: {MASKED_VALUE}" in output
     assert "public-workos-client" in output
     assert "public-location" in output
 

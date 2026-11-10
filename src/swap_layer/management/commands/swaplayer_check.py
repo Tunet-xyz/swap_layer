@@ -13,7 +13,7 @@ from swap_layer._redaction import redact_config
 from swap_layer.settings import validate_swaplayer_config
 
 # Credential values are replaced by this marker; no characters are shown.
-SECRET_MASK = "********"
+MASKED_VALUE = "********"
 
 
 class Command(BaseCommand):
@@ -117,7 +117,7 @@ class Command(BaseCommand):
 
     def _print_config(self, config, indent=0):
         """Print configuration; every non-public value is masked completely."""
-        self._print_value(redact_config(config, mask=SECRET_MASK), indent)
+        self._print_value(redact_config(config, mask=MASKED_VALUE), indent)
 
     def _print_value(self, value, indent):
         prefix = " " * indent

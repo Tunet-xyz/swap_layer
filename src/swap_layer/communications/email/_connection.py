@@ -14,6 +14,7 @@ def default_email_connection() -> Any:
     ``DEFAULT_TIMEOUT`` seconds instead. A configured timeout, and backends
     without a ``timeout`` attribute, are left unchanged.
     """
+    connection: Any
     try:
         from django.core.mail import mailers  # type: ignore[attr-defined]  # Django 6.1+
     except ImportError:

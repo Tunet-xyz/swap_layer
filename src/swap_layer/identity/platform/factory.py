@@ -10,6 +10,7 @@ def get_identity_client(app_name="default") -> AuthProviderAdapter:
     """
     # Get provider from SwapLayerSettings
     settings = get_swaplayer_settings()
+    provider: str
 
     if settings.identity:
         provider = settings.identity.provider
