@@ -43,6 +43,9 @@ _PROVIDER_COMPARISONS: dict[str, Any] = _GUIDANCE['comparisons']
 
 _TROUBLESHOOT_SCENARIOS: dict[str, Any] = _GUIDANCE['troubleshoot']
 
+# Storage probe files are written, then deleted, under this prefix.
+STORAGE_CHECK_PREFIX = "swaplayer-mcp-check/"
+
 
 def create_mcp_server() -> Any:
     """
@@ -817,15 +820,24 @@ async def _check_storage(test_upload: bool = False) -> dict[str, Any]:
 
         if test_upload:
             test_content = b"SwapLayer MCP test file"
-            test_filename = f"mcp_test_{uuid.uuid4().hex[:8]}.txt"
-
+            # A dedicated prefix keeps the probe away from application files.
+            test_filename = f"{STORAGE_CHECK_PREFIX}{uuid.uuid4().hex}.txt"
+            uploaded = False
             try:
                 storage_provider.upload_file(test_filename, BytesIO(test_content))
-                storage_provider.delete_file(test_filename)
+                uploaded = True
                 info["test_upload"] = "success"
             except Exception as e:
                 info["test_upload"] = "failed"
                 info["test_error"] = type(e).__name__
+            if uploaded:
+                try:
+                    storage_provider.delete_file(test_filename)
+                    info["test_cleanup"] = "deleted"
+                except Exception as e:
+                    info["test_cleanup"] = "failed"
+                    info["test_cleanup_error"] = type(e).__name__
+                    info["test_file"] = test_filename
 
         return info
     except Exception as e:
@@ -1069,8 +1081,7 @@ async def _troubleshoot(scenario: str, error_message: str = "") -> dict[str, Any
     }
 
     if error_message:
-        result["error_message_provided"] = error_message
-        # Try to match the error to a known symptom pattern
+        # Match the error to a known symptom; the caller's text is never echoed back.
         for symptom in info["symptoms"]:
             if any(word in error_message for word in symptom.split()):
                 result["symptom_matched"] = symptom

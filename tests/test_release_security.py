@@ -119,9 +119,33 @@ async def test_mcp_storage_probe_uses_storage_adapter():
     with patch("swap_layer.get_provider", return_value=provider):
         result = await _check_storage(test_upload=True)
     assert result["test_upload"] == "success"
+    assert result["test_cleanup"] == "deleted"
     filename, stream = provider.upload_file.call_args.args
+    assert filename.startswith("swaplayer-mcp-check/")
     assert stream.getvalue() == b"SwapLayer MCP test file"
     provider.delete_file.assert_called_once_with(filename)
+
+
+@pytest.mark.asyncio
+async def test_mcp_storage_probe_reports_a_file_it_could_not_delete():
+    provider = Mock()
+    provider.delete_file.side_effect = RuntimeError("credential=private-token")
+    with patch("swap_layer.get_provider", return_value=provider):
+        result = await _check_storage(test_upload=True)
+    assert result["test_upload"] == "success"
+    assert result["test_cleanup"] == "failed"
+    assert result["test_file"].startswith("swaplayer-mcp-check/")
+    assert "private-token" not in json.dumps(result)
+
+
+@pytest.mark.asyncio
+async def test_mcp_storage_probe_skips_cleanup_after_a_failed_upload():
+    provider = Mock()
+    provider.upload_file.side_effect = RuntimeError("denied")
+    with patch("swap_layer.get_provider", return_value=provider):
+        result = await _check_storage(test_upload=True)
+    assert result["test_upload"] == "failed"
+    provider.delete_file.assert_not_called()
 
 
 def test_legacy_auth0_requests_have_bounded_timeout():

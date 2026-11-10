@@ -2,6 +2,8 @@
 Tests for SwapLayer MCP server functionality.
 """
 
+import json
+
 import pytest
 
 
@@ -220,11 +222,13 @@ async def test_troubleshoot_with_error_message():
     try:
         from swap_layer.mcp.server import _troubleshoot
 
-        result = await _troubleshoot(
-            "missing_package", error_message="ImportError: No module named 'stripe'"
-        )
+        error_message = "ImportError: No module named 'stripe' token=sk_live_private"
+        result = await _troubleshoot("missing_package", error_message=error_message)
         assert result["status"] == "success"
-        assert result["error_message_provided"] == "ImportError: No module named 'stripe'"
+        assert "symptom_matched" in result
+        # The pasted text is matched, never echoed back (it may contain credentials).
+        assert "sk_live_private" not in json.dumps(result)
+        assert "error_message_provided" not in result
 
     except ImportError:
         pytest.skip("MCP dependencies not installed")
