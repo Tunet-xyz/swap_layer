@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A Contributor Covenant 2.1 code of conduct, and issue templates for bug
   reports and feature requests that send vulnerability reports to private
   reporting.
+- A CodeQL workflow (`codeql.yaml`) with the security-extended queries, which
+  only the owner starts, and weekly Dependabot updates for pip and GitHub
+  Actions dependencies, as in the other Tunet libraries.
 
 ### Changed
 
