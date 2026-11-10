@@ -22,6 +22,11 @@ class PaymentValidationError(PaymentError):
     pass
 
 
+# Far above any provider's limit (Stripe allows 8 digits); keeps conversions cheap.
+MAX_AMOUNT_DIGITS = 18
+MAX_AMOUNT_CHARS = 64
+
+
 def minor_units(amount: Decimal | int | str, field: str = "amount") -> int:
     """
     Return ``amount`` as an integer number of provider minor units.
@@ -32,11 +37,17 @@ def minor_units(amount: Decimal | int | str, field: str = "amount") -> int:
     error = PaymentValidationError(f"{field} must be a finite integer number of minor units")
     if isinstance(amount, bool):
         raise error
+    text = str(amount).strip()
+    # Bound the work: huge exponents make int(Decimal) take minutes.
+    if len(text) > MAX_AMOUNT_CHARS:
+        raise error
     try:
-        number = Decimal(str(amount).strip())
+        number = Decimal(text)
     except InvalidOperation as exc:
         raise error from exc
-    if not number.is_finite() or number != number.to_integral_value():
+    if not number.is_finite() or number.adjusted() > MAX_AMOUNT_DIGITS:
+        raise error
+    if number != number.to_integral_value():
         raise error
     return int(number)
 

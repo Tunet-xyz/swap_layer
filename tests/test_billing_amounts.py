@@ -70,3 +70,19 @@ def test_square_refund_rejects_fractions_without_a_request():
     with pytest.raises(PaymentValidationError):
         provider.create_refund(payment_intent_id="PAY-1", amount=Decimal("10.5"))
     provider.session.request.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "amount", ["1e800000", Decimal("1E+800000"), "1" * 70, Decimal("1E+19"), "1." + "0" * 200]
+)
+def test_huge_amounts_are_rejected_quickly(amount):
+    import time
+
+    started = time.perf_counter()
+    with pytest.raises(PaymentValidationError):
+        minor_units(amount)
+    assert time.perf_counter() - started < 0.5
+
+
+def test_largest_accepted_amount():
+    assert minor_units("999999999999999999") == 999999999999999999
