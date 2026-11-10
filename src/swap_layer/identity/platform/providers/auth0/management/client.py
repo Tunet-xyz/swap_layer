@@ -69,9 +69,9 @@ class Auth0ManagementClient(IdentityManagementClient):
         self.client_id = app.management_client_id or app.client_id
         self.client_secret = app.management_client_secret or app.client_secret
 
-        # Token caching
+        # Token caching; the key carries the library prefix like every name SwapLayer owns
         audience = sha256(f"{self.domain}:{self.client_id}".encode()).hexdigest()
-        self._token_cache_key = f"auth0_mgmt_token_{app_name}_{audience}"
+        self._token_cache_key = f"swap_layer:auth0_mgmt_token:{app_name}:{audience}"
 
         # Create resilient session for API requests
         self._session: ResilientSession | None = None  # Initialized after token fetch

@@ -140,3 +140,14 @@ def test_auth0_callback_verifies_the_saved_state(monkeypatch):
     replay.session = login.session  # the state was consumed by the first callback
     with pytest.raises(MismatchingStateError):
         client.exchange_code_for_user(replay, "abc")
+
+
+def test_auth0_token_cache_key_carries_the_library_prefix():
+    from swap_layer.identity.platform.providers.auth0.management.client import (
+        Auth0ManagementClient,
+    )
+
+    with patch(CONFIG, return_value=auth0_settings()):
+        key = Auth0ManagementClient("developer")._token_cache_key
+    assert key.startswith("swap_layer:auth0_mgmt_token:developer:")
+    assert "structured-client" not in key  # the client ID is hashed, not stored
