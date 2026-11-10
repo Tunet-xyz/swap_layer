@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 packages = ["src/swap_layer"]
 
 [tool.hatch.build.targets.sdist]
-include = ["/src", "/tests", "/docs", "/mcp", "/examples", "/tools", "/requirements", "/.github", "/README.md", "/LICENSE", "/CHANGELOG.md", "/SECURITY.md", "/VERSIONING.md", "/CONTRIBUTING.md", "/CODE_OF_CONDUCT.md", "/AGENTS.md", "/CLAUDE.md", "/pyproject.toml"]
+include = ["/src", "/tests", "/docs", "/mcp", "/examples", "/tools", "/requirements", "/README.md", "/LICENSE", "/CHANGELOG.md", "/SECURITY.md", "/VERSIONING.md", "/CONTRIBUTING.md", "/CODE_OF_CONDUCT.md", "/pyproject.toml"]
 
 [project]
 name = "SwapLayer"

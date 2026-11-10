@@ -16,7 +16,13 @@ ROOT = Path(__file__).parents[1]
 PROJECT = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"]
 SDIST = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["tool"]["hatch"][
     "build"]["targets"]["sdist"]["include"]
-TESTS = yaml.safe_load((ROOT / ".github/workflows/tests.yaml").read_text(encoding="utf-8"))
+WORKFLOW = ROOT / ".github/workflows/tests.yaml"
+
+
+def tests_workflow() -> dict:
+    if not WORKFLOW.exists():  # the sdist does not ship .github
+        pytest.skip("needs the repository checkout")
+    return yaml.safe_load(WORKFLOW.read_text(encoding="utf-8"))
 
 
 def test_classifiers_are_sorted_and_typed():
@@ -27,7 +33,7 @@ def test_classifiers_are_sorted_and_typed():
 
 
 def test_python_classifiers_match_the_test_matrix():
-    matrix = TESTS["jobs"]["test"]["strategy"]["matrix"]["python-version"]
+    matrix = tests_workflow()["jobs"]["test"]["strategy"]["matrix"]["python-version"]
     listed = [c.rsplit(" ", 1)[1] for c in PROJECT["classifiers"] if re.fullmatch(r"Programming Language :: Python :: 3\.\d+", c)]
     assert listed == matrix
 
@@ -38,7 +44,8 @@ def test_lowest_django_classifier_is_tested():
         key=lambda version: tuple(map(int, version.split("."))),
     )
     assert series[0] == "4.2"
-    install = " ".join(step.get("run", "") for step in TESTS["jobs"]["minimum-dependencies"]["steps"])
+    jobs = tests_workflow()["jobs"]
+    install = " ".join(step.get("run", "") for step in jobs["minimum-dependencies"]["steps"])
     assert '"Django>=4.2,<4.3"' in install
 
 
@@ -54,3 +61,6 @@ def test_sdist_ships_examples_tools_and_community_files():
     for entry in ("/examples", "/tools", "/CODE_OF_CONDUCT.md", "/SECURITY.md", "/LICENSE"):
         assert entry in SDIST, entry
         assert (ROOT / entry.lstrip("/")).exists(), entry
+    # Agent instructions and CI configuration stay in the repository, as in the other libraries.
+    for entry in ("/AGENTS.md", "/CLAUDE.md", "/.github"):
+        assert entry not in SDIST, entry
