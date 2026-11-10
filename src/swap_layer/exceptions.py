@@ -213,6 +213,26 @@ class WorkOSConfigError(ConfigurationError):
         )
 
 
+DOCS_BASE_URL = "https://github.com/Tunet-xyz/swap_layer/blob/main/docs/"
+
+# The guide in docs/ for each settings module.
+MODULE_DOCS = {
+    "billing": "billing.md",
+    "communications.email": "email.md",
+    "communications.sms": "sms.md",
+    "email": "email.md",
+    "sms": "sms.md",
+    "storage": "storage.md",
+    "identity": "identity-platform.md",
+    "verification": "identity-verification.md",
+}
+
+
+def module_docs_url(module: str) -> str:
+    """Return the guide for a settings module, or the docs index."""
+    return DOCS_BASE_URL + MODULE_DOCS.get(module, "README.md")
+
+
 class ProviderConfigMismatchError(ConfigurationError):
     """Provider is selected but configuration is missing."""
 
@@ -241,7 +261,7 @@ class ProviderConfigMismatchError(ConfigurationError):
             examples=examples_map.get(
                 provider, [f"{module}={{'provider': '{provider}', '{provider}': {{...}}}}"]
             ),
-            docs_url=f"https://github.com/Tunet-xyz/swap_layer/blob/main/src/swap_layer/{module}/README.md",
+            docs_url=module_docs_url(module),
             related_settings=[
                 f"SWAPLAYER.{module}.provider",
                 f"SWAPLAYER.{module}.{provider}",
@@ -271,7 +291,7 @@ class ModuleNotConfiguredError(ConfigurationError):
                 f"    {module_examples.get(module, f'{module}={{...}}')}",
                 ")",
             ],
-            docs_url="https://github.com/Tunet-xyz/swap_layer/blob/main/docs/README.md",
+            docs_url=module_docs_url(module),
             related_settings=[
                 f"SWAPLAYER.{module}",
             ],
