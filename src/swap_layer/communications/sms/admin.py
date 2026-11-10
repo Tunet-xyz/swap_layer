@@ -3,7 +3,7 @@ Django Admin integration for SMS provider models.
 
 Add this to your admin.py:
 
-    from swap_layer.sms.admin import SMSMessageAdminMixin
+    from swap_layer.communications.sms.admin import SMSMessageAdminMixin
 
     @admin.register(SMSMessage)
     class SMSMessageAdmin(SMSMessageAdminMixin, admin.ModelAdmin):

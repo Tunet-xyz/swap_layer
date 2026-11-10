@@ -14,7 +14,7 @@ class SMSMessageMixin(models.Model):
 
     Add this to your SMSMessage model:
 
-        from swap_layer.sms.models import SMSMessageMixin
+        from swap_layer.communications.sms.models import SMSMessageMixin
 
         class SMSMessage(SMSMessageMixin, models.Model):
             user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -79,7 +79,7 @@ class SMSPhoneNumberMixin(models.Model):
 
     Add this to your PhoneNumber model:
 
-        from swap_layer.sms.models import SMSPhoneNumberMixin
+        from swap_layer.communications.sms.models import SMSPhoneNumberMixin
 
         class PhoneNumber(SMSPhoneNumberMixin, models.Model):
             user = models.OneToOneField(User, on_delete=models.CASCADE)

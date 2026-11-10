@@ -3,7 +3,7 @@ Django Admin integration for email provider models.
 
 Add this to your admin.py:
 
-    from swap_layer.email.admin import EmailLogAdminMixin
+    from swap_layer.communications.email.admin import EmailLogAdminMixin
 
     @admin.register(EmailLog)
     class EmailLogAdmin(EmailLogAdminMixin, admin.ModelAdmin):

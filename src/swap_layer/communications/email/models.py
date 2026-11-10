@@ -14,7 +14,7 @@ class EmailLogMixin(models.Model):
 
     Add this to your EmailLog model:
 
-        from swap_layer.email.models import EmailLogMixin
+        from swap_layer.communications.email.models import EmailLogMixin
 
         class EmailLog(EmailLogMixin, models.Model):
             user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -81,7 +81,7 @@ class EmailSuppressionMixin(models.Model):
 
     Add this to your EmailSuppression model:
 
-        from swap_layer.email.models import EmailSuppressionMixin
+        from swap_layer.communications.email.models import EmailSuppressionMixin
 
         class EmailSuppression(EmailSuppressionMixin, models.Model):
             # ... your fields
