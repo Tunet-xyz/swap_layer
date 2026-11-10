@@ -23,14 +23,16 @@ APPS = [
 ]
 
 
-def run_django(body: str) -> str:
+def run_django(body: str, apps: list[str] = APPS) -> str:
     script = textwrap.dedent(
         f"""
         import json
+        import warnings
+        warnings.simplefilter("always", DeprecationWarning)
         import django
         from django.conf import settings
         settings.configure(
-            INSTALLED_APPS=["django.contrib.contenttypes", "django.contrib.auth", *{APPS!r}],
+            INSTALLED_APPS=["django.contrib.contenttypes", "django.contrib.auth", *{apps!r}],
             DATABASES={{"default": {{"ENGINE": "django.db.backends.sqlite3", "NAME": ":memory:"}}}},
             SECRET_KEY="test",
         )
@@ -55,6 +57,50 @@ def test_every_app_loads_with_its_module_path():
     )
     labels = json.loads(output)
     assert set(APPS) <= set(labels)
+
+
+EXPECTED = {
+    "swap_layer.billing": ["swap_layer_billing", "BillingAppConfig"],
+    "swap_layer.communications.email": ["swap_layer_email", "EmailAppConfig"],
+    "swap_layer.communications.sms": ["swap_layer_sms", "SMSAppConfig"],
+    "swap_layer.identity.platform": ["swap_layer_identity_platform", "IdentityPlatformAppConfig"],
+    "swap_layer.identity.verification": [
+        "swap_layer_identity_verification",
+        "IdentityVerificationAppConfig",
+    ],
+    "swap_layer.storage": ["swap_layer_storage", "StorageAppConfig"],
+}
+
+
+def test_apps_use_prefixed_labels_and_area_class_names():
+    output = run_django(
+        """
+        from django.apps import apps
+        print(json.dumps({c.name: [c.label, type(c).__name__] for c in apps.get_app_configs()}))
+        """
+    )
+    configs = json.loads(output)
+    assert {name: configs[name] for name in EXPECTED} == EXPECTED
+
+
+def test_former_class_paths_still_load_with_a_deprecation_warning():
+    former = [
+        "swap_layer.billing.apps.BillingConfig",
+        "swap_layer.communications.email.apps.EmailConfig",
+        "swap_layer.communications.sms.apps.SmsConfig",
+        "swap_layer.identity.platform.apps.AuthenticationConfig",
+        "swap_layer.identity.verification.apps.IdentityConfig",
+        "swap_layer.storage.apps.StorageConfig",
+    ]
+    output = run_django(
+        """
+        from django.apps import apps
+        print(json.dumps(sorted(type(c).__name__ for c in apps.get_app_configs())))
+        """,
+        apps=former,
+    )
+    loaded = json.loads(output.splitlines()[-1])
+    assert {name for _, name in EXPECTED.values()} <= set(loaded)
 
 
 def docstring_imports() -> list[tuple[str, str]]:
@@ -91,3 +137,24 @@ def test_docstring_import_examples_resolve():
         """
     )
     assert json.loads(output) == []
+
+
+@pytest.mark.parametrize(
+    ("module", "former", "current"),
+    [
+        ("swap_layer.billing.apps", "BillingConfig", "BillingAppConfig"),
+        ("swap_layer.communications.email.apps", "EmailConfig", "EmailAppConfig"),
+        ("swap_layer.communications.sms.apps", "SmsConfig", "SMSAppConfig"),
+        ("swap_layer.identity.platform.apps", "AuthenticationConfig", "IdentityPlatformAppConfig"),
+        ("swap_layer.identity.verification.apps", "IdentityConfig", "IdentityVerificationAppConfig"),
+        ("swap_layer.storage.apps", "StorageConfig", "StorageAppConfig"),
+    ],
+)
+def test_former_class_names_warn(module, former, current):
+    import importlib
+
+    apps_module = importlib.import_module(module)
+    with pytest.warns(DeprecationWarning, match=current):
+        assert getattr(apps_module, former) is getattr(apps_module, current)
+    with pytest.raises(AttributeError):
+        apps_module.NoSuchConfig  # noqa: B018
