@@ -81,7 +81,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   messages; `get_provider("payments")` and `"payment"` still work.
 - Stripe and Square reject a fraction of a minor unit with
   `PaymentValidationError` instead of truncating it, and read an integral
-  string as minor units.
+  string as minor units. They also reject amounts with more than 19 digits or
+  more than 64 characters.
 - PayPal `verify_webhook_signature(payload, signature, headers=request.headers)`
   reads the `PAYPAL-*` transmission headers, and a missing header raises. The
   PayPal customer methods manage a local `paypal:<email>` handle and say so
@@ -104,16 +105,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   log helpers validate log types and date bounds and quote user IDs, and the
   Auth0 management token cache key starts with `swap_layer:`.
 - `StorageSecurityContext` is immutable. `organization_id`, `platform`, and
-  `role` must be plain path segments, every scope placeholder needs a value,
-  and permissions come from a known role or an explicit permission set (a
-  context with neither has none). System access is only through
-  `system_context(reason=...)`, `upload_file(public=True)` needs the `ADMIN`
-  permission, and caller metadata cannot replace `uploaded_by`,
-  `organization_id`, or `platform`.
+  `role` must be plain path segments, a scope may use only the plain
+  `{organization_id}`, `{platform}`, and `{role}` placeholders and only ones the
+  context sets, and permissions come from a known role or an explicit
+  permission set (a context with neither has none). System access is only
+  through `system_context(reason=...)`, `upload_file(public=True)` needs the
+  `ADMIN` permission, and in `upload_file` and `upload_from_string` caller
+  metadata cannot replace `uploaded_by`, `organization_id`, or `platform`.
+- Local storage keys must match stored names exactly, so on a case-insensitive
+  file system a key that differs only in case is refused; on Windows, device
+  names such as `CON` and `NUL` and segments ending in a dot or space are
+  refused. Local metadata keys cannot contain `:`, values must be single-line,
+  and metadata sidecars are UTF-8.
 - Email sends get a 30-second SMTP timeout when `EMAIL_TIMEOUT` (or the
   mailer's `timeout`) is unset, and Twilio requests time out after 30 seconds.
-  Email `metadata` goes to Anymail's `metadata` and `tags`, not to message
-  headers.
+  Email `metadata` goes to Anymail's `metadata` and `tags` (a `tags` string is
+  one tag), not to message headers.
 - The SMTP provider's `validate_webhook_signature` returns `False`, Twilio
   `opt_out_number` and `opt_in_number` return the status `not_supported`, and
   SNS validates numbers with the provider's own AWS settings.
@@ -130,8 +137,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   entries may still carry extra keys), and every settings field, identity and
   verification included, can come from a `SWAPLAYER_` variable; a misspelt
   variable fails validation. Configuration errors describe a rejected value
-  without repeating it, name real settings paths, and link to the
-  `docs/<area>.md` guides.
+  without repeating it, show only public settings values (every other value,
+  including one under a misspelt key, is masked), name real settings paths,
+  and link to the `docs/<area>.md` guides.
 - Package metadata lists the Django 4.2, 5.2, and 6.1 series and
   `Typing :: Typed`, and its keywords are sorted, add `mcp`, and drop
   `python`. The sdist includes `examples/`, `tools/`, and `CODE_OF_CONDUCT.md`.
@@ -159,6 +167,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `swap_layer.communications` paths.
 - The Auth0 client saves its OAuth state and nonce, so the callback no longer
   fails with `MismatchingStateError`.
+- The Django email provider returns Anymail's message ID (a sorted list when
+  the service returns one per recipient) instead of raising after a successful
+  send.
+- A missing or non-ASCII Square webhook signature is rejected as invalid, and
+  PayPal webhook verification accepts a text payload.
 
 ### Migration
 
