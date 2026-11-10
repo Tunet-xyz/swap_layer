@@ -129,27 +129,110 @@ def test_metered_usage_is_explicitly_unsupported():
         provider.create_meter(display_name="Tokens", event_name="tokens_used")
 
 
+PAYPAL_EVENT = b"""{
+    "id": "WH-EVENT-1",
+    "event_type": "BILLING.SUBSCRIPTION.ACTIVATED",
+    "resource": {"id": "I-SUB-1"}
+}"""
+PAYPAL_HEADERS = {
+    "PAYPAL-AUTH-ALGO": "SHA256withRSA",
+    "PAYPAL-CERT-URL": "https://api-m.sandbox.paypal.com/certs/CERT-1",
+    "PAYPAL-TRANSMISSION-ID": "transmission-id",
+    "PAYPAL-TRANSMISSION-SIG": "transmission-sig",
+    "PAYPAL-TRANSMISSION-TIME": "2026-06-10T12:00:00Z",
+}
+
+
 def test_verify_webhook_signature_uses_paypal_verification_api():
     provider = make_provider()
     provider.session.request = Mock(return_value=DummyResponse({"verification_status": "SUCCESS"}))
-    event_payload = b"""{
-        "id": "WH-EVENT-1",
-        "event_type": "BILLING.SUBSCRIPTION.ACTIVATED",
-        "auth_algo": "SHA256withRSA",
-        "cert_url": "https://api-m.sandbox.paypal.com/certs/CERT-1",
-        "transmission_sig": "sig",
-        "transmission_time": "2026-06-10T12:00:00Z",
-        "resource": {"id": "I-SUB-1"}
-    }"""
 
-    event = provider.verify_webhook_signature(event_payload, signature="transmission-id")
+    event = provider.verify_webhook_signature(PAYPAL_EVENT, signature="", headers=PAYPAL_HEADERS)
 
     assert event["id"] == "WH-EVENT-1"
     assert event["type"] == "BILLING.SUBSCRIPTION.ACTIVATED"
     assert event["data"] == {"id": "I-SUB-1"}
     verification_payload = provider.session.request.call_args.kwargs["json"]
+    assert verification_payload == {
+        "auth_algo": "SHA256withRSA",
+        "cert_url": "https://api-m.sandbox.paypal.com/certs/CERT-1",
+        "transmission_id": "transmission-id",
+        "transmission_sig": "transmission-sig",
+        "transmission_time": "2026-06-10T12:00:00Z",
+        "webhook_id": "WH-123",
+        "webhook_event": {
+            "id": "WH-EVENT-1",
+            "event_type": "BILLING.SUBSCRIPTION.ACTIVATED",
+            "resource": {"id": "I-SUB-1"},
+        },
+    }
+
+
+def test_verify_webhook_signature_reads_django_meta_and_signature_argument():
+    provider = make_provider()
+    provider.session.request = Mock(return_value=DummyResponse({"verification_status": "SUCCESS"}))
+    meta = {
+        "HTTP_" + name.replace("-", "_"): value
+        for name, value in PAYPAL_HEADERS.items()
+        if name != "PAYPAL-TRANSMISSION-SIG"
+    }
+
+    provider.verify_webhook_signature(PAYPAL_EVENT, signature="from-argument", headers=meta)
+
+    verification_payload = provider.session.request.call_args.kwargs["json"]
     assert verification_payload["transmission_id"] == "transmission-id"
-    assert verification_payload["webhook_id"] == "WH-123"
+    assert verification_payload["transmission_sig"] == "from-argument"
+
+
+def test_verify_webhook_signature_needs_every_transmission_header():
+    provider = make_provider()
+    provider.session.request = Mock()
+    headers = {k: v for k, v in PAYPAL_HEADERS.items() if k != "PAYPAL-CERT-URL"}
+
+    with pytest.raises(ValueError, match="PAYPAL-CERT-URL"):
+        provider.verify_webhook_signature(PAYPAL_EVENT, signature="sig", headers=headers)
+    with pytest.raises(ValueError, match="PAYPAL-AUTH-ALGO"):
+        provider.verify_webhook_signature(PAYPAL_EVENT, signature="sig")
+    provider.session.request.assert_not_called()
+
+
+def test_verify_webhook_signature_rejects_failed_verification():
+    provider = make_provider()
+    provider.session.request = Mock(return_value=DummyResponse({"verification_status": "FAILURE"}))
+
+    with pytest.raises(ValueError, match="Invalid PayPal webhook signature"):
+        provider.verify_webhook_signature(PAYPAL_EVENT, signature="", headers=PAYPAL_HEADERS)
+
+
+def test_billing_portal_is_explicitly_unsupported():
+    with pytest.raises(PaymentValidationError, match="billing portal"):
+        make_provider().create_billing_portal_session("paypal:a@example.com", "https://app/")
+
+
+def test_customer_handles_are_local_only():
+    provider = make_provider()
+    provider.session.request = Mock()
+
+    created = provider.create_customer("a@example.com", name="A")
+    assert created["id"] == "paypal:a@example.com"
+    assert created["local_only"] is True
+    assert provider.get_customer(created["id"])["email"] == "a@example.com"
+    updated = provider.update_customer(created["id"], email="b@example.com")
+    assert updated["id"] == "paypal:b@example.com"
+    assert provider.delete_customer(updated["id"]) == {
+        "id": "paypal:b@example.com",
+        "deleted": True,
+        "local_only": True,
+    }
+    for call in (
+        lambda: provider.update_customer("PAYER-1", email="c@example.com"),
+        lambda: provider.delete_customer("PAYER-1"),
+        lambda: provider.get_customer("PAYER-1"),
+        lambda: provider.create_customer(""),
+    ):
+        with pytest.raises(PaymentValidationError):
+            call()
+    provider.session.request.assert_not_called()
 
 
 def test_dispatch_webhook_event_deduplicates_events():

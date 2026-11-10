@@ -152,8 +152,14 @@ class PayPalPaymentProvider(PaymentProviderAdapter):
         return None
 
     # Customer Management
-    def create_customer(
-        self, email: str, name: str | None = None, metadata: dict[str, Any] | None = None
+    #
+    # PayPal's REST API has no customer object. These methods manage a local
+    # handle, "paypal:<email>", which create_subscription uses as the
+    # subscriber. Nothing is stored at PayPal; results say so with
+    # "local_only": True, and remote PayPal payer IDs are not editable here.
+    @staticmethod
+    def _local_customer(
+        email: str, name: str | None = None, metadata: dict[str, Any] | None = None
     ) -> dict[str, Any]:
         return {
             "id": f"paypal:{email}",
@@ -161,16 +167,19 @@ class PayPalPaymentProvider(PaymentProviderAdapter):
             "name": name,
             "created": None,
             "metadata": metadata or {},
+            "local_only": True,
         }
+
+    def create_customer(
+        self, email: str, name: str | None = None, metadata: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
+        if not email:
+            raise PaymentValidationError("PayPal customer handles need an email address")
+        return self._local_customer(email, name, metadata)
 
     def get_customer(self, customer_id: str) -> dict[str, Any]:
         if customer_id.startswith("paypal:"):
-            return {
-                "id": customer_id,
-                "email": customer_id.split(":", 1)[1],
-                "name": None,
-                "metadata": {},
-            }
+            return self._local_customer(customer_id.split(":", 1)[1])
         self._unsupported("remote customer retrieval")
 
     def update_customer(
@@ -180,10 +189,16 @@ class PayPalPaymentProvider(PaymentProviderAdapter):
         name: str | None = None,
         metadata: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        return {"id": customer_id, "email": email, "name": name, "metadata": metadata or {}}
+        if not customer_id.startswith("paypal:"):
+            self._unsupported("remote customer updates")
+        # The handle encodes the email, so a new email gives a new handle.
+        return self._local_customer(email or customer_id.split(":", 1)[1], name, metadata)
 
     def delete_customer(self, customer_id: str) -> dict[str, Any]:
-        return {"id": customer_id, "deleted": True}
+        if not customer_id.startswith("paypal:"):
+            self._unsupported("remote customer deletion")
+        # Nothing exists at PayPal for a local handle; the caller removes its own record.
+        return {"id": customer_id, "deleted": True, "local_only": True}
 
     # Product and Pricing
     def create_product(
@@ -605,29 +620,54 @@ class PayPalPaymentProvider(PaymentProviderAdapter):
     def create_billing_portal_session(
         self, customer_id: str, return_url: str | None = None, **kwargs: Any
     ) -> dict[str, Any]:
-        return {"id": customer_id, "url": return_url, "customer_id": customer_id}
+        self._unsupported("hosted customer billing portal")
 
     # Webhooks
+    _WEBHOOK_HEADERS = {
+        "auth_algo": "paypal-auth-algo",
+        "cert_url": "paypal-cert-url",
+        "transmission_id": "paypal-transmission-id",
+        "transmission_sig": "paypal-transmission-sig",
+        "transmission_time": "paypal-transmission-time",
+    }
+
     def verify_webhook_signature(
-        self, payload: bytes, signature: str, webhook_secret: str | None = None, thin: bool = False
+        self,
+        payload: bytes,
+        signature: str,
+        webhook_secret: str | None = None,
+        thin: bool = False,
+        *,
+        headers: Any = None,
     ) -> dict[str, Any]:
+        """
+        Verify a PayPal webhook delivery with PayPal's verification API.
+
+        PayPal signs each delivery in its ``PAYPAL-*`` request headers. Pass
+        them as ``headers`` (for example Django's ``request.headers`` or
+        ``request.META``); ``signature`` is the ``PAYPAL-TRANSMISSION-SIG``
+        value and is used when ``headers`` does not contain it.
+        ``webhook_secret`` overrides the configured PayPal webhook ID.
+        """
         webhook_id = webhook_secret or self.webhook_id
         if not webhook_id:
             raise ValueError("PayPal webhook_id is required for webhook verification")
-        transmission_id = signature
+        received: dict[str, str] = {}
+        for key, value in dict(headers or {}).items():
+            name = str(key).lower().replace("_", "-")
+            received[name.removeprefix("http-")] = str(value)
+        fields = {field: received.get(header, "") for field, header in self._WEBHOOK_HEADERS.items()}
+        fields["transmission_sig"] = fields["transmission_sig"] or (signature or "")
+        missing = sorted(self._WEBHOOK_HEADERS[field].upper() for field, value in fields.items() if not value)
+        if missing:
+            raise ValueError(f"PayPal webhook headers missing: {', '.join(missing)}")
         event = json.loads(payload.decode("utf-8")) if isinstance(payload, bytes) else payload
+        if not isinstance(event, dict):
+            raise ValueError("PayPal webhook payload must be a JSON object")
         verification = self._request(
             "POST",
             "/v1/notifications/verify-webhook-signature",
-            json={
-                "auth_algo": event.get("auth_algo", ""),
-                "cert_url": event.get("cert_url", ""),
-                "transmission_id": transmission_id,
-                "transmission_sig": event.get("transmission_sig", ""),
-                "transmission_time": event.get("transmission_time", ""),
-                "webhook_id": webhook_id,
-                "webhook_event": event,
-            },
+            json={**fields, "webhook_id": webhook_id, "webhook_event": event},
         )
         if verification.get("verification_status") != "SUCCESS":
             raise ValueError("Invalid PayPal webhook signature")
