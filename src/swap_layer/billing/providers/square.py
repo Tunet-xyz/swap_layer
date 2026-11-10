@@ -20,6 +20,7 @@ from ..adapter import (
     PaymentProviderAdapter,
     PaymentValidationError,
     ResourceNotFoundError,
+    minor_units,
 )
 
 # Square retries a webhook for up to 24 hours after the event and signs only
@@ -142,7 +143,7 @@ class SquarePaymentProvider(PaymentProviderAdapter):
 
     @staticmethod
     def _money(amount: Decimal | int | str, currency: str) -> dict[str, Any]:
-        return {"amount": int(Decimal(str(amount))), "currency": currency.upper()}
+        return {"amount": minor_units(amount), "currency": currency.upper()}
 
     @staticmethod
     def _amount_from_money(money: dict[str, Any] | None) -> int | None:

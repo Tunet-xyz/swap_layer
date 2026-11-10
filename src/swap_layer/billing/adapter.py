@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from decimal import Decimal, InvalidOperation
 from typing import Any
 
 # Import subdomain adapters
@@ -18,6 +19,25 @@ class PaymentValidationError(PaymentError):
     """Raised when input data is invalid (e.g. invalid email, negative amount)."""
 
     pass
+
+
+def minor_units(amount: Decimal | int | str, field: str = "amount") -> int:
+    """
+    Return ``amount`` as an integer number of provider minor units.
+
+    Fractions of a minor unit, booleans and non-finite values raise
+    ``PaymentValidationError`` instead of being truncated.
+    """
+    error = PaymentValidationError(f"{field} must be a finite integer number of minor units")
+    if isinstance(amount, bool):
+        raise error
+    try:
+        number = Decimal(str(amount).strip())
+    except InvalidOperation as exc:
+        raise error from exc
+    if not number.is_finite() or number != number.to_integral_value():
+        raise error
+    return int(number)
 
 
 class PaymentDeclinedError(PaymentError):

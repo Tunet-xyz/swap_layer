@@ -13,6 +13,7 @@ from ..adapter import (
     PaymentProviderAdapter,
     PaymentValidationError,
     ResourceNotFoundError,
+    minor_units,
 )
 
 
@@ -444,7 +445,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
     ) -> dict[str, Any]:
         """Create a Stripe payment intent."""
         params: dict[str, Any] = {
-            "amount": int(amount),
+            "amount": minor_units(amount),
             "currency": currency,
         }
 
@@ -759,7 +760,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
         """Create a price for a product."""
         params: dict[str, Any] = {
             "product": product_id,
-            "unit_amount": int(amount),
+            "unit_amount": minor_units(amount, "unit_amount"),
             "currency": currency,
         }
         optional_params = {
@@ -1300,7 +1301,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
             for key, value in {
                 "payment_intent": payment_intent_id,
                 "charge": charge_id,
-                "amount": int(amount) if amount is not None else None,
+                "amount": minor_units(amount) if amount is not None else None,
                 "reason": reason,
                 "metadata": metadata,
             }.items()
@@ -1348,7 +1349,7 @@ class StripePaymentProvider(PaymentProviderAdapter):
             key: value
             for key, value in {
                 "percent_off": float(percent_off) if percent_off is not None else None,
-                "amount_off": int(amount_off) if amount_off is not None else None,
+                "amount_off": minor_units(amount_off, "amount_off") if amount_off is not None else None,
                 "currency": currency,
                 "duration": duration,
                 "name": name,
