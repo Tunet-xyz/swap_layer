@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
+from swap_layer.exceptions import SwapLayerError
+
 
 class EmailProviderAdapter(ABC):
     """
@@ -190,13 +192,13 @@ class EmailProviderAdapter(ABC):
         pass
 
 
-class EmailSendError(Exception):
+class EmailSendError(SwapLayerError):
     """Raised when email sending fails."""
 
     pass
 
 
-class TemplateNotFoundError(Exception):
+class TemplateNotFoundError(SwapLayerError):
     """Raised when a template is not found."""
 
     pass

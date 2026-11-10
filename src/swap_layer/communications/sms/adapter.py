@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
+from swap_layer.exceptions import SwapLayerError
+
 
 class SMSProviderAdapter(ABC):
     """
@@ -144,7 +146,7 @@ class SMSProviderAdapter(ABC):
 
 
 # Custom Exceptions
-class SMSError(Exception):
+class SMSError(SwapLayerError):
     """Base exception for SMS operations."""
 
     pass

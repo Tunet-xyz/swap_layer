@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 from datetime import timedelta
 from typing import Any, BinaryIO
 
+from swap_layer.exceptions import SwapLayerError
+
 
 class StorageProviderAdapter(ABC):
     """
@@ -207,7 +209,7 @@ class StorageProviderAdapter(ABC):
 
 
 # Custom Exceptions
-class StorageError(Exception):
+class StorageError(SwapLayerError):
     """Base exception for storage operations."""
 
     pass

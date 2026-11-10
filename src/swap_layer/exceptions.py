@@ -55,7 +55,7 @@ class SwapLayerError(Exception):
 
     def __init__(
         self,
-        message: str,
+        message: str = "",
         *,
         hint: str | None = None,
         docs_url: str | None = None,

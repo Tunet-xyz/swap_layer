@@ -7,9 +7,10 @@ from swap_layer.billing.customers.adapter import CustomerAdapter
 from swap_layer.billing.payment_intents.adapter import PaymentAdapter
 from swap_layer.billing.products.adapter import ProductAdapter
 from swap_layer.billing.subscriptions.adapter import SubscriptionAdapter
+from swap_layer.exceptions import SwapLayerError
 
 
-class PaymentError(Exception):
+class PaymentError(SwapLayerError):
     """Base exception for all payment related errors."""
 
     pass

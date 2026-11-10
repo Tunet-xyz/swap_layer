@@ -1,8 +1,10 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
+from swap_layer.exceptions import SwapLayerError
 
-class IdentityVerificationError(Exception):
+
+class IdentityVerificationError(SwapLayerError):
     """Base exception for all identity verification related errors."""
 
     pass
