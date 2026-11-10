@@ -32,12 +32,14 @@ class SNSSMSProvider(SMSProviderAdapter):
             aws_secret_access_key = aws_secret_access_key or legacy_setting("AWS_SECRET_ACCESS_KEY")
             aws_region_name = region_name or legacy_setting("AWS_REGION_NAME", "us-east-1")
 
-            self.sns_client = boto3.client(
-                "sns",
-                aws_access_key_id=aws_access_key_id,
-                aws_secret_access_key=aws_secret_access_key,
-                region_name=aws_region_name,
-            )
+            # Kept so other AWS clients (Pinpoint validation) use the same account and region
+            self._aws_client_kwargs = {
+                "aws_access_key_id": aws_access_key_id,
+                "aws_secret_access_key": aws_secret_access_key,
+                "region_name": aws_region_name,
+            }
+            self.region_name = aws_region_name
+            self.sns_client = boto3.client("sns", **self._aws_client_kwargs)
             self.sender_id = sender_id or legacy_setting("AWS_SNS_DEFAULT_SENDER_ID")
 
         except ImportError:
@@ -152,19 +154,9 @@ class SNSSMSProvider(SMSProviderAdapter):
 
         try:
             import boto3
-            from django.conf import settings
 
-            # Initialize Pinpoint client for phone validation
-            aws_access_key_id = getattr(settings, "AWS_ACCESS_KEY_ID", None)
-            aws_secret_access_key = getattr(settings, "AWS_SECRET_ACCESS_KEY", None)
-            aws_region_name = getattr(settings, "AWS_REGION_NAME", "us-east-1")
-
-            pinpoint_client = boto3.client(
-                "pinpoint",
-                aws_access_key_id=aws_access_key_id,
-                aws_secret_access_key=aws_secret_access_key,
-                region_name=aws_region_name,
-            )
+            # Pinpoint uses the same credentials and region as this SNS provider
+            pinpoint_client = boto3.client("pinpoint", **self._aws_client_kwargs)
 
             # Validate phone number
             response = pinpoint_client.phone_number_validate(

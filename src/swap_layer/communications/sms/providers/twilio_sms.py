@@ -226,30 +226,23 @@ class TwilioSMSProvider(SMSProviderAdapter):
         except Exception as e:
             raise SMSSendError(f"Failed to list messages: {str(e)}")
 
+    _OPT_OUT_NOTE = (
+        "Twilio has no API to change a number's opt-out state; it applies STOP and "
+        "START replies itself. Record opt-outs in your application and skip those numbers."
+    )
+
     def opt_out_number(self, phone_number: str) -> dict[str, Any]:
         """
-        Add a phone number to the opt-out list.
+        Report that Twilio cannot opt a number out through its API.
 
-        Note: Twilio handles opt-outs automatically via STOP/START keywords.
-        This is a placeholder for manual opt-out management.
+        Nothing changes at Twilio, so the status is ``not_supported``.
         """
-        # In a real implementation, you would store this in your database
-        # Twilio automatically handles STOP/START keywords
-        return {
-            "phone_number": phone_number,
-            "status": "opted_out",
-        }
+        return {"phone_number": phone_number, "status": "not_supported", "note": self._OPT_OUT_NOTE}
 
     def opt_in_number(self, phone_number: str) -> dict[str, Any]:
         """
-        Remove a phone number from the opt-out list.
+        Report that Twilio cannot opt a number back in through its API.
 
-        Note: Twilio handles opt-ins automatically via STOP/START keywords.
-        This is a placeholder for manual opt-in management.
+        Nothing changes at Twilio, so the status is ``not_supported``.
         """
-        # In a real implementation, you would remove this from your database
-        # Twilio automatically handles STOP/START keywords
-        return {
-            "phone_number": phone_number,
-            "status": "opted_in",
-        }
+        return {"phone_number": phone_number, "status": "not_supported", "note": self._OPT_OUT_NOTE}
