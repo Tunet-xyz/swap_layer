@@ -47,12 +47,12 @@ def pytest_configure():
                 "default": {
                     "api_key": "sk_test",
                     "client_id": "client_test",
-                    "cookie_password": "test_cookie_password_32_chars_min",
+                    "cookie_password": "c3dhcC1sYXllci10ZXN0LWNvb2tpZS1rZXktMzJieSE=",
                 },
                 "custom_app": {
                     "api_key": "sk_test_custom",
                     "client_id": "client_test_custom",
-                    "cookie_password": "test_cookie_password_32_chars_min",
+                    "cookie_password": "c3dhcC1sYXllci10ZXN0LWNvb2tpZS1rZXktMzJieSE=",
                 },
             },
             AUTH0_DEVELOPER_DOMAIN="test.auth0.com",

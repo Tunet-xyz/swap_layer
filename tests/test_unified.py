@@ -67,12 +67,12 @@ class TestUnifiedProvider(unittest.TestCase):
                 "default": {
                     "api_key": "test_api_key",
                     "client_id": "test_client_id",
-                    "cookie_password": "test_cookie_password_min_32_chars",
+                    "cookie_password": "c3dhcC1sYXllci10ZXN0LWNvb2tpZS1rZXktMzJieSE=",
                 },
                 "custom": {
                     "api_key": "custom_api_key",
                     "client_id": "custom_client_id",
-                    "cookie_password": "custom_cookie_password_min_32_chars",
+                    "cookie_password": "c3dhcC1sYXllci1jdXN0b20tY29va2llLWtleS0zMiE=",
                 },
             }
             with patch.object(settings, "WORKOS_APPS", mock_workos_apps):

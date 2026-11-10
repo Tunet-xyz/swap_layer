@@ -55,7 +55,7 @@ def test_workos_factory_and_all_management_interfaces_are_constructible():
     from swap_layer.identity.platform.management.factory import get_management_client
 
     settings = SwapLayerSettings(identity={"workos_apps": {"default": {
-        "api_key": "fixture-key", "client_id": "fixture-client", "cookie_password": "fixture-cookie-password" * 3,
+        "api_key": "fixture-key", "client_id": "fixture-client", "cookie_password": "c3dhcC1sYXllci10ZXN0LWNvb2tpZS1rZXktMzJieSE=",
     }}})
     with patch("swap_layer.settings.get_swaplayer_settings", return_value=settings):
         client = get_management_client()

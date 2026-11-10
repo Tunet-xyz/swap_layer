@@ -85,7 +85,7 @@ def test_identity_platform_factory_uses_swaplayer_settings():
                 "default": {
                     "api_key": "sk_test",
                     "client_id": "client_test",
-                    "cookie_password": "a" * 32,
+                    "cookie_password": "c3dhcC1sYXllci10ZXN0LWNvb2tpZS1rZXktMzJieSE=",
                 }
             },
         }

@@ -191,12 +191,19 @@ class WorkOSConfigError(ConfigurationError):
 
     @classmethod
     def short_cookie_password(cls, provided_length: int) -> "WorkOSConfigError":
+        """Former name of :meth:`invalid_cookie_password`."""
+        return cls.invalid_cookie_password(provided_length)
+
+    @classmethod
+    def invalid_cookie_password(cls, provided_length: int) -> "WorkOSConfigError":
         return cls(
-            "❌ Cookie password too short",
-            hint=f"Cookie password must be at least 32 characters for security. "
+            "❌ Invalid WorkOS cookie password",
+            hint="WorkOS seals sessions with Fernet, so the cookie password must be a Fernet "
+            "key: 32 random bytes, url-safe base64-encoded (44 characters). "
             f"You provided {provided_length} characters.",
             examples=[
-                "Generate secure password: python -c 'import secrets; print(secrets.token_urlsafe(32))'",
+                'Generate one: python -c "from cryptography.fernet import Fernet; '
+                'print(Fernet.generate_key().decode())"',
                 "Or use: openssl rand -base64 32",
             ],
             docs_url="https://workos.com/docs/user-management/configuration",
@@ -431,9 +438,11 @@ def enhance_validation_error(error: Exception, context: dict[str, Any]) -> Excep
         provided = context.get("from_number", "")
         return TwilioConfigError.invalid_phone_number(provided)
 
-    if "Cookie password" in error_str and "32 characters" in error_str:
+    if "cookie password" in error_str.lower() and (
+        "32 characters" in error_str or "Fernet" in error_str
+    ):
         provided_length = len(context.get("cookie_password", ""))
-        return WorkOSConfigError.short_cookie_password(provided_length)
+        return WorkOSConfigError.invalid_cookie_password(provided_length)
 
     # Default: wrap in SwapLayerError with context
     return SwapLayerError(

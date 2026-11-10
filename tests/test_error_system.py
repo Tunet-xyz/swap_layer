@@ -152,14 +152,15 @@ class TestWorkOSConfigError:
 
         error_message = str(exc_info.value)
 
-        assert "❌ Cookie password too short" in error_message
-        assert "32 characters" in error_message
+        assert "❌ Invalid WorkOS cookie password" in error_message
+        assert "Fernet key" in error_message
         assert "8 characters" in error_message  # Shows what they provided
-        assert "secrets.token_urlsafe" in error_message  # Shows how to generate
+        assert "Fernet.generate_key()" in error_message  # Shows how to generate
         assert "openssl rand -base64" in error_message  # Alternative method
 
     def test_valid_cookie_password(self):
-        """Should accept 32+ character cookie password."""
+        """Should accept a Fernet key (32 url-safe base64-encoded bytes)."""
+        key = "c3dhcC1sYXllci10ZXN0LWNvb2tpZS1rZXktMzJieSE="
         # Should not raise
         config = SwapLayerSettings(
             identity={
@@ -168,12 +169,12 @@ class TestWorkOSConfigError:
                     "default": {
                         "api_key": "sk_test_123",
                         "client_id": "client_123",
-                        "cookie_password": "a" * 32,  # Exactly 32 chars
+                        "cookie_password": key,
                     }
                 },
             }
         )
-        assert config.identity.workos_apps["default"].cookie_password == "a" * 32
+        assert config.identity.workos_apps["default"].cookie_password == key
 
 
 class TestProviderConfigMismatchError:
@@ -430,8 +431,8 @@ class TestRichErrorsInRealScenarios:
 
         # Error should explain how to generate secure password
         error = str(exc_info.value)
-        assert "32 characters" in error
-        assert "secrets.token_urlsafe" in error or "openssl rand" in error
+        assert "32 random bytes" in error
+        assert "Fernet.generate_key()" in error or "openssl rand" in error
 
     def test_developer_forgets_provider_config(self):
         """Simulate: Developer sets provider but forgets the actual config."""

@@ -25,7 +25,7 @@ def test_package_runtime_and_contract_versions_match():
 def test_guidance_settings_examples_validate(monkeypatch):
     fixtures = {
         "STRIPE_SECRET_KEY": "sk_test_fixture", "TWILIO_ACCOUNT_SID": "ACfixture",
-        "TWILIO_FROM_NUMBER": "+15555551234", "WORKOS_COOKIE_PASSWORD": "fixture-cookie-password" * 3,
+        "TWILIO_FROM_NUMBER": "+15555551234", "WORKOS_COOKIE_PASSWORD": "c3dhcC1sYXllci10ZXN0LWNvb2tpZS1rZXktMzJieSE=",
     }
     count = 0
     for service in _GUIDANCE["quickstarts"].values():

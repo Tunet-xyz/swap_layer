@@ -59,7 +59,7 @@ def test_can_use_workos_without_stripe():
                         "default": {
                             "api_key": "sk_test_123",
                             "client_id": "client_123",
-                            "cookie_password": "a" * 32,
+                            "cookie_password": "c3dhcC1sYXllci10ZXN0LWNvb2tpZS1rZXktMzJieSE=",
                         }
                     },
                 }

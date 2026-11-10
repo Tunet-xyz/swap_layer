@@ -66,6 +66,8 @@ class WorkOSClient(AuthProviderAdapter):
         Raises:
             ValueError: If app_name not found in settings
         """
+        from swap_layer.settings import WorkOSAppConfig
+
         self.app_name = app_name
         self.config = getattr(settings, "WORKOS_APPS", {}).get(app_name)
         if not self.config:
@@ -73,10 +75,13 @@ class WorkOSClient(AuthProviderAdapter):
                 f"WorkOS configuration for '{app_name}' not found in settings.WORKOS_APPS"
             )
 
+        # Apply the same checks as SWAPLAYER.identity.workos_apps (cookie password included)
+        app = WorkOSAppConfig.model_validate(self.config)
+
         # Store credentials
-        self._api_key = self.config["api_key"]
-        self._client_id = self.config["client_id"]
-        self._cookie_password = self.config["cookie_password"]
+        self._api_key = app.api_key
+        self._client_id = app.client_id
+        self._cookie_password = app.cookie_password
 
         # Create dedicated WorkOS client instance (v6+/v7 pattern)
         self._workos_client = WorkOSSDKClient(

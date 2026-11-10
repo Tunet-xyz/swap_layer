@@ -38,6 +38,8 @@ Usage:
     SWAPLAYER = SwapLayerSettings.from_env()
 """
 
+import base64
+import binascii
 import os
 from typing import Any, Literal
 
@@ -209,18 +211,29 @@ class StorageConfig(_ConfigModel):
         return self
 
 
+def _is_fernet_key(value: str) -> bool:
+    """True when ``value`` is a Fernet key: 32 url-safe base64-encoded bytes."""
+    try:
+        return len(base64.urlsafe_b64decode(value.encode("ascii"))) == 32
+    except (binascii.Error, UnicodeEncodeError, ValueError):
+        return False
+
+
 class WorkOSAppConfig(_ConfigModel):
     """WorkOS application configuration."""
 
     api_key: str = Field(..., description="WorkOS API key")
     client_id: str = Field(..., description="WorkOS client ID")
-    cookie_password: str = Field(..., description="Cookie encryption password (32+ chars)")
+    cookie_password: str = Field(
+        ..., description="Fernet key that seals WorkOS sessions (32 url-safe base64-encoded bytes)"
+    )
 
     @field_validator("cookie_password")
     @classmethod
     def validate_cookie_password(cls, v: str) -> str:
-        if len(v) < 32:
-            raise WorkOSConfigError.short_cookie_password(len(v))
+        # The WorkOS SDK seals sessions with Fernet, which accepts only such keys.
+        if not _is_fernet_key(v):
+            raise WorkOSConfigError.invalid_cookie_password(len(v))
         return v
 
 

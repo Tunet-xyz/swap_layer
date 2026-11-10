@@ -89,7 +89,7 @@ async def test_mcp_redacts_nested_current_settings():
     settings = SwapLayerSettings(
         billing={"provider": "stripe", "stripe": {"secret_key": "sk_private-billing-value"}},
         identity={"provider": "workos", "workos_apps": {"default": {
-            "api_key": "private-api-value", "client_id": "public-client", "cookie_password": "private-cookie-value" * 3,
+            "api_key": "private-api-value", "client_id": "public-client", "cookie_password": "cHJpdmF0ZS1jb29raWUtcGFzc3dvcmQtMzItYnl0ZXM=",
         }}},
         verification={"stripe_secret_key": "private-verification-value"},
     )
@@ -99,6 +99,7 @@ async def test_mcp_redacts_nested_current_settings():
     assert result["status"] == single["status"] == "success"
     serialized = json.dumps(result)
     assert "private-" not in serialized
+    assert "cHJpdmF0ZS1jb29raWUtcGFzc3dvcmQtMzItYnl0ZXM=" not in serialized
     assert "public-client" in serialized
     assert single["config"]["provider"] == "stripe"
     assert _redact_config({"nested": [{"AWS_SECRET_ACCESS_KEY": "private", "provider": "kept"}]}) == {"nested": [{"provider": "kept"}]}

@@ -12,8 +12,9 @@ from swap_layer.management.commands.swaplayer_check import SECRET_MASK, Command
 from swap_layer.mcp.server import _get_config
 from swap_layer.settings import SwapLayerSettings
 
-# Every credential below contains "private"; no output may contain it, in part or whole.
-COOKIE = "private-cookie-password-" + "x" * 16
+# Every credential below contains "private" (the cookie key encodes it); no output
+# may contain any of them, in part or whole.
+COOKIE = "cHJpdmF0ZS1jb29raWUtcGFzc3dvcmQtMzItYnl0ZXM="  # Fernet key format
 
 
 def full_settings() -> SwapLayerSettings:
@@ -74,7 +75,7 @@ def full_settings() -> SwapLayerSettings:
 
 def assert_no_credentials(text: str) -> None:
     assert "private" not in text.lower()
-    for fragment in ("AKIA", "whsec_", "sk_"):
+    for fragment in ("AKIA", "whsec_", "sk_", COOKIE[:12]):
         assert fragment not in text
 
 
