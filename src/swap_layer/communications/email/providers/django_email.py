@@ -65,16 +65,12 @@ class DjangoEmailAdapter(EmailProviderAdapter):
                         attachment.get("mimetype"),
                     )
 
-            # Support for Anymail-specific features via esp_extra if available
+            # Anymail reads these message attributes; other backends ignore them.
+            # Metadata never becomes a message header, which recipients could read.
             if metadata:
-                # This is the standard way to pass metadata to Anymail backends
-                msg.extra_headers = metadata
-                # Anymail uses 'tags' or 'metadata' attribute on the message object
-                # We can try to set it if the attribute exists (duck typing)
-                if hasattr(msg, "metadata"):
-                    msg.metadata = metadata
-                if hasattr(msg, "tags") and "tags" in metadata:
-                    msg.tags = metadata["tags"]
+                msg.metadata = {key: value for key, value in metadata.items() if key != "tags"}  # type: ignore[attr-defined]
+                if "tags" in metadata:
+                    msg.tags = list(metadata["tags"])  # type: ignore[attr-defined]
 
             default_email_connection().send_messages([msg])
 

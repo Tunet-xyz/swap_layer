@@ -46,5 +46,24 @@ class TestDjangoEmailProvider(unittest.TestCase):
         )
 
 
+
+def test_metadata_is_not_sent_as_message_headers():
+    import django.core.mail
+
+    django.core.mail.outbox = []
+    DjangoEmailAdapter().send_email(
+        to=["user@example.com"],
+        subject="Hello",
+        text_body="World",
+        headers={"X-Campaign": "welcome"},
+        metadata={"user_id": "u-123", "tags": ["onboarding"]},
+    )
+    (message,) = django.core.mail.outbox
+    assert message.extra_headers == {"X-Campaign": "welcome"}
+    assert "u-123" not in message.message().as_string()
+    assert message.metadata == {"user_id": "u-123"}
+    assert message.tags == ["onboarding"]
+
+
 if __name__ == "__main__":
     unittest.main()
