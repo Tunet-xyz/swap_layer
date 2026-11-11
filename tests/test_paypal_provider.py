@@ -300,10 +300,43 @@ def test_provider_amounts_are_never_silently_truncated(currency, value):
 
 
 def test_amount_conversion_preserves_decimal_precision():
-    amount = Decimal("100000000000000000000000000001")
+    amount = Decimal("100000000000000001")  # 18 digits: more than a float holds exactly
     money = PayPalPaymentProvider._money(amount, "GBP")
-    assert money["value"] == "1000000000000000000000000000.01"
+    assert money["value"] == "1000000000000000.01"
     assert PayPalPaymentProvider._amount_from_money(money) == int(amount)
+
+
+def test_largest_amounts_and_value_strings_are_accepted():
+    assert PayPalPaymentProvider._money(Decimal("9" * 18), "USD")["value"] == "9999999999999999.99"
+    assert PayPalPaymentProvider._money("9999999999999999.99", "USD")["value"] == "9999999999999999.99"
+    assert PayPalPaymentProvider._money("12.30", "USD")["value"] == "12.30"
+    assert PayPalPaymentProvider._money("1234", "JPY")["value"] == "1234"
+
+
+@pytest.mark.parametrize(
+    "amount",
+    [
+        Decimal("1E+18"),  # 19 digits of minor units
+        10**18,
+        "99999999999999999",  # a 17-digit major-unit value is 19 digits of cents
+        "1e800000",
+        "1" * 70,
+        "1E-1000100",  # tiny values would format to a million characters
+        "0E-1000100",
+        "0.001",
+        True,
+    ],
+)
+def test_amounts_outside_the_limits_fail_quickly_before_request(amount):
+    import time
+
+    provider = PayPalPaymentProvider("fixture-client", "fixture-secret")
+    started = time.perf_counter()
+    with patch.object(provider, "_request") as request:
+        with pytest.raises(PaymentValidationError):
+            provider.create_payment_intent(amount, "USD")
+    assert time.perf_counter() - started < 0.5
+    request.assert_not_called()
 
 
 def test_verify_webhook_signature_accepts_a_text_payload():

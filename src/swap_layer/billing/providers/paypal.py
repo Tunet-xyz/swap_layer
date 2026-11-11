@@ -7,11 +7,14 @@ import requests
 from swap_layer.http import quote_path_segment
 
 from ..adapter import (
+    MAX_AMOUNT_CHARS,
+    MAX_AMOUNT_DIGITS,
     PaymentConnectionError,
     PaymentError,
     PaymentProviderAdapter,
     PaymentValidationError,
     ResourceNotFoundError,
+    minor_units,
 )
 
 
@@ -110,19 +113,36 @@ class PayPalPaymentProvider(PaymentProviderAdapter):
 
     @classmethod
     def _money(cls, amount: Decimal | int | str, currency: str) -> dict[str, str]:
-        factor = Decimal(1 if currency.upper() in cls._ZERO_DECIMAL_CURRENCIES else 100)
-        try:
-            number = Decimal(str(amount))
-        except InvalidOperation as exc:
-            raise PaymentValidationError("Invalid monetary amount") from exc
-        if not number.is_finite() or (not isinstance(amount, str) and number != number.to_integral_value()):
-            raise PaymentValidationError("Numeric amounts must be finite integer minor units")
-        with localcontext() as context:
-            context.prec = max(28, len(number.as_tuple().digits) + 2)
-            value = number if isinstance(amount, str) else number / factor
-            if value * factor != (value * factor).to_integral_value():
-                raise PaymentValidationError("Amount has too many decimal places for this currency")
+        factor = 1 if currency.upper() in cls._ZERO_DECIMAL_CURRENCIES else 100
+        if isinstance(amount, str):
+            # A string is already a PayPal value in major units, such as "12.34".
+            value = cls._major_unit_value(amount, factor)
+        else:
+            value = Decimal(minor_units(amount)) / factor
         return {"currency_code": currency.upper(), "value": format(value, "f")}
+
+    @staticmethod
+    def _major_unit_value(text: str, factor: int) -> Decimal:
+        """Parse a major-unit value string within the limits ``minor_units()`` applies."""
+        text = text.strip()
+        try:
+            value = Decimal(text) if len(text) <= MAX_AMOUNT_CHARS else None
+        except InvalidOperation:
+            value = None
+        # Bounding the magnitude both ways keeps the arithmetic and formatting small.
+        if (
+            value is None
+            or not value.is_finite()
+            or not -MAX_AMOUNT_CHARS <= value.adjusted() < MAX_AMOUNT_DIGITS
+        ):
+            raise PaymentValidationError("Invalid monetary amount")
+        with localcontext() as context:
+            context.prec = MAX_AMOUNT_CHARS + 4  # at most 64 digits times 100: exact
+            units = value * factor
+        if units != units.to_integral_value():
+            raise PaymentValidationError("Amount has too many decimal places for this currency")
+        minor_units(units)  # the digit limit counts minor units
+        return value
 
     @classmethod
     def _amount_from_money(cls, money: dict[str, Any]) -> int | None:
