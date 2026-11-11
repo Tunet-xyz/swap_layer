@@ -69,9 +69,9 @@ markers.
    administrators can create `v*` tags, and nobody can move or delete one.
 2. The owner starts `publish.yaml` from `main` or that tag; it stops on any
    other ref, including a tag that does not match the package version. The
-   build job repeats the lint, type, Bandit, and test checks, builds the
-   distributions with the hash-locked tools, runs `twine check --strict`, and
-   writes `SHA256SUMS`.
+   verify job repeats the lint, type, Bandit, and test checks; the build job
+   then builds the distributions with only the hash-locked tools installed,
+   runs `twine check --strict`, and writes `SHA256SUMS`.
 3. The upload job runs in the `pypi` environment, which only `main` and `v*`
    tags may use and which needs the owner's approval; administrators cannot
    bypass it, and agents cannot give that approval. PyPI Trusted Publishing
