@@ -154,6 +154,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `--model app.Model`), so SwapLayer's management commands share the
   `swaplayer_` prefix. The docs describe it and `swaplayer_check`.
 
+**Upgrading:**
+
+- Look Django apps up by their new labels, for example
+  `apps.get_app_config("swap_layer_billing")` instead of `"billing"`.
+- Give WorkOS a Fernet key as its `cookie_password`, for example from
+  `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`.
+- Pass the request headers to PayPal webhook verification, keep Square
+  `event_id` values for at least 25 hours, and configure a Stripe Identity
+  webhook secret before handling those webhooks.
+- Call `exchange_code_for_user` from the callback for a sign-in that
+  `get_authorization_url` started in the same session.
+- Build system storage contexts with `system_context(reason=...)`, give tenant
+  contexts a role or explicit permissions, and give `public=True` uploads the
+  `ADMIN` permission.
+- Update MCP clients to the new tool names and camelCase arguments, and remove
+  unknown keys from nested settings.
+
 ### Deprecated
 
 - The former Django app config class names (`BillingConfig`, `EmailConfig`,
@@ -186,24 +203,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a project configured through `SWAPLAYER` it created them in the configured
   provider again. An unknown or unconfigured target is a `CommandError`.
 
-### Migration
-
-- Look Django apps up by their new labels, for example
-  `apps.get_app_config("swap_layer_billing")` instead of `"billing"`.
-- Give WorkOS a Fernet key as its `cookie_password`, for example from
-  `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`.
-- Pass the request headers to PayPal webhook verification, keep Square
-  `event_id` values for at least 25 hours, and configure a Stripe Identity
-  webhook secret before handling those webhooks.
-- Call `exchange_code_for_user` from the callback for a sign-in that
-  `get_authorization_url` started in the same session.
-- Build system storage contexts with `system_context(reason=...)`, give tenant
-  contexts a role or explicit permissions, and give `public=True` uploads the
-  `ADMIN` permission.
-- Update MCP clients to the new tool names and camelCase arguments, and remove
-  unknown keys from nested settings.
-
 ## [1.0.0] - 2026-11-05 (tagged; not yet published to PyPI)
+
+### Added
+
+- Added provider-neutral webhook endpoint lifecycle operations and Stripe discovery,
+  create, update, and explicit delete support with a one-time signing-secret boundary.
 
 ### Changed
 
@@ -211,16 +216,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Aligned package, runtime, and MCP versions; updated provider guides and installation metadata.
 - Gated every release job on an owner-started manual workflow with pinned actions,
   protected OIDC publishing, and hash-locked build tools.
-
-### Security
-
-- Rejected traversal, absolute paths, symlinks, and junctions in local storage keys;
-  enforced safe tenant identities and organization-scoped storage paths.
-- Redacted nested credentials from current MCP settings models and omitted raw provider
-  exception messages from operational MCP responses.
-- Bounded legacy Auth0 management HTTP calls with a 30-second timeout.
-- Required an explicit storage security context; isolated Auth0 token caches by
-  tenant and client, and suppressed credential-bearing validation input in diagnostics.
 
 ### Fixed
 
@@ -237,10 +232,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed empty admin displays and numeric quota formatting on current Django; preserved
   display metadata using Django's supported decorators. Full source type checks pass.
 
-### Added
+### Security
 
-- Added provider-neutral webhook endpoint lifecycle operations and Stripe discovery,
-  create, update, and explicit delete support with a one-time signing-secret boundary.
+- Rejected traversal, absolute paths, symlinks, and junctions in local storage keys;
+  enforced safe tenant identities and organization-scoped storage paths.
+- Redacted nested credentials from current MCP settings models and omitted raw provider
+  exception messages from operational MCP responses.
+- Bounded legacy Auth0 management HTTP calls with a 30-second timeout.
+- Required an explicit storage security context; isolated Auth0 token caches by
+  tenant and client, and suppressed credential-bearing validation input in diagnostics.
 
 ## [0.7.0] - 2026-07-15 (not published to PyPI; included in 1.0.0)
 
@@ -293,7 +293,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed hardcoded `orgs/` path prefix. Path convention is now fully user-controlled via `scope_format`.
 - Centralised prefix resolution into `_resolve_prefix()` (used by both `scope_path()` and `validate_scoped_path()`).
 
-### Migration
+**Upgrading:**
 
 - Replace `StorageSecurityContext(organization_id='org-456', ...)` with `StorageSecurityContext(scope_format='{organization_id}', organization_id='org-456', ...)`
 - Replace any `path_prefix='custom/prefix'` with `scope_format='custom/prefix'`

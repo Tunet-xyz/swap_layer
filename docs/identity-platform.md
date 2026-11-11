@@ -32,7 +32,7 @@ identity = get_identity_client(app_name="default")
 # identity.clear_session(request)
 ```
 
-WorkOS accepts each state once, within 10 minutes of `get_authorization_url`; otherwise `exchange_code_for_user` raises `OAuthStateError` (from `swap_layer.identity.platform.adapter`). The Auth0 client keeps its state and nonce in the session for Authlib to check. Validate callback URLs, session ownership and logout destinations at the application boundary. Follow your provider's production session guidance. Normalized user data does not grant application permissions by itself.
+WorkOS accepts each state once, within 10 minutes of `get_authorization_url`; otherwise `exchange_code_for_user` raises `OAuthStateError` (from `swap_layer.identity.platform.adapter`). For WorkOS, `exchange_code_for_user` returns the sealed session as `sealed_session`; store it in `request.session["workos_sealed_session"]`, where `get_logout_url` reads it and `clear_session` removes it. The Auth0 client keeps its state and nonce in the session for Authlib to check. Validate callback URLs, session ownership and logout destinations at the application boundary. Follow your provider's production session guidance. Normalized user data does not grant application permissions by itself.
 
 ## Management APIs
 
