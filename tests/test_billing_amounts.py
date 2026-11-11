@@ -85,4 +85,10 @@ def test_huge_amounts_are_rejected_quickly(amount):
 
 
 def test_largest_accepted_amount():
-    assert minor_units("999999999999999999") == 999999999999999999
+    assert minor_units("9" * 18) == 10**18 - 1
+
+
+@pytest.mark.parametrize("amount", ["9" * 19, 10**18, Decimal("1E+18"), -(10**18), 2**63 - 1])
+def test_amounts_over_18_digits_are_rejected(amount):
+    with pytest.raises(PaymentValidationError):
+        minor_units(amount)

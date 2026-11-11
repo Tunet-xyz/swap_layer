@@ -22,7 +22,8 @@ class PaymentValidationError(PaymentError):
     pass
 
 
-# Far above any provider's limit (Stripe allows 8 digits); keeps conversions cheap.
+# At most 18 digits: far above any provider's limit (Stripe allows 8), always fits a
+# signed 64-bit integer, and keeps conversions cheap.
 MAX_AMOUNT_DIGITS = 18
 MAX_AMOUNT_CHARS = 64
 
@@ -45,7 +46,8 @@ def minor_units(amount: Decimal | int | str, field: str = "amount") -> int:
         number = Decimal(text)
     except InvalidOperation as exc:
         raise error from exc
-    if not number.is_finite() or number.adjusted() > MAX_AMOUNT_DIGITS:
+    # adjusted() is the exponent of the leading digit: an N-digit integer gives N - 1.
+    if not number.is_finite() or number.adjusted() >= MAX_AMOUNT_DIGITS:
         raise error
     if number != number.to_integral_value():
         raise error
