@@ -28,6 +28,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The MCP `explain` tool and the `opensource://swap_layer/docs/<topic>`
   resources serve the README, SECURITY.md, and the docs guides as packaged with
   the release; `tools/sync_mcp_guidance.py` refreshes the packaged copies.
+- `get_payment_provider(provider)` (also `swap_layer.billing.get_provider`)
+  builds a named billing provider from its own settings block, or else its
+  legacy Django settings, instead of the configured one.
 
 ### Changed
 
@@ -146,12 +149,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `python`. The sdist includes `examples/`, `tools/`, and `CODE_OF_CONDUCT.md`.
 - `publish.yaml` runs `twine check --strict`, and the tests workflow also runs
   the suite on Django 4.2 in a `minimum-dependencies` job.
+- The billing migration command is `swaplayer_migrate_billing_provider`, with
+  the same arguments (`from_provider to_provider`, `--dry-run` or `--confirm`,
+  `--model app.Model`), so SwapLayer's management commands share the
+  `swaplayer_` prefix. The docs describe it and `swaplayer_check`.
 
 ### Deprecated
 
 - The former Django app config class names (`BillingConfig`, `EmailConfig`,
   `SmsConfig`, `AuthenticationConfig`, `IdentityConfig`, `StorageConfig`) still
   import through 1.x, with a `DeprecationWarning`.
+- The `migrate_payment_provider` command, which prints a deprecation notice and
+  runs `swaplayer_migrate_billing_provider` through 1.x.
 
 ### Removed
 
@@ -173,6 +182,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   send.
 - A missing or non-ASCII Square webhook signature is rejected as invalid, and
   PayPal webhook verification accepts a text payload.
+- The billing migration command creates customers in the target provider: in
+  a project configured through `SWAPLAYER` it created them in the configured
+  provider again. An unknown or unconfigured target is a `CommandError`.
 
 ### Migration
 

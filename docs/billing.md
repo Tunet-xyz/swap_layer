@@ -57,4 +57,22 @@ The Stripe adapter exposes `discover_catalog`, auto-paginated catalog helpers, m
 
 Webhook endpoint create/read/update/delete operations are explicit. The signing secret is returned only when created; discovery/read/update output omits it. Secure that one-time value yourself. Verify incoming signatures against raw request bytes, authorize event processing, and maintain durable idempotency/audit state. In-memory processed-event sets are not a distributed transaction store.
 
+## Moving customers to another provider
+
+`python manage.py swaplayer_migrate_billing_provider <from> <to>` creates each customer again in the target provider and stores the new customer ID on your model. Add `swap_layer.billing` to `INSTALLED_APPS`, and give the model the `payment_provider` and `payment_customer_id` fields of `swap_layer.billing.models.PaymentProviderCustomerMixin`.
+
+```bash
+python manage.py swaplayer_migrate_billing_provider stripe paypal --dry-run
+python manage.py swaplayer_migrate_billing_provider stripe paypal --confirm
+python manage.py swaplayer_migrate_billing_provider stripe paypal --confirm --model accounts.Customer
+```
+
+- Configure both providers. The target is built from its own block next to the active one (for example `SWAPLAYER["billing"]["paypal"]` while `billing.provider` stays `stripe`), or else from its legacy Django settings; an unknown or unconfigured target stops the command with an error.
+- Exactly one of `--dry-run` and `--confirm` is required. Run `--dry-run` first: it lists the customers it would move and changes nothing.
+- `--model app.Model` names the model that holds the customers (default `auth.User`); the command reads its `email` and its `name` or `username`.
+- Only customers move: subscriptions, payment methods and invoices are not migrated. Each new customer records `migrated_from` and `old_customer_id` in its metadata, and a customer that fails is reported while the rest continue.
+- `migrate_payment_provider` is a deprecated alias through 1.x: it prints a deprecation notice and runs the new command.
+
+`get_payment_provider("paypal")` (from `swap_layer`, also `swap_layer.billing.get_provider`) builds a named provider the same way, without changing the configured one.
+
 Applications own customer data, concrete Django models/migrations, payment authorization, refund approval, regulatory obligations and provider accounts. Runtime MCP does not execute production payment transactions; generated examples are text requiring application review.
