@@ -153,6 +153,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the same arguments (`from_provider to_provider`, `--dry-run` or `--confirm`,
   `--model app.Model`), so SwapLayer's management commands share the
   `swaplayer_` prefix. The docs describe it and `swaplayer_check`.
+- The MCP server cuts the method names, parameters, and parse errors it
+  quotes back in error replies to 200 characters, as the other Tunet MCP
+  servers do.
 
 **Upgrading:**
 

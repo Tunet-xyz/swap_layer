@@ -31,6 +31,7 @@ PROTOCOL_VERSION = "2025-06-18"
 CONTRACT_PATH = pathlib.Path(__file__).with_name("agent-contract.json")
 MAX_MESSAGE_CHARS = 1_100_000
 MAX_JSON_NUMBER_CHARS = 256
+MAX_ERROR_DETAIL_CHARS = 200
 # Service keys used by the runtime tools (settings and get_provider() use the same names).
 SERVICES = ("billing", "email", "sms", "storage", "identity", "verification")
 
@@ -138,6 +139,14 @@ def error(request_id: Any, code: int, message: str, data: Any | None = None) -> 
     if data is not None:
         body["data"] = data
     return {"jsonrpc": "2.0", "id": request_id, "error": body}
+
+
+def _shorten(value: object) -> str:
+    """Cut text quoted back from the client to MAX_ERROR_DETAIL_CHARS characters."""
+    text = str(value)
+    if len(text) > MAX_ERROR_DETAIL_CHARS:
+        return text[:MAX_ERROR_DETAIL_CHARS] + "..."
+    return text
 
 
 # ---------------------------------------------------------------------------
@@ -515,9 +524,9 @@ def handle(message: object, contract: dict[str, Any]) -> dict[str, Any] | None:
                 raise TypeError("prompt name and arguments have invalid types")
             response = result(request_id, get_prompt(contract, name, dict(arguments)))
         else:
-            response = error(request_id, -32601, f"Method not found: {method}")
+            response = error(request_id, -32601, f"Method not found: {_shorten(method)}")
     except (KeyError, TypeError, ValueError) as exc:
-        response = error(request_id, -32602, f"Unknown or invalid parameter: {exc}")
+        response = error(request_id, -32602, f"Unknown or invalid parameter: {_shorten(exc)}")
     except Exception as exc:  # pragma: no cover - defensive protocol boundary
         response = error(request_id, -32603, "Internal error", {"detail": type(exc).__name__})
     return None if is_notification else response
@@ -543,7 +552,7 @@ def main() -> None:
         try:
             message = parse_message(line)
         except (json.JSONDecodeError, RecursionError, TypeError, ValueError) as exc:
-            write_message(error(None, -32700, "Parse error", {"detail": str(exc)}))
+            write_message(error(None, -32700, "Parse error", {"detail": _shorten(exc)}))
             continue
         response = handle(message, contract)
         if response is not None:

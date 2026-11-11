@@ -1,5 +1,6 @@
 """SwapLayer's MCP server: one stdio server that serves its public contract."""
 
+import io
 import json
 import re
 import subprocess
@@ -45,6 +46,29 @@ def run_stdio(*messages: dict, script: Path | None = None) -> list[dict]:
 
 def request(request_id: int, method: str, **params) -> dict:
     return {"jsonrpc": "2.0", "id": request_id, "method": method, "params": params}
+
+
+def test_error_details_are_cut_to_200_characters(monkeypatch, capsys):
+    unknown_tool = server.handle(request(1, "tools/call", name="x" * 1000, arguments={}), CONTRACT)
+    assert unknown_tool["error"]["code"] == -32602
+    assert unknown_tool["error"]["message"].endswith("...")
+    assert len(unknown_tool["error"]["message"]) == len("Unknown or invalid parameter: ") + 203
+
+    unknown_method = server.handle(request(2, "m" * 1000), CONTRACT)
+    assert unknown_method["error"] == {
+        "code": -32601,
+        "message": "Method not found: " + "m" * 200 + "...",
+    }
+
+    key = "k" * 1000
+    monkeypatch.setattr(sys, "stdin", io.StringIO(f'{{"{key}":1,"{key}":2}}\n'))
+    server.main()
+    duplicate = json.loads(capsys.readouterr().out)
+    assert duplicate["error"] == {
+        "code": -32700,
+        "message": "Parse error",
+        "data": {"detail": ("Duplicate JSON object key: " + key)[:200] + "..."},
+    }
 
 
 # ---------------------------------------------------------------------------
