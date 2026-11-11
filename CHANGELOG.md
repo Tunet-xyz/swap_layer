@@ -81,8 +81,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   messages; `get_provider("payments")` and `"payment"` still work.
 - Stripe and Square reject a fraction of a minor unit with
   `PaymentValidationError` instead of truncating it, and read an integral
-  string as minor units. They also reject amounts with more than 19 digits or
-  more than 64 characters.
+  string as minor units. Stripe, Square, and PayPal reject amounts of more than
+  18 digits or 64 characters; for a PayPal value string, which is in major
+  units, the 18 digits count minor units.
 - PayPal `verify_webhook_signature(payload, signature, headers=request.headers)`
   reads the `PAYPAL-*` transmission headers, and a missing header raises. The
   PayPal customer methods manage a local `paypal:<email>` handle and say so
