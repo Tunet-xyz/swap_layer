@@ -12,8 +12,10 @@ Usage:
 """
 
 from django.apps import apps
-from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
+
+from swap_layer.billing.factory import get_payment_provider
+from swap_layer.exceptions import SwapLayerError
 
 
 class Command(BaseCommand):
@@ -100,15 +102,12 @@ class Command(BaseCommand):
 
         self.stdout.write(f"\nFound {count} customers to migrate\n")
 
-        # Import billing provider
-        from swap_layer.billing import get_provider
-
         if not dry_run:
-            # Temporarily switch to new provider
-            original_provider = getattr(settings, "PAYMENT_PROVIDER", "stripe")
-            settings.PAYMENT_PROVIDER = to_provider
-            provider = get_provider()
-            settings.PAYMENT_PROVIDER = original_provider
+            # Build the target from its own settings; the configured provider is unchanged.
+            try:
+                provider = get_payment_provider(to_provider)
+            except (ValueError, SwapLayerError) as e:
+                raise CommandError(f'Cannot use billing provider "{to_provider}": {e}')
 
         migrated = 0
         failed = 0

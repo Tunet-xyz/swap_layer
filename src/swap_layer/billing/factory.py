@@ -2,11 +2,19 @@ from swap_layer.settings import get_swaplayer_settings
 
 from .adapter import PaymentProviderAdapter
 
+BILLING_PROVIDERS = ("stripe", "paypal", "square")
 
-def get_payment_provider() -> PaymentProviderAdapter:
+
+def get_payment_provider(provider: str | None = None) -> PaymentProviderAdapter:
     """
     Factory function to return the configured Payment Provider.
     This allows switching vendors by changing the provider in SwapLayerSettings.
+
+    Args:
+        provider: Build this provider ("stripe", "paypal" or "square") instead of the
+            configured ``billing.provider``: from its own block in the billing settings,
+            or else from its legacy Django settings. Migrations use it to reach the
+            target provider.
 
     Returns:
         PaymentProviderAdapter: The configured payment provider instance
@@ -14,10 +22,12 @@ def get_payment_provider() -> PaymentProviderAdapter:
     Raises:
         ValueError: If the provider is not supported or not configured
     """
+    if provider is not None and provider not in BILLING_PROVIDERS:
+        raise ValueError(f"Unknown Payment Provider: {provider}")
     settings = get_swaplayer_settings()
 
-    if settings.billing:
-        provider = settings.billing.provider
+    if settings.billing and (provider is None or getattr(settings.billing, provider) is not None):
+        provider = provider or settings.billing.provider
         if provider == "stripe" and settings.billing.stripe:
             from .providers.stripe import StripePaymentProvider
 
@@ -50,7 +60,7 @@ def get_payment_provider() -> PaymentProviderAdapter:
         # Fallback to legacy Django settings for backward compatibility
         from django.conf import settings as django_settings
 
-        provider = getattr(django_settings, "PAYMENT_PROVIDER", "stripe")
+        provider = provider or getattr(django_settings, "PAYMENT_PROVIDER", "stripe")
 
         if provider == "paypal":
             from .providers.paypal import PayPalPaymentProvider
