@@ -83,6 +83,22 @@ def test_apps_use_prefixed_labels_and_area_class_names():
     assert {name: configs[name] for name in EXPECTED} == EXPECTED
 
 
+def test_management_commands_share_the_swaplayer_prefix():
+    output = run_django(
+        """
+        from django.core.management import get_commands
+        commands = get_commands()
+        names = ["swaplayer_check", "swaplayer_migrate_billing_provider", "migrate_payment_provider"]
+        print(json.dumps({name: commands.get(name) for name in names}))
+        """
+    )
+    assert json.loads(output) == {
+        "swaplayer_check": "swap_layer",
+        "swaplayer_migrate_billing_provider": "swap_layer.billing",
+        "migrate_payment_provider": "swap_layer.billing",  # deprecated alias, kept through 1.x
+    }
+
+
 def test_former_class_paths_still_load_with_a_deprecation_warning():
     former = [
         "swap_layer.billing.apps.BillingConfig",
