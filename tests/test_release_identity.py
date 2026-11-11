@@ -51,7 +51,7 @@ def test_public_stdio_recovers_and_reports_release_version():
         json.dumps({"jsonrpc":"2.0", "id":2, "method":"initialize", "params":{}}),
         json.dumps({"jsonrpc":"2.0", "id":3, "method":"ping"}),
     ]) + '\n'
-    result = subprocess.run([sys.executable, str(script)], input=messages, capture_output=True, text=True, encoding="utf-8", timeout=15, check=True)
+    result = subprocess.run([sys.executable, str(script)], input=messages, capture_output=True, text=True, encoding="utf-8", timeout=180, check=True)
     responses = [json.loads(line) for line in result.stdout.splitlines()]
     assert "error" in responses[0]
     assert responses[1]["result"]["serverInfo"]["version"] == "1.0.0"

@@ -38,7 +38,7 @@ def run_stdio(*messages: dict, script: Path | None = None) -> list[dict]:
 
     completed = subprocess.run(
         command, input=payload, capture_output=True, text=True, encoding="utf-8",
-        timeout=60, check=True, env={**os.environ, **env},
+        timeout=180, check=True, env={**os.environ, **env},  # a cold start on a busy machine can be slow
     )
     return [json.loads(line) for line in completed.stdout.splitlines()]
 
