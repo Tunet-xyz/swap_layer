@@ -45,7 +45,7 @@ dependencies = [
 [project.optional-dependencies]
 django = ["Django>=4.2,<7"]
 fastapi = ["fastapi>=0.100.0"]
-stripe = ["stripe>=16.1,<17"]
+stripe = ["stripe>=16.1,<18"]
 paypal = []
 square = []
 aws = ["boto3>=1.26.0", "django-storages[s3]>=1.13"]
@@ -58,7 +58,7 @@ mcp = ["mcp>=1.30,<2"]
 all = [
   "Django>=4.2,<7",
   "fastapi>=0.100.0",
-  "stripe>=16.1,<17",
+  "stripe>=16.1,<18",
   "boto3>=1.26.0",
   "django-storages[s3,azure]>=1.13",
   "django-anymail>=10.0,<16",
