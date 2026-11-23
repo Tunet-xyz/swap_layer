@@ -205,6 +205,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The billing migration command creates customers in the target provider: in
   a project configured through `SWAPLAYER` it created them in the configured
   provider again. An unknown or unconfigured target is a `CommandError`.
+- Stripe subscriptions normalize on the API version that stripe-python 16 pins
+  (`2026-10-28.endive`). Since API version `2025-03-31.basil`, Stripe reports
+  the billing period on each subscription item, not on the subscription:
+  - The getting, updating, cancelling, listing, pausing and resuming methods
+    raised `AttributeError`. `create_subscription` raised `PaymentError` after
+    Stripe had already created the subscription.
+  - Each normalized item now carries its own `current_period_start` and
+    `current_period_end`. The subscription's period is that of the item whose
+    period ends first; older API versions still report it on the subscription.
+  - `metadata` is a plain dict.
+- PayPal `list_invoices(customer_id)` searches PayPal for the invoices
+  addressed to that customer's email; it returned every invoice in the account.
+  A customer id that is not a `paypal:<email>` handle raises
+  `PaymentValidationError`. A normalized PayPal invoice's `customer_id` is the
+  `paypal:<email>` handle of its first recipient.
+- Square `list_invoices(customer_id)` searches that customer's invoices at the
+  location, and no longer includes invoices that have no customer. A
+  normalized Square invoice's `hosted_invoice_url` is its `public_url`; it was
+  set to a currency code.
+- `repr()` and `str()` of the settings models leave out credentials: secret
+  keys, client secrets, tokens, webhook signing secrets and the WorkOS cookie
+  password. For example, `repr(settings.billing)` showed the Stripe secret key.
 
 ## [1.0.0] - 2026-11-05 (tagged; not yet published to PyPI)
 

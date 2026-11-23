@@ -540,8 +540,36 @@ class PayPalPaymentProvider(PaymentProviderAdapter):
         return self._normalize_invoice(self._request("GET", f"/v2/invoicing/invoices/{quote_path_segment(invoice_id)}"))
 
     def list_invoices(self, customer_id: str, limit: int = 10) -> list[dict[str, Any]]:
-        payload = self._request("GET", f"/v2/invoicing/invoices?page_size={limit}")
-        return [self._normalize_invoice(invoice) for invoice in payload.get("items", [])]
+        # PayPal has no customer object: a customer is the local handle
+        # "paypal:<email>", so its invoices are the ones addressed to that email.
+        if not customer_id.startswith("paypal:"):
+            self._unsupported("listing invoices for a remote customer id")
+        email = customer_id.split(":", 1)[1]
+        if not email:
+            raise PaymentValidationError("PayPal customer handles need an email address")
+        payload = self._request(
+            "POST",
+            f"/v2/invoicing/search-invoices?page=1&page_size={int(limit)}",
+            json={"recipient_email": email},
+        )
+        # The search already filters by recipient; keep only invoices addressed
+        # to this customer in case a result carries no matching recipient.
+        return [
+            self._normalize_invoice(invoice)
+            for invoice in payload.get("items", [])
+            if email.casefold() in self._recipient_emails(invoice)
+        ]
+
+    @staticmethod
+    def _recipient_emails(invoice: dict[str, Any]) -> list[str]:
+        """Return the casefolded email addresses of an invoice's primary recipients."""
+        emails = []
+        for recipient in invoice.get("primary_recipients") or []:
+            billing_info = (recipient or {}).get("billing_info") or {}
+            email = billing_info.get("email_address")
+            if isinstance(email, str) and email:
+                emails.append(email.casefold())
+        return emails
 
     def finalize_invoice(self, invoice_id: str, **kwargs: Any) -> dict[str, Any]:
         return self.get_invoice(invoice_id)
@@ -771,11 +799,20 @@ class PayPalPaymentProvider(PaymentProviderAdapter):
             "url": self._find_approval_url(order),
         }
 
+    @staticmethod
+    def _invoice_customer_id(invoice: dict[str, Any]) -> str | None:
+        """Return the customer handle of the invoice's first primary recipient."""
+        for recipient in invoice.get("primary_recipients") or []:
+            email = ((recipient or {}).get("billing_info") or {}).get("email_address")
+            if isinstance(email, str) and email:
+                return f"paypal:{email}"
+        return None
+
     def _normalize_invoice(self, invoice: dict[str, Any]) -> dict[str, Any]:
         money = invoice.get("amount") or invoice.get("due_amount") or {}
         return {
             "id": invoice.get("id"),
-            "customer_id": None,
+            "customer_id": self._invoice_customer_id(invoice),
             "amount_due": self._amount_from_money(money),
             "amount_paid": None,
             "status": invoice.get("status"),

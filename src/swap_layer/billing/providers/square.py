@@ -579,13 +579,25 @@ class SquarePaymentProvider(PaymentProviderAdapter):
         return self._normalize_invoice(invoice)
 
     def list_invoices(self, customer_id: str, limit: int = 10) -> list[dict[str, Any]]:
+        if not customer_id:
+            raise PaymentValidationError("customer_id is required to list invoices")
         payload = self._request(
-            "GET", "/v2/invoices", params={"location_id": self.location_id, "limit": limit}
+            "POST",
+            "/v2/invoices/search",
+            json_body={
+                "query": {
+                    "filter": {
+                        "location_ids": [self.location_id],
+                        "customer_ids": [customer_id],
+                    }
+                },
+                "limit": limit,
+            },
         )
         invoices = [self._normalize_invoice(invoice) for invoice in payload.get("invoices", [])]
-        return [
-            invoice for invoice in invoices if invoice.get("customer_id") in {None, customer_id}
-        ]
+        # The search already filters by customer; keep only this customer's
+        # invoices in case a result carries another or no customer.
+        return [invoice for invoice in invoices if invoice.get("customer_id") == customer_id]
 
     def finalize_invoice(self, invoice_id: str, **kwargs: Any) -> dict[str, Any]:
         invoice = self._request(
@@ -835,7 +847,6 @@ class SquarePaymentProvider(PaymentProviderAdapter):
         }
 
     def _normalize_invoice(self, invoice: dict[str, Any]) -> dict[str, Any]:
-        payment_requests = invoice.get("payment_requests") or [{}]
         total = invoice.get("invoice_total_money") or invoice.get("total_money") or {}
         recipient = invoice.get("primary_recipient") or {}
         return {
@@ -846,9 +857,7 @@ class SquarePaymentProvider(PaymentProviderAdapter):
             "status": (invoice.get("status") or "").lower(),
             "created": invoice.get("created_at"),
             "currency": total.get("currency"),
-            "hosted_invoice_url": payment_requests[0]
-            .get("computed_amount_money", {})
-            .get("currency"),
+            "hosted_invoice_url": invoice.get("public_url"),
             "invoice_pdf": None,
         }
 

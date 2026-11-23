@@ -299,28 +299,47 @@ class StripePaymentProvider(PaymentProviderAdapter):
         return [self._normalize_subscription(sub) for sub in subscriptions.data]
 
     def _normalize_subscription(self, subscription) -> dict[str, Any]:
-        """Normalize Stripe subscription data to standard format."""
+        """Normalize Stripe subscription data to standard format.
+
+        Since API version 2025-03-31.basil, Stripe reports the billing period
+        on each subscription item instead of on the subscription. Each item
+        keeps its own period, and the subscription's period is that of the item
+        whose period ends first; items share one period unless their billing
+        intervals differ. Older API versions report it on the subscription.
+        """
+        value = self._catalog_value
         items = []
-        if hasattr(subscription, "items") and subscription.items:
-            for item in subscription.items.data:
-                items.append(
-                    {
-                        "id": item.id,
-                        "price_id": item.price.id,
-                        "quantity": item.quantity,
-                    }
-                )
+        item_list = value(subscription, "items")
+        for item in value(item_list, "data", None) or []:
+            items.append(
+                {
+                    "id": value(item, "id"),
+                    "price_id": self._catalog_id(value(item, "price")),
+                    "quantity": value(item, "quantity"),
+                    "current_period_start": value(item, "current_period_start"),
+                    "current_period_end": value(item, "current_period_end"),
+                }
+            )
+
+        period_start = value(subscription, "current_period_start")
+        period_end = value(subscription, "current_period_end")
+        if period_start is None and period_end is None:
+            dated = [item for item in items if item["current_period_end"] is not None]
+            if dated:
+                first = min(dated, key=lambda item: item["current_period_end"])
+                period_start = first["current_period_start"]
+                period_end = first["current_period_end"]
 
         return {
-            "id": subscription.id,
-            "customer_id": subscription.customer,
-            "status": subscription.status,
-            "current_period_start": subscription.current_period_start,
-            "current_period_end": subscription.current_period_end,
-            "cancel_at_period_end": subscription.cancel_at_period_end,
-            "canceled_at": subscription.canceled_at,
+            "id": value(subscription, "id"),
+            "customer_id": self._catalog_id(value(subscription, "customer")),
+            "status": value(subscription, "status"),
+            "current_period_start": period_start,
+            "current_period_end": period_end,
+            "cancel_at_period_end": value(subscription, "cancel_at_period_end"),
+            "canceled_at": value(subscription, "canceled_at"),
             "items": items,
-            "metadata": subscription.metadata if hasattr(subscription, "metadata") else {},
+            "metadata": self._catalog_dict(value(subscription, "metadata", {})),
         }
 
     # Payment Methods

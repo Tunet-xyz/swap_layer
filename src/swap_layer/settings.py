@@ -78,9 +78,11 @@ class _ConfigModel(BaseModel):
 class StripeConfig(_ConfigModel):
     """Stripe payment provider configuration."""
 
-    secret_key: str = Field(..., description="Stripe secret key (required)")
+    secret_key: str = Field(..., description="Stripe secret key (required)", repr=False)
     publishable_key: str | None = Field(None, description="Stripe publishable key (optional)")
-    webhook_secret: str | None = Field(None, description="Stripe webhook signing secret")
+    webhook_secret: str | None = Field(
+        None, description="Stripe webhook signing secret", repr=False
+    )
 
     @field_validator("secret_key")
     @classmethod
@@ -94,7 +96,7 @@ class PayPalConfig(_ConfigModel):
     """PayPal payment provider configuration."""
 
     client_id: str = Field(..., description="PayPal REST app client ID")
-    client_secret: str = Field(..., description="PayPal REST app client secret")
+    client_secret: str = Field(..., description="PayPal REST app client secret", repr=False)
     webhook_id: str | None = Field(None, description="PayPal webhook ID for signature verification")
     sandbox: bool = Field(True, description="Use the PayPal sandbox API")
 
@@ -102,9 +104,11 @@ class PayPalConfig(_ConfigModel):
 class SquareConfig(_ConfigModel):
     """Square payment provider configuration."""
 
-    access_token: str = Field(..., description="Square access token")
+    access_token: str = Field(..., description="Square access token", repr=False)
     location_id: str = Field(..., description="Square location ID")
-    webhook_signature_key: str | None = Field(None, description="Square webhook signature key")
+    webhook_signature_key: str | None = Field(
+        None, description="Square webhook signature key", repr=False
+    )
     webhook_notification_url: str | None = Field(
         None, description="Square webhook notification URL"
     )
@@ -116,7 +120,7 @@ class TwilioConfig(_ConfigModel):
     """Twilio SMS provider configuration."""
 
     account_sid: str = Field(..., description="Twilio Account SID")
-    auth_token: str = Field(..., description="Twilio Auth Token")
+    auth_token: str = Field(..., description="Twilio Auth Token", repr=False)
     from_number: str = Field(..., description="Twilio phone number (E.164 format)")
 
     @field_validator("from_number")
@@ -140,7 +144,9 @@ class SNSConfig(_ConfigModel):
     aws_access_key_id: str | None = Field(
         None, description="AWS Access Key ID (optional if using IAM)"
     )
-    aws_secret_access_key: str | None = Field(None, description="AWS Secret Access Key")
+    aws_secret_access_key: str | None = Field(
+        None, description="AWS Secret Access Key", repr=False
+    )
     region_name: str = Field("us-east-1", description="AWS region")
     sender_id: str | None = Field(None, description="SMS Sender ID")
 
@@ -228,10 +234,12 @@ def _is_fernet_key(value: str) -> bool:
 class WorkOSAppConfig(_ConfigModel):
     """WorkOS application configuration."""
 
-    api_key: str = Field(..., description="WorkOS API key")
+    api_key: str = Field(..., description="WorkOS API key", repr=False)
     client_id: str = Field(..., description="WorkOS client ID")
     cookie_password: str = Field(
-        ..., description="Fernet key that seals WorkOS sessions (32 url-safe base64-encoded bytes)"
+        ...,
+        description="Fernet key that seals WorkOS sessions (32 url-safe base64-encoded bytes)",
+        repr=False,
     )
 
     @field_validator("cookie_password")
@@ -247,12 +255,14 @@ class Auth0AppConfig(_ConfigModel):
     """Auth0 application configuration."""
 
     client_id: str = Field(..., description="Auth0 client ID")
-    client_secret: str = Field(..., description="Auth0 client secret")
+    client_secret: str = Field(..., description="Auth0 client secret", repr=False)
     management_client_id: str | None = Field(
         None, description="Machine-to-machine client ID for the Management API (optional)"
     )
     management_client_secret: str | None = Field(
-        None, description="Machine-to-machine client secret for the Management API (optional)"
+        None,
+        description="Machine-to-machine client secret for the Management API (optional)",
+        repr=False,
     )
 
 
@@ -285,10 +295,12 @@ class IdentityVerificationConfig(_ConfigModel):
 
     provider: Literal["stripe"] = Field("stripe", description="Verification provider to use")
     stripe_secret_key: str | None = Field(
-        None, description="Stripe secret key for identity verification"
+        None, description="Stripe secret key for identity verification", repr=False
     )
     stripe_webhook_secret: str | None = Field(
-        None, description="Stripe signing secret for Identity webhooks (whsec_...)"
+        None,
+        description="Stripe signing secret for Identity webhooks (whsec_...)",
+        repr=False,
     )
 
     @model_validator(mode="after")
