@@ -122,12 +122,7 @@ class SquarePaymentProvider(PaymentProviderAdapter):
     def _handle_response(self, response) -> None:
         if response.status_code < 400:
             return
-        try:
-            payload = response.json()
-            errors = payload.get("errors") or []
-            message = errors[0].get("detail") or errors[0].get("code") if errors else response.text
-        except ValueError:
-            message = response.text
+        message = self._error_message(response)
 
         if response.status_code == 404:
             raise ResourceNotFoundError(message)
@@ -136,6 +131,26 @@ class SquarePaymentProvider(PaymentProviderAdapter):
         if response.status_code in {408, 409, 429, 500, 502, 503, 504}:
             raise PaymentConnectionError(message)
         raise PaymentError(message)
+
+    @staticmethod
+    def _error_message(response) -> str:
+        """Square's first error detail or code, else the response text, as a string.
+
+        Payment errors take one string message, so an error entry without a
+        detail or code, or a body that is not Square's error shape, must not
+        become ``None`` or a dict.
+        """
+        try:
+            payload = response.json()
+        except ValueError:
+            payload = None
+        errors = payload.get("errors") if isinstance(payload, dict) else None
+        first = errors[0] if isinstance(errors, list) and errors else None
+        if isinstance(first, dict):
+            message = first.get("detail") or first.get("code")
+            if message:
+                return str(message)
+        return str(getattr(response, "text", "") or f"Square returned HTTP {response.status_code}")
 
     @staticmethod
     def _idempotency_key(idempotency_key: str | None = None) -> str:

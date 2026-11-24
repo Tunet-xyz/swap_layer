@@ -97,11 +97,7 @@ class PayPalPaymentProvider(PaymentProviderAdapter):
     def _handle_response(self, response) -> None:
         if response.status_code < 400:
             return
-        try:
-            payload = response.json()
-            message = payload.get("message") or payload.get("name") or response.text
-        except ValueError:
-            message = response.text
+        message = self._error_message(response)
 
         if response.status_code == 404:
             raise ResourceNotFoundError(message)
@@ -110,6 +106,23 @@ class PayPalPaymentProvider(PaymentProviderAdapter):
         if response.status_code in {408, 409, 429, 500, 502, 503, 504}:
             raise PaymentConnectionError(message)
         raise PaymentError(message)
+
+    @staticmethod
+    def _error_message(response) -> str:
+        """PayPal's error message or name, else the response text, as a string.
+
+        Payment errors take one string message, so a body that is not PayPal's
+        error shape must not become a dict or ``None``.
+        """
+        try:
+            payload = response.json()
+        except ValueError:
+            payload = None
+        if isinstance(payload, dict):
+            message = payload.get("message") or payload.get("name")
+            if message:
+                return str(message)
+        return str(getattr(response, "text", "") or f"PayPal returned HTTP {response.status_code}")
 
     @classmethod
     def _money(cls, amount: Decimal | int | str, currency: str) -> dict[str, str]:
