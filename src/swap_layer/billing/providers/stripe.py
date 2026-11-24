@@ -439,6 +439,14 @@ class StripePaymentProvider(PaymentProviderAdapter):
             return dict(normalized) if isinstance(normalized, dict) else {}
         return {}
 
+    @staticmethod
+    def _webhook_data(value: Any) -> Any:
+        """Return a webhook event's object as plain dicts and lists."""
+        if value is None or isinstance(value, dict):
+            return value
+        to_dict = getattr(value, "to_dict", None)
+        return to_dict() if callable(to_dict) else value
+
     @classmethod
     def _catalog_id(cls, value: Any) -> str | None:
         if isinstance(value, str):
@@ -1718,7 +1726,10 @@ class StripePaymentProvider(PaymentProviderAdapter):
                 event_data = event_data.object
             return {
                 "type": event.type,
-                "data": event_data,
+                # Plain dicts, as PayPal and Square return: stripe-python 16
+                # objects are not dicts and have no .get(). The Event itself
+                # stays available under "object".
+                "data": self._webhook_data(event_data),
                 "id": event.id,
                 "object": event,
                 "thin": thin,

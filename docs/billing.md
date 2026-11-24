@@ -27,6 +27,8 @@ PayPal configuration is `billing={'provider':'paypal','paypal':{'client_id':...,
 | Entitlements and catalog discovery | Stripe-specific extensions | No equivalent common guarantee |
 | Webhook verification | Stripe signature and endpoint secret | PayPal verification API with the `PAYPAL-*` headers; Square signature (with the notification URL) and a signed `created_at` |
 
+Stripe `verify_webhook_signature(payload, signature)` checks the `Stripe-Signature` header against the configured `webhook_secret` (without one it raises `ValueError`) and returns the event's `type` and `id`, its object under `data` as plain dicts and lists, and the Stripe `Event` under `object`.
+
 PayPal `verify_webhook_signature(payload, signature, headers=request.headers)` reads `PAYPAL-AUTH-ALGO`, `PAYPAL-CERT-URL`, `PAYPAL-TRANSMISSION-ID`, `PAYPAL-TRANSMISSION-SIG` and `PAYPAL-TRANSMISSION-TIME` from the request headers (Django's `request.headers` or `request.META`), using `signature` as the transmission signature when the headers lack it; a missing header raises, and `payload` may be bytes or text. It requires a `webhook_id` (configured, or passed as `webhook_secret`) and fails closed: any verification status other than `SUCCESS` raises.
 
 Square `verify_webhook_signature` rejects a missing or malformed signature as invalid, and also needs the event's signed `created_at`: at most 25 hours old (Square retries deliveries for 24 hours) and at most 5 minutes in the future. Construct `SquarePaymentProvider(..., webhook_max_age=None)` to turn the age check off. Keep processed `event_id` values for at least 25 hours and pass them to `dispatch_webhook_event(event, handlers, processed_event_ids=...)`.

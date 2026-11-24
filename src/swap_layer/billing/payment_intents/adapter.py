@@ -313,7 +313,7 @@ class PaymentAdapter:
         Verify and parse a webhook payload.
 
         Returns:
-            Dict with keys: type, data (the event object)
+            Dict with keys: type, data (the event's object, as a plain dict)
         """
         pass
 

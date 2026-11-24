@@ -227,6 +227,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `repr()` and `str()` of the settings models leave out credentials: secret
   keys, client secrets, tokens, webhook signing secrets and the WorkOS cookie
   password. For example, `repr(settings.billing)` showed the Stripe secret key.
+- Stripe `verify_webhook_signature` returns the event's object under `data` as
+  plain dicts and lists, as PayPal and Square do. It returned a stripe-python
+  object, which in stripe-python 16 has no `.get()`, so a handler that read
+  `event["data"].get(...)` raised `AttributeError`. The Stripe `Event` stays
+  under `object`.
 
 ## [1.0.0] - 2026-11-05 (tagged; not yet published to PyPI)
 
