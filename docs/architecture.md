@@ -12,4 +12,4 @@ The MCP server (`swaplayer-mcp`) is a caller-owned stdio process that serves the
 
 Applications own concrete Django models/migrations, callback URLs and session checks, provider account policies, queueing, retry/idempotency design, privacy retention and end-user authorization. Keep those controls at the application boundary; do not infer authorization from normalized provider data.
 
-See the current [module guides](README.md), [security policy](../SECURITY.md), and [release standards](../VERSIONING.md). Older implementation notes describe previous designs and planned features rather than the 1.0 compatibility contract.
+See the current [module guides](README.md), [security policy](../SECURITY.md), and [release standards](../VERSIONING.md). Older implementation notes describe previous designs and planned features rather than the 1.x compatibility contract.

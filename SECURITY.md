@@ -4,13 +4,13 @@
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 1.0.x   | :white_check_mark: |
-| < 1.0   | :x:                |
+| 1.1.x   | :white_check_mark: |
+| < 1.1   | :x:                |
 
-Security fixes ship as new 1.0.x releases on
-[PyPI](https://pypi.org/project/SwapLayer/). SwapLayer 1.0.0 is tagged (`v1.0.0`)
-but not yet published there; PyPI still serves 0.3.0, and versions below 1.0
-are not supported.
+Security fixes ship as new 1.1.x releases on
+[PyPI](https://pypi.org/project/SwapLayer/). Earlier releases on PyPI (0.1.0 to
+0.3.0) are not supported, and neither is the `v1.0.0` tag, which was never
+published there; upgrade to 1.1.x.
 
 ## Reporting a vulnerability
 

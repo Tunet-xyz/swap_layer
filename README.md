@@ -34,7 +34,7 @@ to `SWAPLAYER`. Environment configuration uses complete paths such as
 `SWAPLAYER_IDENTITY_WORKOS_APPS_DEFAULT_API_KEY`. A misspelt `SWAPLAYER_`
 variable or an unknown settings key fails validation.
 
-## Version 1.0
+## Version 1.1
 
 The 1.x compatibility promise covers documented configuration, factory names,
 adapter method names, and normalized result fields. Underscore-prefixed
@@ -43,15 +43,13 @@ promise. Vendor behavior and access policies remain governed by the provider.
 Python 3.10–3.13 is tested, and the Django integrations support Django 4.2–6.x
 (`Django<7`).
 
-SwapLayer 1.0.0 is tagged (`v1.0.0`) but not yet published to PyPI, which still
-serves 0.3.0. The tag predates the changes listed under Unreleased in the
-changelog, so until the next release is published, install from `main`, adding
-extras as needed:
-
-```bash
-pip install "SwapLayer @ git+https://github.com/Tunet-xyz/swap_layer@main"
-pip install "SwapLayer[stripe] @ git+https://github.com/Tunet-xyz/swap_layer@main"
-```
+SwapLayer 1.1.0 is published on [PyPI](https://pypi.org/project/SwapLayer/),
+where the previous release was 0.3.0, and the 1.x compatibility promise starts
+with it. Version 1.0.0 was tagged (`v1.0.0`) but never published to PyPI, and
+its changes ship in 1.1.0. If you installed the
+`v1.0.0` tag from GitHub, read the 1.1.0 changelog entry first: Django app
+labels and MCP tool names changed, and several settings, storage, OAuth,
+webhook, and billing-amount checks reject input that 1.0.0 accepted.
 
 Upgrading from 0.x: replace root `email`/`sms` settings with `communications`;
 use `send_email`, `send_sms`, and the storage adapter's
@@ -65,7 +63,9 @@ provider-specific amount conventions when migrating. Tenant scopes must contain
 `{organization_id}` and reject unsafe paths; omitted contexts no longer grant
 system access. Django app labels are `swap_layer_<area>` (for example
 `swap_layer_billing`), a WorkOS `cookie_password` must be a Fernet key, and the
-MCP tools have new names. See the [changelog](https://github.com/Tunet-xyz/swap_layer/blob/main/CHANGELOG.md).
+MCP tools have new names. `swaplayer-mcp` reads the `SWAPLAYER_` environment
+variables, and uses `DJANGO_SETTINGS_MODULE` only once a tool, such as the email
+test, loads Django settings. See the [changelog](https://github.com/Tunet-xyz/swap_layer/blob/main/CHANGELOG.md).
 
 ## Installation
 

@@ -1,4 +1,4 @@
-> Historical module implementation notes from the 0.x series. For the current 1.0 configuration, supported providers, and compatibility contract, use the [current guides](https://github.com/Tunet-xyz/swap_layer/blob/main/docs/README.md). Planned or stub surfaces below are not additional 1.0 guarantees.
+> Historical module implementation notes from the 0.x series. For the current configuration, supported providers, and 1.x compatibility contract, use the [current guides](https://github.com/Tunet-xyz/swap_layer/blob/main/docs/README.md). Planned or stub surfaces below are not additional 1.x guarantees.
 
 # Identity Management API
 

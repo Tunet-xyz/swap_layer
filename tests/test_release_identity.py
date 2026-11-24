@@ -17,7 +17,7 @@ def test_package_runtime_and_contract_versions_match():
     packaged = root / "src/swap_layer/mcp/agent-contract.json"
     public = root / "mcp/agent-contract.json"
     assert packaged.read_bytes() == public.read_bytes()
-    assert metadata.version("SwapLayer") == swap_layer.__version__ == "1.0.0"
+    assert metadata.version("SwapLayer") == swap_layer.__version__ == "1.1.0"
     assert json.loads(public.read_text(encoding="utf-8"))["server"]["version"] == swap_layer.__version__
     assert create_mcp_server().create_initialization_options().server_version == swap_layer.__version__
 
@@ -54,5 +54,5 @@ def test_public_stdio_recovers_and_reports_release_version():
     result = subprocess.run([sys.executable, str(script)], input=messages, capture_output=True, text=True, encoding="utf-8", timeout=180, check=True)
     responses = [json.loads(line) for line in result.stdout.splitlines()]
     assert "error" in responses[0]
-    assert responses[1]["result"]["serverInfo"]["version"] == "1.0.0"
+    assert responses[1]["result"]["serverInfo"]["version"] == "1.1.0"
     assert responses[2]["id"] == 3 and responses[2]["result"] == {}

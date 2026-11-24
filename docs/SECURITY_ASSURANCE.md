@@ -10,9 +10,15 @@ or live certification against any provider.
 | --- | --- | --- |
 | Local storage keys reject traversal, absolute paths, symlinks, and junctions | `storage/providers/local.py` | `tests/test_release_security.py` |
 | Scoped storage needs an explicit context and checks permissions | `storage/security.py` | `tests/test_release_security.py`, `tests/test_provider_boundaries.py` |
-| PayPal and Square webhooks are verified before use | `billing/providers/paypal.py`, `billing/providers/square.py` | `tests/test_paypal_provider.py`, `tests/test_square_provider.py` |
-| Credential fields are masked in errors, and configuration output shows only public fields | `exceptions.py`, `_redaction.py` | `tests/test_error_system.py`, `tests/test_config_output.py`, `tests/test_release_security.py` |
-| SwapLayer's own HTTP clients use timeouts | `http.py`, the PayPal and Square clients | `tests/test_provider_boundaries.py`, `tests/test_release_security.py` |
+| Storage contexts are frozen, accept only plain identity segments and placeholders they set, and grant unscoped access only through `system_context()` | `storage/security.py` | `tests/test_storage_security_context.py` |
+| Webhooks are verified before use: a missing secret or malformed signature is refused, Square events must be recent, and SMTP payloads are never verified | `billing/providers/stripe.py`, `billing/providers/paypal.py`, `billing/providers/square.py`, `identity/verification/providers/stripe.py`, `communications/email/providers/smtp.py` | `tests/test_stripe_webhook_events.py`, `tests/test_paypal_provider.py`, `tests/test_square_provider.py`, `tests/test_paypal_square_guards.py`, `tests/test_identity_webhook_secret.py`, `tests/test_smtp_webhooks.py` |
+| PayPal and Square invoice lists return only the requested customer's invoices | `billing/providers/paypal.py`, `billing/providers/square.py` | `tests/test_invoice_customer_scope.py` |
+| WorkOS sign-in callbacks need their session's OAuth state, and WorkOS cookie passwords are Fernet keys | `identity/platform/providers/workos/client.py`, `settings.py` | `tests/test_workos_oauth_state.py`, `tests/test_workos_cookie_password.py` |
+| Identifiers in provider REST paths are percent-encoded | `http.py` | `tests/test_request_path_encoding.py` |
+| Credential fields are masked in errors, configuration output shows only public fields, and settings `repr()` and `str()` leave credentials out | `exceptions.py`, `_redaction.py`, `settings.py` | `tests/test_error_system.py`, `tests/test_config_output.py`, `tests/test_release_security.py`, `tests/test_settings_repr_secrets.py` |
+| Settings reject unknown keys and misspelt `SWAPLAYER_` variables | `settings.py` | `tests/test_settings_strictness.py` |
+| Amounts are whole minor units of at most 18 digits | `billing/adapter.py` | `tests/test_billing_amounts.py` |
+| SwapLayer's own HTTP clients, SMTP email sends, and Twilio use timeouts | `http.py`, the PayPal and Square clients, the email and Twilio providers | `tests/test_provider_boundaries.py`, `tests/test_release_security.py`, `tests/test_provider_timeouts.py`, `tests/test_paypal_square_guards.py` |
 | MCP tools carry read-only annotations that match what they do | `mcp/server.py` | `tests/test_mcp_server.py` |
 | Optional providers import lazily | provider factories | `tests/test_optional_dependencies.py`, `tests/test_import_without_django.py` |
 | One release identity across metadata and both copies of the MCP contract | `pyproject.toml`, the contracts | `tests/test_release_identity.py` |

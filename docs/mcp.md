@@ -1,6 +1,6 @@
 # MCP server
 
-`swaplayer-mcp` is SwapLayer's local stdio MCP server. `pip install SwapLayer` installs it, and it needs no MCP SDK. `python -m swap_layer.mcp` starts the same server, and so does `python mcp/server.py` from a source checkout. Package and server version are 1.0.0.
+`swaplayer-mcp` is SwapLayer's local stdio MCP server. `pip install SwapLayer` installs it, and it needs no MCP SDK. `python -m swap_layer.mcp` starts the same server, and so does `python mcp/server.py` from a source checkout. Package and server version are 1.1.0.
 
 This is a local process controlled by its caller. There is no hosted MCP endpoint, shared provider credential, paid agent account, or owner token supplied by the package. GitHub issues, public PRs and comments cannot authorize repository jobs or the owner's agents.
 
@@ -15,7 +15,7 @@ export SWAPLAYER_STORAGE_MEDIA_ROOT=./media
 swaplayer-mcp
 ```
 
-Every settings field has an environment path, identity and verification included (for example `SWAPLAYER_IDENTITY_WORKOS_APPS_DEFAULT_API_KEY`, `SWAPLAYER_VERIFICATION_STRIPE_SECRET_KEY` and `SWAPLAYER_RAISE_ON_ERROR`), and a misspelt `SWAPLAYER_` variable fails validation. The command does not read `DJANGO_SETTINGS_MODULE`. Programmatic callers may instead configure SwapLayer (`swap_layer.configure(...)`, or Django settings after `django.setup()`) before calling `main()` or `create_mcp_server()`. Provider extras such as `SwapLayer[stripe]` are separate. [`mcp-config-example.json`](mcp-config-example.json) and [`examples/vscode-mcp.json`](../examples/vscode-mcp.json) show client settings, the second in VS Code's `servers` format.
+Every settings field has an environment path, identity and verification included (for example `SWAPLAYER_IDENTITY_WORKOS_APPS_DEFAULT_API_KEY`, `SWAPLAYER_VERIFICATION_STRIPE_SECRET_KEY` and `SWAPLAYER_RAISE_ON_ERROR`), and a misspelt `SWAPLAYER_` variable fails validation. The command does not call `django.setup()`: it reads the `SWAPLAYER_` variables while Django settings are unconfigured. The email test tool (`send_test_email`) needs Django settings; if `DJANGO_SETTINGS_MODULE` is set, Django loads that module the first time a tool uses Django, and from then on SwapLayer reads that module (its `SWAPLAYER` setting, or else its legacy settings) instead of the `SWAPLAYER_` variables. Programmatic callers may instead configure SwapLayer (`swap_layer.configure(...)`, or Django settings after `django.setup()`) before calling `main()` or `create_mcp_server()`. Provider extras such as `SwapLayer[stripe]` are separate. [`mcp-config-example.json`](mcp-config-example.json) and [`examples/vscode-mcp.json`](../examples/vscode-mcp.json) show client settings, the second in VS Code's `servers` format.
 
 ## Contract, resources and prompts
 
